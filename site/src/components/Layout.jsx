@@ -1,0 +1,85 @@
+import { useEffect, useState } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+
+const NAV = [
+  ["/", "Accueil"],
+  ["/destinations", "Nos destinations"],
+  ["/agence", "L'agence"],
+  ["/contact", "Devis gratuit"],
+];
+
+function Header() {
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => setOpen(false), [pathname]); // ferme le menu mobile après navigation
+
+  return (
+    <header className="site-header">
+      <div className="wrap">
+        <Link className="logo" to="/"><b>DÉTOUR</b><small>Voyages insolites. Partez autrement.</small></Link>
+        <nav className={"main-nav" + (open ? " open" : "")} id="nav" aria-label="Navigation principale">
+          {NAV.map(([to, label]) => (
+            <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => (isActive ? "active" : "")}>
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+        <Link className="pill" to="/contact">Devis gratuit</Link>
+        <button className="menu-toggle" type="button" aria-label="Menu" aria-expanded={open}
+          aria-controls="nav" onClick={() => setOpen((o) => !o)}>☰</button>
+      </div>
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="site-footer">
+      <div className="wrap">
+        <div className="foot">
+          <div>
+            <Link className="logo" to="/"><b>DÉTOUR</b></Link>
+            <p>Voyages insolites et week-ends sur mesure depuis 2012. Nos conseillers passionnés composent votre séjour selon vos envies.</p>
+          </div>
+          <div>
+            <h3>Liens utiles</h3>
+            <ul>
+              {NAV.map(([to, label]) => <li key={to}><Link to={to}>{label}</Link></li>)}
+              <li><a href="#">Mentions légales</a></li>
+              <li><a href="#">CGV</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3>Contact</h3>
+            <ul>
+              <li>12 rue des Écluses, 44000 Nantes</li>
+              <li><a href="tel:+33240000000">02 40 00 00 00</a></li>
+              <li><a href="mailto:contact@detour-voyages.fr">contact@detour-voyages.fr</a></li>
+              <li>Mardi au samedi, 10h-19h</li>
+            </ul>
+          </div>
+        </div>
+        <p className="copy">© {new Date().getFullYear()} DÉTOUR Voyages. Tous droits réservés.</p>
+      </div>
+    </footer>
+  );
+}
+
+export default function Layout() {
+  const { pathname, hash } = useLocation();
+
+  /* Les liens d'ancre (/destinations#lyon) et le retour en haut de page ne sont pas gérés par le routeur. */
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+    else window.scrollTo(0, 0);
+  }, [pathname, hash]);
+
+  return (
+    <>
+      <a className="skip" href="#contenu">Aller au contenu</a>
+      <Header />
+      <Outlet />
+      <Footer />
+    </>
+  );
+}
