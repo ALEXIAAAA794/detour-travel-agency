@@ -1,0 +1,30 @@
+# DÉTOUR — Assistant IA
+
+## État actuel
+
+- Serveur Express accessible localement sur le port 3001.
+- Route GET /api/support/health testée avec succès.
+- Lecture des corps JSON configurée avec une limite de 16 Kio.
+- Dépendances et fichiers secrets exclus de Git.
+
+## Démarrage
+
+Depuis le dossier support-ia :
+
+    npm ci
+    node server.js
+
+## Vérification
+
+Ouvrir http://127.0.0.1:3001/api/support/health
+
+Réponse attendue :
+
+    {"status":"ok","service":"detour-support-ia"}
+
+## Fonctionnalités à développer
+
+- Réponses multilingues fondées sur la FAQ et le catalogue.
+- Recueil des souhaits de voyage et validation du récapitulatif.
+- Enregistrement et transmission des demandes au conseiller.
+- Interface de chat et orientation vers le contact humain.
