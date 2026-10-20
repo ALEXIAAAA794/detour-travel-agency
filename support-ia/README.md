@@ -69,3 +69,14 @@ a été testé en situation d’échec ; sa réponse IA réussie reste à vérif
 Démarrage avec la configuration locale, depuis support-ia :
 
     node --env-file=.env server.js
+
+    ## Questionnaire de voyage
+
+- Six questions : destination, dates et durée, participants,
+  budget, activités et expérience recherchée.
+- Questionnaire guidé fonctionnant sans appel à Gemini.
+- Récapitulatif affiché à la fin du parcours.
+- Possibilité de recommencer en conservant les messages précédents.
+- Brouillon conservé uniquement en mémoire dans la page :
+  un rechargement l’efface.
+- Aucune demande transmise ni réservation effectuée à ce stade.

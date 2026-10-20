@@ -138,6 +138,23 @@
     <a href="/">← Retour à l’accueil</a>
     <h1>Votre assistant DÉTOUR</h1>
     <p>Posez une question ou parlez-nous de votre envie de voyage.</p>
+    <button id="preparer-voyage" type="button">
+  Préparer mon voyage
+</button>
+
+<p>
+  Préparez votre demande avec un questionnaire guidé.
+  Aucune réservation n’est effectuée à cette étape.
+</p>
+
+<section id="recapitulatif" hidden aria-labelledby="titre-recapitulatif">
+  <h2 id="titre-recapitulatif">Votre projet de voyage</h2>
+  <div id="details-voyage"></div>
+  <p id="etat-demande">
+    Brouillon : votre demande n’a pas encore été envoyée.
+  </p>
+  <button id="modifier-voyage" type="button">Modifier mes réponses</button>
+</section>
 
     <div id="messages" role="log" aria-label="Conversation"></div>
 
