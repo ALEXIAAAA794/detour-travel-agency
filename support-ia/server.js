@@ -11,6 +11,40 @@ app.get("/api/support/health", (req, res) => {
   });
 });
 
+app.post("/api/support/messages", (req, res) => {
+  const donnees = req.body;
+
+  if (
+    donnees === null ||
+    typeof donnees !== "object" ||
+    Array.isArray(donnees) ||
+    typeof donnees.message !== "string"
+  ) {
+    return res.status(400).json({
+      error: {
+        code: "INVALID_MESSAGE",
+        message: "La requête doit contenir un message de type texte."
+      }
+    });
+  }
+
+  const message = donnees.message.trim();
+
+  if (message.length === 0 || message.length > 2000) {
+    return res.status(400).json({
+      error: {
+        code: "INVALID_MESSAGE",
+        message: "Le message doit contenir entre 1 et 2 000 caractères."
+      }
+    });
+  }
+
+  return res.status(200).json({
+    status: "validated",
+    receivedMessage: message
+  });
+});
+
 app.listen(3001, "127.0.0.1", () => {
   console.log("Support IA démarré sur http://127.0.0.1:3001");
 });
