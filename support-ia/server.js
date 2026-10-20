@@ -2,6 +2,14 @@ const express = require("express");
 
 const app = express();
 
+const path = require("node:path");
+
+app.use(express.json({ limit: "16kb" }));
+
+app.use(express.static(path.join(__dirname, "../site")));
+
+const { interrogerIA } = require("./gemini");
+
 app.use(express.json({ limit: "16kb" }));
 
 app.get("/api/support/health", (req, res) => {
@@ -11,7 +19,7 @@ app.get("/api/support/health", (req, res) => {
   });
 });
 
-app.post("/api/support/messages", (req, res) => {
+app.post("/api/support/messages", async (req, res) => {
   const donnees = req.body;
 
   if (
@@ -39,10 +47,25 @@ app.post("/api/support/messages", (req, res) => {
     });
   }
 
-  return res.status(200).json({
-    status: "validated",
-    receivedMessage: message
-  });
+    try {
+    const texte = await interrogerIA(message);
+
+    return res.status(200).json({
+      reply: {
+        role: "assistant",
+        content: texte
+      }
+    });
+  } catch (erreur) {
+    console.error("Échec de l’appel Gemini.");
+
+    return res.status(503).json({
+      error: {
+        code: "AI_UNAVAILABLE",
+        message: "L’assistant est temporairement indisponible."
+      }
+    });
+  }
 });
 
 app.use((erreur, req, res, next) => {

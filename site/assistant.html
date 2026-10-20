@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DÉTOUR — Assistant voyage</title>
+  <style>
+  :root {
+    --color-primary: #142B3A;
+    --color-background: #F8F6F2;
+    --color-sand: #D8C3A5;
+    --color-white: #FFFFFF;
+    --color-muted: #647985;
+    --color-accent: #C58B62;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: 32px 16px;
+    background: var(--color-background);
+    color: var(--color-primary);
+    font-family: Inter, Arial, sans-serif;
+    line-height: 1.6;
+  }
+
+  main {
+    max-width: 760px;
+    margin: auto;
+    padding: 32px;
+    background: var(--color-white);
+    border: 1px solid var(--color-sand);
+    border-radius: 16px;
+  }
+
+  h1 {
+    font-family: "Playfair Display", Georgia, serif;
+    line-height: 1.2;
+  }
+
+  a {
+    color: var(--color-primary);
+    text-underline-offset: 4px;
+  }
+
+  #messages {
+    min-height: 240px;
+    max-height: 460px;
+    overflow-y: auto;
+    margin: 24px 0;
+    padding: 8px;
+    border: 1px solid var(--color-sand);
+    border-radius: 12px;
+  }
+
+  .message {
+    max-width: 90%;
+    margin: 12px 0;
+    padding: 14px 16px;
+    background: var(--color-background);
+    border-radius: 12px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .utilisateur {
+    margin-left: auto;
+    background: var(--color-sand);
+  }
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--color-white);
+    color: var(--color-primary);
+    border: 1px solid var(--color-muted);
+    border-radius: 10px;
+    font: inherit;
+    resize: vertical;
+  }
+
+  button {
+    margin-top: 12px;
+    padding: 12px 24px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border: 1px solid var(--color-primary);
+    border-radius: 999px;
+    font: inherit;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  button:hover {
+    opacity: 0.9;
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  textarea:focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 4px;
+  }
+
+  #statut {
+    min-height: 24px;
+    color: var(--color-primary);
+  }
+
+  @media (max-width: 600px) {
+    main {
+      padding: 20px;
+    }
+
+    .message {
+      max-width: 100%;
+    }
+  }
+</style>
+
+</head>
+<body>
+  <main>
+    <a href="/">← Retour à l’accueil</a>
+    <h1>Votre assistant DÉTOUR</h1>
+    <p>Posez une question ou parlez-nous de votre envie de voyage.</p>
+
+    <div id="messages" role="log" aria-label="Conversation"></div>
+
+    <form id="formulaire">
+      <label for="message">Votre message</label>
+      <textarea id="message" rows="3" maxlength="2000" required></textarea>
+      <button id="envoyer" type="submit">Envoyer</button>
+    </form>
+
+    <p id="statut" role="status"></p>
+    <p>Besoin d’un conseiller ? <a href="/contact.html">Nous contacter</a></p>
+  </main>
+
+  <script src="/js/assistant.js"></script>
+</body>
+</html>

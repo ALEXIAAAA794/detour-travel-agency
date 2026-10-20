@@ -53,3 +53,19 @@ Tests manuels réalisés :
 - Message valide après le refus : accepté sans redémarrage du serveur.
 
 Les erreurs de réception sont renvoyées au format JSON.
+
+## Interface de chat
+
+Page accessible sur /assistant.html depuis le serveur Express.
+
+- Interface conforme à la palette DÉTOUR.
+- Messages affichés comme du texte.
+- Bouton désactivé pendant la requête et réactivé ensuite.
+- Message d’indisponibilité et lien de contact en cas d’échec.
+
+Un appel direct à Gemini a réussi. Le parcours depuis le navigateur
+a été testé en situation d’échec ; sa réponse IA réussie reste à vérifier.
+
+Démarrage avec la configuration locale, depuis support-ia :
+
+    node --env-file=.env server.js
