@@ -44,3 +44,12 @@ Tests manuels réalisés :
 
 La réponse actuelle confirme uniquement la validation du message.
 Gemini n’est pas encore connecté à cette route.
+
+## Gestion des erreurs de réception
+
+Tests manuels réalisés :
+- JSON mal formé : HTTP 400 avec INVALID_REQUEST.
+- Corps JSON supérieur à 16 Kio : HTTP 413 avec PAYLOAD_TOO_LARGE.
+- Message valide après le refus : accepté sans redémarrage du serveur.
+
+Les erreurs de réception sont renvoyées au format JSON.

@@ -45,6 +45,39 @@ app.post("/api/support/messages", (req, res) => {
   });
 });
 
+app.use((erreur, req, res, next) => {
+  if (res.headersSent) {
+    return next(erreur);
+  }
+
+  if (erreur.type === "entity.too.large") {
+    return res.status(413).json({
+      error: {
+        code: "PAYLOAD_TOO_LARGE",
+        message: "Le corps de la requête dépasse la limite de 16 Kio."
+      }
+    });
+  }
+
+  if (erreur.type === "entity.parse.failed") {
+    return res.status(400).json({
+      error: {
+        code: "INVALID_REQUEST",
+        message: "Le corps de la requête doit être un JSON valide."
+      }
+    });
+  }
+
+  console.error("Erreur interne du support IA.");
+
+  return res.status(500).json({
+    error: {
+      code: "INTERNAL_ERROR",
+      message: "Une erreur interne est survenue."
+    }
+  });
+});
+
 app.listen(3001, "127.0.0.1", () => {
   console.log("Support IA démarré sur http://127.0.0.1:3001");
 });
