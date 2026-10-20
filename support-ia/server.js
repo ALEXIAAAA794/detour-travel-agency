@@ -4,13 +4,13 @@ const app = express();
 
 const path = require("node:path");
 
+const { demandesRouter } = require("./demandes");
+
 app.use(express.json({ limit: "16kb" }));
 
 app.use(express.static(path.join(__dirname, "../site")));
 
 const { interrogerIA } = require("./gemini");
-
-app.use(express.json({ limit: "16kb" }));
 
 app.get("/api/support/health", (req, res) => {
   res.status(200).json({
@@ -67,6 +67,8 @@ app.post("/api/support/messages", async (req, res) => {
     });
   }
 });
+
+app.use("/api/support/demandes", demandesRouter);
 
 app.use((erreur, req, res, next) => {
   if (res.headersSent) {

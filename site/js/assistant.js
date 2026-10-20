@@ -64,11 +64,22 @@ let etapeVoyage = -1;
 let projetVoyage = {};
 
 function commencerVoyage() {
-  if (bouton.disabled) return;
+  if (bouton.disabled || envoiEnCours) return;
 
   projetVoyage = {};
   etapeVoyage = 0;
+
   recapitulatif.hidden = true;
+  detailsVoyage.replaceChildren();
+
+  boutonValider.disabled = false;
+  recapitulatif.querySelectorAll("input").forEach((champ) => {
+    champ.disabled = false;
+  });
+
+  etatDemande.textContent =
+    "Brouillon : votre demande n’a pas encore été envoyée.";
+
   statut.textContent = "";
   champMessage.value = "";
 
@@ -104,17 +115,57 @@ function traiterReponseVoyage(message) {
   etapeVoyage = -1;
   detailsVoyage.replaceChildren();
 
-  for (const question of questions) {
+   for (const question of questions) {
     const ligne = document.createElement("p");
-    ligne.textContent =
-      question.titre + " : " + projetVoyage[question.cle];
+
+    const etiquette = document.createElement("label");
+    etiquette.htmlFor = "voyage-" + question.cle;
+    etiquette.textContent = question.titre;
+
+    const champ = document.createElement("input");
+    champ.id = "voyage-" + question.cle;
+    champ.value = String(projetVoyage[question.cle]);
+    champ.maxLength = 2000;
+
+    if (question.cle === "participants") {
+      champ.type = "number";
+      champ.min = "1";
+      champ.step = "1";
+    } else {
+      champ.type = "text";
+    }
+
+    champ.style.width = "100%";
+    champ.style.padding = "12px";
+    champ.style.font = "inherit";
+    champ.style.boxSizing = "border-box";
+
+    champ.addEventListener("input", () => {
+      const valeur = champ.value.trim();
+
+      const valide = question.cle === "participants"
+        ? /^[1-9]\d*$/.test(valeur) &&
+          Number.isSafeInteger(Number(valeur))
+        : valeur.length > 0 && valeur.length <= 2000;
+
+      champ.setCustomValidity(
+        valide ? "" : "Veuillez renseigner une réponse valide."
+      );
+
+      projetVoyage[question.cle] =
+        question.cle === "participants" && valide
+          ? Number(valeur)
+          : valeur;
+    });
+
+    ligne.append(etiquette, champ);
     detailsVoyage.appendChild(ligne);
   }
 
   recapitulatif.hidden = false;
-  afficherMessage(
+    afficherMessage(
     "Assistant",
-    "Votre récapitulatif est prêt. Vous pouvez le relire ou reprendre vos réponses. Rien n’a encore été envoyé au conseiller."
+    "Votre récapitulatif est prêt. Vous pouvez modifier directement chaque réponse. Votre demande n’a pas encore été envoyée."
   );
   recapitulatif.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -166,5 +217,84 @@ formulaire.addEventListener("submit", async (evenement) => {
   } finally {
     bouton.disabled = false;
     champMessage.focus();
+  }
+});
+
+const boutonValider = document.querySelector("#valider-demande");
+const etatDemande = document.querySelector("#etat-demande");
+
+let envoiEnCours = false;
+let dernierContenu = "";
+let referenceEnvoi = "";
+
+boutonValider.addEventListener("click", async () => {
+  if (envoiEnCours) return;
+
+  const champs = recapitulatif.querySelectorAll("input");
+
+  for (const champ of champs) {
+    if (!champ.reportValidity()) return;
+  }
+
+  const contenu = {
+    client: {
+      nom: document.querySelector("#client-nom").value.trim(),
+      email: document.querySelector("#client-email").value.trim()
+    },
+    voyage: { ...projetVoyage }
+  };
+
+  const signature = JSON.stringify(contenu);
+
+  if (signature !== dernierContenu) {
+    referenceEnvoi = crypto.randomUUID();
+    dernierContenu = signature;
+  }
+
+  envoiEnCours = true;
+  boutonValider.disabled = true;
+  boutonVoyage.disabled = true;
+  boutonModifier.disabled = true;
+  champs.forEach((champ) => { champ.disabled = true; });
+  etatDemande.textContent = "Enregistrement de votre demande…";
+
+  try {
+    const reponse = await fetch("/api/support/demandes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        requestId: referenceEnvoi,
+        ...contenu
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    const donnees = await reponse.json();
+
+    if (!reponse.ok) {
+      throw new Error(
+        donnees.error?.message || "L’enregistrement a échoué."
+      );
+    }
+
+    etatDemande.textContent =
+      "Demande enregistrée. Référence : " + donnees.reference +
+      ". Aucune réservation ni aucun paiement n’a été effectué.";
+
+    afficherMessage(
+      "Assistant",
+      "Votre demande a été enregistrée sous la référence " +
+      donnees.reference + "."
+    );
+  } catch (erreur) {
+    etatDemande.textContent =
+      "Enregistrement non confirmé. Vous pouvez réessayer avec les mêmes réponses.";
+
+    boutonValider.disabled = false;
+    champs.forEach((champ) => { champ.disabled = false; });
+  } finally {
+    envoiEnCours = false;
+    boutonVoyage.disabled = false;
+    boutonModifier.disabled = false;
   }
 });

@@ -130,6 +130,23 @@
       max-width: 100%;
     }
   }
+
+  fieldset {
+  margin: 24px 0;
+  padding: 16px;
+  border: 1px solid var(--color-sand);
+  border-radius: 12px;
+}
+
+fieldset input {
+  width: 100%;
+  padding: 12px;
+  font: inherit;
+  color: var(--color-primary);
+  background: var(--color-white);
+  border: 1px solid var(--color-muted);
+  border-radius: 8px;
+}
 </style>
 
 </head>
@@ -150,10 +167,42 @@
 <section id="recapitulatif" hidden aria-labelledby="titre-recapitulatif">
   <h2 id="titre-recapitulatif">Votre projet de voyage</h2>
   <div id="details-voyage"></div>
+  <fieldset>
+  <legend>Vos coordonnées</legend>
+
+  <p>
+    <label for="client-nom">Votre nom</label>
+    <input
+      id="client-nom"
+      type="text"
+      autocomplete="name"
+      maxlength="120"
+      required
+    >
+  </p>
+
+  <p>
+    <label for="client-email">Votre adresse email</label>
+    <input
+      id="client-email"
+      type="email"
+      autocomplete="email"
+      maxlength="254"
+      required
+    >
+  </p>
+
+  <p>Ces coordonnées permettront au conseiller de vous répondre.</p>
+</fieldset>
   <p id="etat-demande">
     Brouillon : votre demande n’a pas encore été envoyée.
   </p>
-  <button id="modifier-voyage" type="button">Modifier mes réponses</button>
+  <button id="modifier-voyage" type="button">
+  Recommencer le questionnaire
+  </button>
+  <button id="valider-demande" type="button">
+  Valider et envoyer ma demande
+  </button>
 </section>
 
     <div id="messages" role="log" aria-label="Conversation"></div>

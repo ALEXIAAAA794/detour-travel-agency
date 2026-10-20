@@ -80,3 +80,9 @@ Démarrage avec la configuration locale, depuis support-ia :
 - Brouillon conservé uniquement en mémoire dans la page :
   un rechargement l’efface.
 - Aucune demande transmise ni réservation effectuée à ce stade.
+
+## Vérification des envois
+
+- Correction d’un gestionnaire de clic ajouté plusieurs fois.
+- Après redémarrage du questionnaire, une validation produit
+  un seul message de confirmation et une seule référence.
