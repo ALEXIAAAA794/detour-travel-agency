@@ -1,103 +1,297 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-<meta charset="utf-8">
-<title>Accueil | DÉTOUR - Voyages insolites et week-ends sur mesure</title>
-<meta name="description" content="DÉTOUR, agence de voyages insolites : week-ends sur mesure en train à Nantes, Lyon, Lille. Devis gratuit !">
-<meta name="keywords" content="voyage insolite, week-end, week-end original, agence de voyage, nantes, lyon, lille, train, séjour sur mesure">
-<link rel="icon" type="image/png" href="img/favicon.png">
-<link rel="stylesheet" href="css/style.css">
-<script src="https://code.jquery.com/jquery-1.8.3.min.js"></script>
-<script src="js/main.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Accueil | DÉTOUR - Voyages insolites et week-ends sur mesure</title>
+    <meta name="description"
+        content="DÉTOUR, agence de voyages insolites : week-ends sur mesure en train à Nantes, Lyon, Lille. Devis gratuit !">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Photos des destinations (à copier dans css/style.css).
+           Si img/xxx.jpg existe, la photo s'affiche ; sinon l'illustration (--scene) ou le dégradé (--g) prend le relais. */
+        .dest .photo {
+            background: var(--img, none), var(--scene, var(--g));
+            background-size: cover;
+            background-position: center
+        }
+    </style>
 </head>
-<body>
-<div id="wrapper">
-<div id="topbar">
-<div class="left">Bienvenue chez DÉTOUR ! Agence ouverte du mardi au samedi, 10h-19h</div>
-<div class="right">Suivez-nous : <a href="#">Facebook</a> <a href="#">Twitter</a> <a href="#">Google+</a> <a href="#">Pinterest</a></div>
-</div>
-<div id="header">
-<a class="logo" href="index.html"><img src="img/logo.png" alt="DÉTOUR Voyages insolites"></a>
-<div class="phone">Une idée de week-end ? Appelez-nous !<strong>02 40 00 00 00</strong>Appel non surtaxé</div>
-</div>
-<div id="nav">
-<ul>
-<li><a href="index.html" class="active">Accueil</a></li>
-<li><a href="destinations.html">Nos destinations</a></li>
-<li><a href="agence.html">L'agence</a></li>
-<li><a href="contact.html">Devis gratuit</a></li>
-</ul>
-</div>
-<div id="slider">
-<div class="slide"><img src="img/slide-1.jpg" alt=""><div class="caption"><h2>Partez autrement !</h2><p>Des week-ends insolites en train, sans voiture et sans prise de tête. Nos conseillers s'occupent de tout.</p><a href="contact.html" class="btn">Demander un devis gratuit</a></div></div>
-<div class="slide"><img src="img/slide-2.jpg" alt=""><div class="caption"><h2>Des adresses uniques</h2><p>Hôtels de charme, ateliers créatifs, jeux de piste... Sortez des sentiers battus !</p><a href="destinations.html" class="btn">Voir nos destinations</a></div></div>
-<div class="pager"></div>
-</div>
-<div id="content">
-<div id="main">
-<div class="welcome">
-<h1>Bienvenue chez DÉTOUR</h1>
-<p><strong>DÉTOUR</strong> est une agence de voyages <strong>insolites</strong> spécialisée dans les <strong>week-ends sur mesure</strong>. Vous nous dites vos envies, vos dates et votre budget : nos conseillers vous concoctent un séjour unique, transport, hébergement et activités compris !</p>
-</div>
-<h2>Nos coups de c&oelig;ur</h2>
-<div class="boxes">
-<div class="box"><img src="img/nantes.jpg" alt="Nantes"><div class="inner"><span class="ribbon">Nouveau</span><h3>Nantes</h3><p>Machines imaginaires et nuit à l'Hôtel des Machines.</p><p class="price">à partir de 179 &euro;*</p><a href="destinations.html#nantes" class="btn blue">En savoir +</a></div></div>
-<div class="box"><img src="img/lyon.jpg" alt="Lyon"><div class="inner"><span class="ribbon">Top ventes</span><h3>Lyon</h3><p>Enquête dans les traboules et hôtel au c&oelig;ur de la ville.</p><p class="price">à partir de 179 &euro;*</p><a href="destinations.html#lyon" class="btn blue">En savoir +</a></div></div>
-<div class="box"><img src="img/lille.jpg" alt="Lille"><div class="inner"><span class="ribbon">Gourmand</span><h3>Lille</h3><p>Atelier gaufres et nuit au pied du Beffroi.</p><p class="price">à partir de 148 &euro;*</p><a href="destinations.html#lille" class="btn blue">En savoir +</a></div></div>
-</div>
-<p class="mention">* Prix indicatif par personne, base 2 personnes, train A/R depuis Paris + 1 nuit + 1 activité. Sous réserve de disponibilité au moment de la réservation.</p>
-<h2>Pourquoi choisir DÉTOUR ?</h2>
-<ul style="margin-left:20px; line-height:1.9">
-<li><strong>100% sur mesure</strong> : chaque séjour est préparé par un conseiller</li>
-<li><strong>Sans voiture</strong> : on privilégie le train</li>
-<li><strong>Des expériences originales</strong> que vous ne trouverez pas ailleurs</li>
-<li><strong>Devis gratuit</strong> sous 48h ouvrées</li>
-</ul>
-<p style="margin-top:15px"><a href="contact.html" class="btn">Je demande mon devis &raquo;</a></p>
-</div>
-<div id="sidebar">
-<div class="widget">
-<h3>Newsletter</h3>
-<p>Recevez nos bons plans et idées de week-ends !</p>
-<form action="#" onsubmit="alert('Merci ! Vous êtes inscrit(e) à la newsletter.'); return false;">
-<input type="text" placeholder="Votre e-mail">
-<input type="submit" class="btn blue" value="Je m'inscris">
-</form>
-</div>
-<div class="widget">
-<h3>Actualités</h3>
-<ul>
-<li><a href="#">Nouveau : l'atelier des machines imaginaires à Nantes</a></li>
-<li><a href="#">Fête des Lumières : réservez tôt !</a></li>
-<li><a href="#">DÉTOUR élue « coup de c&oelig;ur » par nos clients</a></li>
-<li><a href="#">Braderie de Lille : nos astuces</a></li>
-</ul>
-</div>
-<div class="widget">
-<h3>Ils nous ont fait confiance</h3>
-<p class="testimonial">« Un week-end génial à Lyon, l'enquête dans les traboules était top. Merci à toute l'équipe ! »<cite>Julie et Marc, Rennes</cite></p>
-<p class="testimonial">« Organisation parfaite, on n'a eu à penser à rien. »<cite>Famille Bertin</cite></p>
-</div>
-<div class="fb"><b>DÉTOUR Voyages</b><br>1 248 personnes aiment ça.<br><span class="like">&#128077; J'aime</span></div>
-</div>
-</div>
-<div id="footer">
-<div class="col">
-<h3>L'agence DÉTOUR</h3>
-<p>Voyages insolites et week-ends sur mesure depuis 2012. Nos conseillers passionnés composent votre séjour selon vos envies.</p>
-</div>
-<div class="col">
-<h3>Liens utiles</h3>
-<p><a href="destinations.html">Nos destinations</a><br><a href="agence.html">Qui sommes-nous ?</a><br><a href="contact.html">Demande de devis</a><br><a href="#">Mentions légales</a><br><a href="#">CGV</a><br><a href="#">Plan du site</a></p>
-</div>
-<div class="col" style="margin-right:0">
-<h3>Contact</h3>
-<p>DÉTOUR Voyages<br>12 rue des Écluses<br>44000 Nantes<br>Tél. : 02 40 00 00 00<br><a href="mailto:contact@detour-voyages.fr">contact@detour-voyages.fr</a></p>
-</div>
-<div class="copy">&copy; 2013 DÉTOUR Voyages - Tous droits réservés - Licence IM044120000 (fictive) - Site réalisé par WebCréa Ouest<br>Meilleure vue en 1024x768 avec Firefox ou Chrome</div>
-</div>
-</div>
-<a href="#" id="totop">&#9650; Haut</a>
-<div id="cookies">En poursuivant votre navigation sur ce site, vous acceptez l'utilisation de cookies pour vous proposer des services adaptés. <a href="#" class="btn">OK</a></div>
+
+<body id="top">
+    <a class="skip" href="#contenu">Aller au contenu</a>
+
+    <header class="site-header">
+        <div class="wrap">
+            <a class="logo" href="index.html"><b>DÉTOUR</b><small>Voyages insolites. Partez autrement.</small></a>
+            <nav class="main-nav" id="nav" aria-label="Navigation principale">
+                <a class="active" href="index.html" aria-current="page">Accueil</a>
+                <a href="destinations.html">Nos destinations</a>
+                <a href="agence.html">L'agence</a>
+                <a href="contact.html">Devis gratuit</a>
+            </nav>
+            <a class="pill" href="contact.html">Devis gratuit</a>
+            <button class="menu-toggle" id="menu" type="button" aria-label="Menu" aria-expanded="false"
+                aria-controls="nav">☰</button>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="wrap">
+            <span class="eyebrow">Votre agence de voyages insolites</span>
+            <h1>Des week-ends sur mesure, <em>sans prise de tête</em></h1>
+            <p class="lead">Découvrez la France autrement avec DÉTOUR : des séjours en train, sans voiture, préparés par
+                nos conseillers pour créer des expériences uniques et inoubliables.</p>
+            <div class="hero-cta">
+                <a class="pill" href="contact.html">Demander un devis gratuit</a>
+                <a class="pill ghost" href="destinations.html">Voir nos destinations</a>
+            </div>
+
+            <form class="search-card" id="search" role="search">
+                <label class="field">Destination<input id="q" type="search" placeholder="Où aller ?"
+                        autocomplete="off"></label>
+                <label class="field">Dates<input type="text" placeholder="Quand ?"></label>
+                <label class="field">Voyageurs<input type="text" placeholder="1 voyageur"></label>
+                <button class="pill" type="submit">Rechercher</button>
+            </form>
+        </div>
+    </section>
+
+    <main id="contenu">
+        <div class="wrap">
+            <section class="features">
+                <div>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" />
+                    </svg>
+                    <h3>100 % sur mesure</h3>
+                    <p>Chaque séjour est préparé par un conseiller selon vos envies, vos dates et votre budget.</p>
+                </div>
+                <div>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M4 14v-2a8 8 0 0116 0v2M4 14h3v5H5a1 1 0 01-1-1zM20 14h-3v5h2a1 1 0 001-1zM17 19c0 1.5-2 2-5 2" />
+                    </svg>
+                    <h3>Une équipe à l'écoute</h3>
+                    <p>Du mardi au samedi, de 10h à 19h, nous répondons à vos questions avant, pendant et après le
+                        voyage.</p>
+                </div>
+                <div>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 19C5 10 10 5 20 4c0 10-5 15-14 15zM5 19l8-8" />
+                    </svg>
+                    <h3>Sans voiture</h3>
+                    <p>On privilégie le train pour voyager plus simplement et plus respectueusement.</p>
+                </div>
+                <div>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z" />
+                    </svg>
+                    <h3>Devis gratuit sous 48 h</h3>
+                    <p>Réponse sous 48 h ouvrées, sans engagement, avec un interlocuteur dédié.</p>
+                </div>
+            </section>
+
+            <section id="destinations">
+                <div class="section-head">
+                    <div>
+                        <span class="eyebrow">Nos coups de cœur</span>
+                        <h2>Des lieux qui font rêver</h2>
+                    </div>
+                    <a href="destinations.html">Voir toutes les destinations →</a>
+                </div>
+                <div class="dest-grid" id="grid"></div>
+                <p class="empty" id="empty" hidden></p>
+                <p class="note">* Prix indicatif par personne, base 2 personnes, 1 nuit + 1 activité. Nantes, Lyon,
+                    Lille
+                    et Barcelone : train A/R depuis Paris. Grèce et Pérou : vol A/R depuis Paris, nuits et durée
+                    indiquées sur le devis. Sous réserve de disponibilité au moment de la réservation.</p>
+            </section>
+        </div>
+
+        <section class="assist">
+            <div class="wrap">
+                <div>
+                    <span class="eyebrow">Votre conseiller voyage</span>
+                    <h2>Dites-nous vos envies, nous créons votre prochaine escapade</h2>
+                    <p class="txt">Dites-nous simplement ce que vous aimez : une ville, une ambiance, une activité. Nos
+                        conseillers composent un itinéraire sur mesure, avec hébergements, activités et conseils
+                        pratiques.</p>
+                    <div class="actions">
+                        <a class="pill" href="contact.html">Écrire à un conseiller</a>
+                        <a class="pill ghost" href="tel:+33240000000">02 40 00 00 00</a>
+                    </div>
+                    <div class="chips"><span>Idées de week-end</span><span>Itinéraires sur mesure</span><span>Conseils
+                            locaux</span><span>Budget optimisé</span></div>
+                </div>
+                <div class="chat" aria-hidden="true">
+                    <div class="bubble">Je cherche un week-end en train pour 2, entre enquête et gastronomie, avec un
+                        budget moyen.</div>
+                    <div class="reply">
+                        Parfait ! Voici une suggestion qui pourrait vous plaire :
+                        <div class="row">
+                            <div class="thumb"></div>
+                            <div>
+                                <h4>Lyon</h4>
+                                <ul>
+                                    <li>2 jours · 1 nuit</li>
+                                    <li>Enquête &amp; gastronomie</li>
+                                    <li>À partir de 179 €</li>
+                                </ul>
+                                <a class="pill" href="destinations.html#lyon" tabindex="-1">Voir l'itinéraire</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="msg">Écrivez votre message… <i></i></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="wrap">
+            <section class="reviews">
+                <span class="eyebrow">Ils nous ont fait confiance</span>
+                <h2 class="review-title">Ce que disent nos voyageurs</h2>
+                <div class="scroller">
+                    <ul class="track" id="track"></ul>
+                </div>
+            </section>
+
+            <section class="cta">
+                <h2>Prêt à partir autrement ?</h2>
+                <p>Racontez-nous votre week-end idéal, on s'occupe du reste.</p>
+                <a class="pill" href="contact.html">Je demande mon devis »</a>
+            </section>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="wrap">
+            <div class="foot">
+                <div>
+                    <a class="logo" href="index.html"><b>DÉTOUR</b></a>
+                    <p>Voyages insolites et week-ends sur mesure depuis 2012. Nos conseillers passionnés composent votre
+                        séjour selon vos envies.</p>
+                </div>
+                <div>
+                    <h3>Liens utiles</h3>
+                    <ul>
+                        <li><a href="index.html">Accueil</a></li>
+                        <li><a href="destinations.html">Nos destinations</a></li>
+                        <li><a href="agence.html">L'agence</a></li>
+                        <li><a href="contact.html">Devis gratuit</a></li>
+                        <li><a href="#">Mentions légales</a></li>
+                        <li><a href="#">CGV</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Contact</h3>
+                    <ul>
+                        <li>12 rue des Écluses, 44000 Nantes</li>
+                        <li><a href="tel:+33240000000">02 40 00 00 00</a></li>
+                        <li><a href="mailto:contact@detour-voyages.fr">contact@detour-voyages.fr</a></li>
+                        <li>Mardi au samedi, 10h-19h</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="copy">© 2013 DÉTOUR Voyages. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <script>
+        /* Illustrations de secours, aux couleurs de la charte. Elles s'affichent tant qu'il n'y a pas de photo. */
+        function scene(svg) {
+            var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">' + svg + '</svg>';
+            return 'url(data:image/svg+xml,' + encodeURIComponent(s).replace(/\(/g, '%28').replace(/\)/g, '%29') + ')';
+        }
+        var SKY_SAND = '<defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6ecdc"/><stop offset="1" stop-color="#D8C3A5"/></linearGradient></defs><rect width="400" height="200" fill="url(#a)"/>';
+        var SKY_BLUE = '<defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3e8eb"/><stop offset="1" stop-color="#f6efe3"/></linearGradient></defs><rect width="400" height="200" fill="url(#a)"/>';
+
+        var SCENES = {
+            /* Barcelone : flèches de la Sagrada Família au soleil couchant */
+            barcelone: scene(SKY_SAND +
+                '<circle cx="310" cy="64" r="28" fill="#C58B62"/>' +
+                '<path d="M110 200V92l8-48 8 48v108zM140 200V70l9-58 9 58v130zM176 200V96l7-38 7 38v104zM212 200V74l9-52 9 52v126zM246 200V104l6-30 6 30v96zM272 200V120l5-22 5 22v80z" fill="#34495a"/>' +
+                '<rect y="178" width="400" height="22" fill="#142B3A"/>'),
+            /* Grèce : maisons blanches, dôme et mer */
+            grece: scene(SKY_BLUE +
+                '<circle cx="64" cy="44" r="20" fill="#C58B62"/>' +
+                '<rect y="110" width="400" height="90" fill="#647985"/>' +
+                '<path d="M0 200V150l70-24 90 14 80-30 90 28 70-8v70z" fill="#D8C3A5"/>' +
+                '<rect x="48" y="126" width="46" height="44" fill="#fff"/><rect x="100" y="116" width="36" height="52" fill="#fff"/>' +
+                '<rect x="150" y="136" width="52" height="34" fill="#fff"/><rect x="238" y="96" width="64" height="74" fill="#fff"/>' +
+                '<path d="M246 96a24 24 0 0148 0z" fill="#4d6574"/><rect x="314" y="118" width="44" height="52" fill="#fff"/>' +
+                '<rect x="256" y="120" width="12" height="22" fill="#647985"/><rect x="272" y="120" width="12" height="22" fill="#647985"/>'),
+            /* Pérou : montagnes et terrasses incas */
+            perou: scene(SKY_SAND +
+                '<circle cx="92" cy="62" r="24" fill="#C58B62"/>' +
+                '<path d="M0 142L90 84l60 40 70-62 80 72 100-42v110H0z" fill="#8da1ad"/>' +
+                '<path d="M0 200v-48l120-50 80 40 90-60 110 80v38z" fill="#4d6574"/>' +
+                '<path d="M226 162h126M240 176h112M256 190h96" stroke="#D8C3A5" stroke-width="5" fill="none"/>')
+        };
+
+        var DESTINATIONS = [
+            { id: "nantes", name: "Nantes", tag: "Nouveau", text: "Machines imaginaires et nuit à l'Hôtel des Machines.", price: 179, g: "linear-gradient(160deg,#dfe5e9,#647985 60%,#D8C3A5)", img: "img/nantes.jpg" },
+            { id: "lyon", name: "Lyon", tag: "Top ventes", text: "Enquête dans les traboules et hôtel au cœur de la ville.", price: 179, g: "linear-gradient(160deg,#ecdcc4,#C58B62 60%,#647985)", img: "img/lyon.jpg" },
+            { id: "lille", name: "Lille", tag: "Gourmand", text: "Atelier gaufres et nuit au pied du Beffroi.", price: 148, g: "linear-gradient(160deg,#e3e8eb,#8da1ad 50%,#D8C3A5)", img: "img/lille.jpg" },
+            { id: "barcelone", name: "Barcelone", tag: "Soleil", text: "Gaudí, tapas et nuit à deux pas de la mer, en train de nuit ou de jour.", price: 249, g: "linear-gradient(160deg,#f6ecdc,#C58B62 60%,#142B3A)", scene: SCENES.barcelone, img: "img/barcelone.jpg" },
+            { id: "grece", name: "Grèce", tag: "Îles", text: "Ruelles blanches, criques secrètes et dîner face à la mer Égée.", price: 499, g: "linear-gradient(160deg,#e3e8eb,#647985 60%,#142B3A)", scene: SCENES.grece, img: "img/grece.jpg" },
+            { id: "perou", name: "Pérou", tag: "Grand voyage", text: "Cuzco, vallée sacrée et sentiers incas, à votre rythme.", price: 1290, g: "linear-gradient(160deg,#ecdcc4,#8da1ad 55%,#4d6574)", scene: SCENES.perou, img: "img/perou.jpg" }
+        ];
+        var grid = document.getElementById("grid"),
+            empty = document.getElementById("empty"),
+            q = document.getElementById("q");
+
+        function render() {
+            var term = q.value.trim().toLowerCase();
+            var list = DESTINATIONS.filter(function (d) {
+                return d.name.toLowerCase().indexOf(term) > -1 || d.text.toLowerCase().indexOf(term) > -1;
+            });
+            grid.innerHTML = list.map(function (d) {
+                var vars = '--g:' + d.g + ';--img:url(' + d.img + ')' + (d.scene ? ';--scene:' + d.scene : '');
+                return '<article class="dest"><a href="destinations.html#' + d.id + '"><div class="photo" role="img" aria-label="Photo de ' + d.name + '" style="' + vars + '"><span class="tag">' + d.tag + '</span></div>' +
+                    '<div class="body"><div><h3>' + d.name + '</h3><p>' + d.text + '</p><p class="price">À partir de ' + d.price + ' €*</p></div>' +
+                    '<span class="go" aria-hidden="true">→</span></div></a></article>';
+            }).join("");
+            empty.hidden = list.length > 0;
+            empty.textContent = "Aucune destination ne correspond à « " + q.value + " ».";
+        }
+        q.addEventListener("input", render);
+        document.getElementById("search").addEventListener("submit", function (e) {
+            e.preventDefault();
+            document.getElementById("destinations").scrollIntoView({ behavior: "smooth" });
+        });
+
+        var menu = document.getElementById("menu"), nav = document.getElementById("nav");
+        menu.addEventListener("click", function () {
+            var open = nav.classList.toggle("open");
+            menu.setAttribute("aria-expanded", open);
+        });
+        
+
+        // Avis : défilement infini (la liste est répétée pour remplir la largeur, puis doublée pour la boucle)
+        var REVIEWS = [
+            { quote: "L’agence “Voyages Detour” a été impeccable du début à la fin. Réponses ultra rapides, bons conseils sur les activités, et transfert aéroport parfaitement organisé. L’hôtel était super, mais c’est vraiment le suivi de l’agence qui a fait la différence.", name: "Julie et Marc", title: "Nantes" },
+            { quote: "L’equipe de Detour a été exceptionnelle. Tout était parfait : vol, hôtel, et même une visite privée du Louvre organisée à la dernière minute. Réactivité et professionnalisme au top.", name: "William ", title: "Barcelone" },
+            { quote: "Nous avons passé un excellent séjour à Barcelone grâce à Detour. L’organisation était parfaite, les activités proposées étaient originales et adaptées à nos envies. Nous recommandons vivement cette agence !", name: "Sophie et Thomas", title: "Lyon" },
+            { quote: "Un grand merci à l’équipe de Detour pour ce week-end inoubliable à Lyon. Tout était parfaitement organisé, de l’hôtel aux activités. Nous avons pu profiter pleinement de notre séjour sans stress.", name: "Claire", title: "Lille" },
+            { quote: "Detour a su créer un itinéraire sur mesure pour notre voyage en Grèce. Les conseils étaient précieux et nous avons découvert des endroits magnifiques que nous n’aurions jamais trouvés seuls.", name: "Lucas", title: "Grèce" },
+            { quote: "Nous avons adoré notre escapade à Lille grâce à Detour. L’agence a pris en compte toutes nos préférences et nous a proposé un programme parfait. Merci pour cette expérience unique !", name: "Alice et Maxime", title: "Pérou" },
+            { quote: "L’equipe de Detour a été exceptionnelle. Tout était parfait : vol, hôtel, et même une visite privée du Louvre organisée à la dernière minute. Réactivité et professionnalisme au top.", name: "William ", title: "Barcelone" }
+
+        ];
+        function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML }
+        var half = REVIEWS.concat(REVIEWS, REVIEWS), all = half.concat(half);
+        document.getElementById("track").innerHTML = all.map(function (r, i) {
+            return '<li class="review"' + (i >= REVIEWS.length ? ' aria-hidden="true"' : '') + '><blockquote style="margin:0"><p>«&nbsp;' + esc(r.quote) + '&nbsp;»</p><cite>' + esc(r.name) + ' · ' + esc(r.title) + '</cite></blockquote></li>';
+        }).join("");
+        render();
+    </script>
 </body>
+
 </html>
