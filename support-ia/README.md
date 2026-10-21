@@ -86,3 +86,14 @@ Démarrage avec la configuration locale, depuis support-ia :
 - Correction d’un gestionnaire de clic ajouté plusieurs fois.
 - Après redémarrage du questionnaire, une validation produit
   un seul message de confirmation et une seule référence.
+
+  ## Consultation par le conseiller
+
+- Page locale : http://127.0.0.1:8080/demandes
+- Lecture des demandes enregistrées par Express.
+- Affichage des coordonnées, souhaits, références et statuts.
+- Demandes triées de la plus récente à la plus ancienne.
+- Test manuel : une demande enregistrée est visible dans le back-office.
+
+Cette intégration nécessite que Node.js et Python accèdent au même
+dossier de données. Le traitement par le conseiller reste à développer.

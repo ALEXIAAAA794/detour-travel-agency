@@ -86,6 +86,7 @@ def page(title, body, msg="", err=""):
 <td width="160" valign="top" class="menu">
 <b>Menu</b><br>
 <a href="/">Accueil</a><br>
+<a href="/demandes">Demandes de voyage</a><br>
 <a href="/catalogue">Catalogue</a><br>
 <a href="/dispo">Vérifier une dispo</a><br>
 <a href="/options">Options en cours</a><br>
@@ -241,7 +242,95 @@ Clé : <input type="password" name="approval" size="10">
 %s</table>""" % (rows or '<tr><td colspan="9"><i>Aucune réservation.</i></td></tr>')
     return page("Réservations", body, msg=msg, err=err_in or err)
 
+def demandes_voyage():
+    dossier = os.path.abspath(os.path.join(
+        os.path.dirname(__file__),
+        "..", "support-ia", "data", "demandes"
+    ))
 
+    demandes = []
+    erreurs = 0
+
+    try:
+        noms = os.listdir(dossier)
+    except FileNotFoundError:
+        noms = []
+    except OSError:
+        return page(
+            "Demandes de voyage",
+            "",
+            err="Impossible de lire le dossier des demandes."
+        )
+
+    for nom in noms:
+        if not nom.endswith(".json"):
+            continue
+
+        try:
+            with open(os.path.join(dossier, nom), encoding="utf-8") as fichier:
+                demande = json.load(fichier)
+
+            if (
+                not isinstance(demande, dict)
+                or not isinstance(demande.get("client"), dict)
+                or not isinstance(demande.get("voyage"), dict)
+            ):
+                raise ValueError("Structure invalide")
+
+            demandes.append(demande)
+        except (OSError, ValueError):
+            erreurs += 1
+
+    demandes.sort(
+        key=lambda demande: str(demande.get("creeLe", "")),
+        reverse=True
+    )
+
+    blocs = []
+
+    for demande in demandes:
+        client = demande["client"]
+        voyage = demande["voyage"]
+
+        champs = [
+            ("Référence", demande.get("reference")),
+            ("Reçue le", fmt_date(demande.get("creeLe"))),
+            ("Statut", demande.get("statut")),
+            ("Nom", client.get("nom")),
+            ("Email", client.get("email")),
+            ("Destination", voyage.get("destination")),
+            ("Dates et durée", voyage.get("dates")),
+            ("Voyageurs", voyage.get("participants")),
+            ("Budget souhaité", voyage.get("budget")),
+            ("Activités", voyage.get("activites")),
+            ("Expérience recherchée", voyage.get("experience")),
+        ]
+
+        lignes = "".join(
+            '<tr><th align="left">%s</th>'
+            '<td style="white-space:pre-wrap;overflow-wrap:anywhere">%s</td></tr>'
+            % (e(titre), e(valeur))
+            for titre, valeur in champs
+        )
+
+        blocs.append(
+            '<table border="1" cellpadding="8" cellspacing="0">'
+            + lignes + "</table><br>"
+        )
+
+    body = (
+        "<p>Demandes reçues depuis le questionnaire. "
+        "Aucune réservation n’est confirmée à cette étape.</p>"
+        '<p><a href="/demandes">Actualiser la liste</a></p>'
+        + ("".join(blocs) if blocs else "<p>Aucune demande reçue.</p>")
+    )
+
+    avertissement = (
+        "%d fichier(s) illisible(s) ou invalide(s)." % erreurs
+        if erreurs else ""
+    )
+
+    return page("Demandes de voyage", body, err=avertissement)
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         sys.stderr.write("[%s] %s\n" % (datetime.now().strftime("%H:%M:%S"), fmt % args))
@@ -277,6 +366,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_static(url.path[len("/static/"):])
         if url.path == "/":
             return self.send_html(home())
+        if url.path == "/demandes":
+            return self.send_html(demandes_voyage())
         if url.path == "/catalogue":
             return self.send_html(catalogue(q))
         if url.path == "/dispo":
