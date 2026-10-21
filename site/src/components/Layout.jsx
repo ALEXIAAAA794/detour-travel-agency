@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import SupportChat from "./SupportChat.jsx";
 
 const NAV = [
   ["/", "Accueil"],
@@ -80,6 +81,7 @@ export default function Layout() {
       <Header />
       <Outlet />
       <Footer />
+      <SupportChat />
     </>
   );
 }

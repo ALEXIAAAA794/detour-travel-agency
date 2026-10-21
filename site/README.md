@@ -1,8 +1,8 @@
 # DÉTOUR – version React (Vite + React Router)
 
 ## Mise en route
-1. Copiez votre ancien `css/style.css` dans `src/styles/style.css` (aucune modification nécessaire).
-2. Copiez vos images (`nantes.jpg`, `lyon.jpg`, … `favicon.png`) dans `public/img/`.
-3. `npm install` puis `npm run dev` ; `npm run build` pour la production.
+1. `npm ci` puis `npm run dev` pour lancer l’interface React.
+2. Pour utiliser le chat, lancer aussi `npm start` dans `support-ia`. Le proxy Vite relaie `/api` vers le backend local.
+3. Pour la production, `npm run build` génère l’interface servie par le backend dans `site/dist`.
 
-Hébergement statique : ajoutez une règle de repli vers `index.html` (SPA), sinon /destinations renverra une 404 au rechargement.
+La clé Gemini reste dans `support-ia/.env` et n’est jamais envoyée au navigateur.
