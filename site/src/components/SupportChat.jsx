@@ -5,7 +5,7 @@ import { Sources, useSupport } from "../support/SupportContext.jsx";
 export default function SupportChat() {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const { messages, pending, error, ask } = useSupport();
+  const { messages, pending, error, ask, retry } = useSupport();
   const conversationRef = useRef(null);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function SupportChat() {
           <header className="support-chat__header">
             <div>
               <strong>Votre assistant voyage</strong>
-              <span>Une question pour votre prochain départ ?</span>
+              <span>Vous parlez à une IA · You are speaking with AI</span>
             </div>
             <button
               className="support-chat__close"
@@ -70,7 +70,7 @@ export default function SupportChat() {
             )}
           </div>
 
-          {error && <p role="alert">{error}</p>}
+          {error && <div><p role="alert">{error}</p><button type="button" disabled={pending} onClick={retry}>Réessayer</button></div>}
           <Link className="support-chat__contact" to="/assistant">Personnaliser mon voyage et gérer mon programme</Link>
           <form className="support-chat__form" onSubmit={envoyerMessage}>
             <label className="support-chat__sr-only" htmlFor="support-chat-message">

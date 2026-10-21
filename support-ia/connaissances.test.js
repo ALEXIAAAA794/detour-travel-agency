@@ -1,3 +1,4 @@
+process.env.SUPPORT_AI_RATE_LIMIT = "1000";
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");

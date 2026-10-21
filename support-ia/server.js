@@ -9,7 +9,24 @@ const { demandesRouter } = require("./demandes");
 
 app.use(express.json({ limit: "16kb" }));
 
+app.use((req,res,next)=>{res.set("Referrer-Policy","no-referrer");next();});
 app.use(express.static(siteDist));
+const limiterIA = require("./limitation").limiterRequetes;
+app.post("/api/chat", (req,res,next)=>{
+  const b=req.body;
+  const compose = typeof b?.jeton === "string" ? b.jeton.match(/^([a-f0-9-]{36})\.([a-f0-9]{64})$/i) : null;
+  if (!b || typeof b !== "object" || Array.isArray(b)) return res.status(400).json({error:{code:"INVALID_REQUEST",message:"Requête invalide."}});
+  const id=b.preparationId || compose?.[1];
+  const token=compose?.[2] || b.jeton;
+  if (typeof id!=="string" || typeof token!=="string") return res.status(401).json({error:{code:"PREPARATION_REQUIRED",message:"Une préparation et son jeton sont obligatoires."}});
+  req.body={message:b.message,preparationId:id}; // historique navigateur volontairement ignoré
+  req.headers.authorization="Bearer "+token;
+  req.url="/api/support/messages";
+  next();
+});
+app.post("/api/support/messages", limiterIA);
+app.post(["/api/support/preparations/:id/programme", "/api/support/preparations/:id/programme/modifications"], limiterIA);
+
 
 const { preparationsRouter, autoriser, sauver, occupes } = require("./preparations");
 app.use("/api/support/preparations", preparationsRouter);
@@ -29,7 +46,7 @@ app.post("/api/support/messages", async (req, res, next) => {
     return autoriser(req, res, next);
   }
   next();
-}, async (req, res) => {
+}, require("./limitation").limiterPreparation, async (req, res) => {
   const donnees = req.body;
 
   if (

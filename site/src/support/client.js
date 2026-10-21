@@ -1,6 +1,21 @@
 // Client commun au widget et à la page : aucun programme navigateur n’est transmis.
-export function createSupportClient({ fetchImpl = fetch, storage } = {}) {
-  let current = null, creating = null;
+// React StrictMode peut construire deux fois le client avant l'effet de restauration.
+// Retenir le fragment retiré uniquement en mémoire pour la même fenêtre, jamais dans l'URL réseau.
+const accesParHistorique = new WeakMap();
+export function createSupportClient({ fetchImpl = fetch, storage, location, history } = {}) {
+  let current = null, creating = null, accesEmail = null, lienInvalide = false;
+  const precedent = history && accesParHistorique.get(history);
+  if (precedent) ({accesEmail, lienInvalide} = precedent);
+  if (location && ["/assistant", "/assistant.html"].includes(location.pathname) && location.hash) {
+    const lien = new URLSearchParams(location.hash.slice(1));
+    if (lien.has("jeton")) {
+      const id=lien.get("preparation"), jeton=lien.get("jeton");
+      if (/^[a-f0-9-]{36}$/i.test(id || "") && /^[a-f0-9]{64}$/.test(jeton || "")) accesEmail={id,jeton};
+      else lienInvalide = true;
+      if (history) accesParHistorique.set(history,{accesEmail,lienInvalide});
+      history?.replaceState(null,"",location.pathname+location.search);
+    }
+  }
   const key = "detour-preparation";
   function readAccess() { try { const p = JSON.parse(storage?.getItem(key)); return p && typeof p.id === "string" && typeof p.jeton === "string" ? p : null; } catch { return null; } }
   async function request(route, body, access, timeout = 15000, method = "POST") {
@@ -18,17 +33,18 @@ export function createSupportClient({ fetchImpl = fetch, storage } = {}) {
     return current;
   }
   async function ensure() {
+    if (lienInvalide) throw new Error("Lien de préparation invalide. Contactez un conseiller via /contact.");
     if (current) return current;
     if (!creating) creating = (async () => {
-      const acces = readAccess();
+      const acces = accesEmail || readAccess();
       return acces ? remember(await request("preparations/" + acces.id, null, acces, 8000, "GET"), acces.jeton) : remember(await request("preparations", null, null, 8000));
     })().finally(() => { creating = null; });
     return creating;
   }
   return {
     get current() { return current; },
-    async restore() { return readAccess() ? ensure() : null; },
-    async start() { return remember(await request("preparations", null, null, 8000)); },
+    async restore() { return lienInvalide || accesEmail || readAccess() ? ensure() : null; },
+    async start() { accesEmail = null; lienInvalide = false; if(history) accesParHistorique.delete(history); return remember(await request("preparations", null, null, 8000)); },
     async save(voyage) { const p = await ensure(); return remember(await request("preparations/" + p.id, { voyage }, p, 8000, "PATCH"), p.jeton); },
     async ask(message) { const p = await ensure(); return request("messages", { message, preparationId: p.id }, p, 70000); },
     async generate() { const p = await ensure(); return remember(await request("preparations/" + p.id + "/programme", { versionAttendue: p.programme?.version || 0 }, p, 100000), p.jeton); },

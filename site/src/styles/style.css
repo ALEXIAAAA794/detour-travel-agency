@@ -1620,3 +1620,14 @@ a {
 .support-workspace [role="log"] p, .support-programme { white-space: pre-wrap; overflow-wrap: anywhere; }
 .support-sources { display: block; font-size: .85em; }
 .support-sources a { margin-right: 8px; text-decoration: underline; }
+
+/* Support IA : repli mobile et textes longs, sans HTML injecté. */
+.support-workspace > *, .support-workspace .f-grid > * { min-width: 0; }
+.support-workspace button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.support-chat__messages, .support-chat [role="alert"] { overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .support-workspace .f-grid { grid-template-columns: minmax(0, 1fr); }
+  .support-workspace input, .support-workspace textarea { box-sizing: border-box; max-width: 100%; }
+  .support-chat__form { flex-wrap: wrap; }
+  .support-chat__form input { min-width: 0; }
+}

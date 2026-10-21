@@ -109,7 +109,8 @@ def adresse_valide(texte):
 
 def preparer(evenement, config):
     reference = str(uuid.UUID(evenement["reference"]))
-    demande = json.loads((BASE / "data" / "demandes" / (reference + ".json")).read_text(encoding="utf-8"))
+    repertoire_demandes = Path(config.get("SUPPORT_DEMANDES_DIR", str(BASE / "data" / "demandes")))
+    demande = json.loads((repertoire_demandes / (reference + ".json")).read_text(encoding="utf-8"))
     client = demande["client"]
     destinataire = config.get("MAIL_TEST_TO", "").strip() or client["email"]
     expediteur = config.get("SMTP_FROM", "").strip()
@@ -121,10 +122,25 @@ def preparer(evenement, config):
         contenu = (
             f"Bonjour {nom},\n\nVotre demande de voyage a bien été reçue.\n"
             f"Référence : {reference}\n\nUn conseiller étudiera votre demande et vous répondra "
-            "sous 24 heures maximum. Il n'est pas nécessaire qu'il soit connecté au moment de votre envoi.\n\n"
+            "selon le délai indicatif publié sur le site (48 h ouvrées). Il n'est pas nécessaire qu'il soit connecté au moment de votre envoi.\n\n"
             "Il s'agit d'une demande de voyage : aucune réservation ni aucun paiement n'a été effectué.\n\n"
             "L'équipe DÉTOUR"
         )
+        if demande.get("preparationId"):
+            liens = Path(config.get("SUPPORT_EMAIL_LINKS_DIR", os.environ.get("SUPPORT_EMAIL_LINKS_DIR", str(BASE / "data" / "liens-email"))))
+            fichier_lien = liens / (reference + ".json")
+            if fichier_lien.exists():
+                acces = json.loads(fichier_lien.read_text(encoding="utf-8"))
+                url_acces = urlparse(acces.get("url", ""))
+                if (acces.get("reference") != reference or acces.get("preparationId") != demande["preparationId"]
+                        or url_acces.username or url_acces.password or url_acces.query
+                        or url_acces.path != "/assistant"
+                        or (url_acces.scheme != "https" and not (url_acces.scheme == "http" and url_acces.hostname in ("localhost", "127.0.0.1", "::1")))):
+                    raise ValueError("Lien de préparation invalide")
+                contenu += ("\n\nReprendre votre préparation (lien confidentiel) :\n" + acces["url"]
+                            + "\nCe lien expire le " + str(acces["expireLe"]) + " (UTC)."
+                            + " Toute personne qui le possède peut accéder à cette préparation jusqu’à son expiration."
+                            + " En cas d’expiration, contactez notre équipe pour demander un nouveau lien.")
     else:
         proposition = demande.get("proposition", {})
         if demande.get("statut") not in ("PROPOSITION_VALIDEE", "PROPOSITION_ACCEPTEE") or not demande.get("accesClient"):

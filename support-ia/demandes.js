@@ -94,7 +94,7 @@ demandesRouter.post("/", (req, res, next) => {
     const liee = req.preparation ? trouver(req.preparation.id) : null;
     if (liee) {
       if (JSON.stringify(liee.client) !== JSON.stringify(contenu.client) || JSON.stringify(liee.voyage) !== JSON.stringify(contenu.voyage)) return res.status(409).json({ error: { message: "Une demande existe déjà pour cette préparation. Contactez le conseiller pour modifier les préférences transmises." } });
-      return res.status(200).json({ reference: liee.reference, statut: liee.statut, email: await planifierEmail(liee.reference, "reception") });
+      return res.status(200).json({ reference: liee.reference, statut: liee.statut, email: await planifierEmail(liee.reference, "reception", req.preparation?.id) });
     }
     fs.mkdirSync(dossierDemandes, { recursive: true });
 
@@ -112,6 +112,7 @@ demandesRouter.post("/", (req, res, next) => {
       const existante = JSON.parse(fs.readFileSync(fichier, "utf8"));
 
       const memeContenu =
+        (existante.preparationId || null) === (req.preparation?.id || null) &&
         JSON.stringify({
           client: existante.client,
           voyage: existante.voyage
@@ -128,14 +129,14 @@ demandesRouter.post("/", (req, res, next) => {
       return res.status(200).json({
         reference: existante.reference,
         statut: existante.statut,
-        email: await planifierEmail(existante.reference, "reception")
+        email: await planifierEmail(existante.reference, "reception", req.preparation?.id)
       });
     }
 
     return res.status(201).json({
       reference: demande.reference,
       statut: demande.statut,
-      email: await planifierEmail(demande.reference, "reception")
+      email: await planifierEmail(demande.reference, "reception", req.preparation?.id)
     });
   } catch (erreur) {
     next(erreur);

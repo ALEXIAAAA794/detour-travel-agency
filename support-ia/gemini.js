@@ -4,7 +4,7 @@ const { echec } = require("./diagnostic");
 
 
 async function interrogerIA(message, preparation, options = {}) {
-  const cleAPI = process.env.GEMINI_API_KEY;
+  const cleAPI = process.env.GEMINI_API_KEY || process.env.IA_API_KEY;
   if (!cleAPI) {
     throw echec("AI_CONFIGURATION", "configuration");
       }

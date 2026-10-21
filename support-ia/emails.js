@@ -2,7 +2,11 @@ const path = require("node:path");
 const { execFile } = require("node:child_process");
 
 // Python est déjà utilisé par le back-office : ce module partage sa file d'emails.
-function planifierEmail(reference, type) {
+function planifierEmail(reference, type, preparationId) {
+  if (type === "reception" && preparationId) {
+    try { require("./acces-email").creerLien(reference, preparationId); }
+    catch { return Promise.resolve({ statut: "NON_PLANIFIE" }); }
+  }
   return new Promise((resolve) => {
     const python = process.env.PYTHON_BIN || (process.platform === "win32" ? "py" : "python3");
     execFile(python, [path.join(__dirname, "notifications.py"), "--enqueue", reference, type],

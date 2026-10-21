@@ -10,7 +10,7 @@ function modeleConfigure() {
   return modele;
 }
 async function interrogerIA(message, preparation, options = {}) {
-  const cle = process.env.OPENROUTER_API_KEY;
+  const cle = process.env.OPENROUTER_API_KEY || process.env.IA_API_KEY;
   if (!cle || !cle.trim()) throw echec("AI_CONFIGURATION", "configuration");
   const model = modeleConfigure();
   const corps = {

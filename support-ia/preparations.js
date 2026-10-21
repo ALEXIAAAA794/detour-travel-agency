@@ -24,7 +24,11 @@ function autoriser(req, res, next) {
     if (!/^[0-9a-f-]{36}$/.test(id)) throw Error();
     p = JSON.parse(fs.readFileSync(fichier(id), "utf8"));
     const empreinte = crypto.createHash("sha256").update(jeton).digest("hex");
-    if (!crypto.timingSafeEqual(Buffer.from(empreinte), Buffer.from(p.empreinte))) throw Error();
+    if (!crypto.timingSafeEqual(Buffer.from(empreinte), Buffer.from(p.empreinte))) {
+      const acces = require("./acces-email").verifierLien(id, jeton);
+      if (acces === "expire") return res.status(410).set("Cache-Control", "no-store").json({ error: { code: "EMAIL_LINK_EXPIRED", message: "Ce lien de préparation a expiré. Contactez un conseiller via /contact pour demander un nouveau lien." } });
+      if (acces !== "valide") throw Error();
+    }
   } catch { return res.status(404).json({ error: { message: "Préparation inaccessible." } }); }
   res.set("Cache-Control", "no-store");
   req.preparation = p;
@@ -54,7 +58,7 @@ preparationsRouter.patch("/:id", autoriser, (req, res) => {
   sauver(p);
   res.json(publique(p));
 });
-preparationsRouter.post(["/:id/programme", "/:id/programme/modifications"], autoriser, async (req, res, next) => {
+preparationsRouter.post(["/:id/programme", "/:id/programme/modifications"], autoriser, require("./limitation").limiterPreparation, async (req, res, next) => {
   const p = req.preparation;
   const erreur = (statut, code, message, plus = {}) => res.status(statut).json({ error: { code, message, ...plus } });
   // La version attendue évite qu’un clic répété ou un autre onglet régénère silencieusement.

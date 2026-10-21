@@ -4,32 +4,33 @@ const Context = createContext(null);
 const welcome = { role: "assistant", content: "Bonjour ! Je peux vous aider à imaginer votre prochain voyage. Que recherchez-vous ?" };
 export function SupportProvider({ children }) {
   const apiRef = useRef(null);
-  if (!apiRef.current) { let storage; try { storage = window.sessionStorage; } catch {} apiRef.current = createSupportClient({ storage }); }
+  if (!apiRef.current) { let storage; try { storage = window.sessionStorage; } catch {} apiRef.current = createSupportClient({ storage, location: window.location, history: window.history }); }
   const api = apiRef.current;
   const [preparation, setPreparation] = useState(null), [draft, setDraft] = useState({});
   const [messages, setMessages] = useState([welcome]), [pending, setPending] = useState(false), [error, setError] = useState("");
-  const lock = useRef(false);
+  const lock = useRef(false), retryRef = useRef(null);
   useEffect(() => {
     let active = true;
     lock.current = true; setPending(true);
     api.restore().then(p => { if (active && p) { setPreparation(p); setDraft(p.voyage); setMessages([welcome, ...p.historique]); } })
-      .catch(() => { if (active) setError("Préparation inaccessible. Vous pouvez recommencer ; les données existantes sont conservées."); })
+      .catch(e => { if (active) { setError(e.message || "Préparation inaccessible. Les données existantes sont conservées."); retryRef.current = async () => { const p=await api.restore(); if(p){setPreparation(p);setDraft(p.voyage);setMessages([welcome,...p.historique]);} }; } })
       .finally(() => { if (active) { lock.current = false; setPending(false); } });
     return () => { active = false; };
   }, [api]);
   async function execute(action) {
     if (lock.current) return null;
-    lock.current = true; setPending(true); setError("");
-    try { return await action(); }
+    lock.current = true; setPending(true); setError(""); retryRef.current = action;
+    try { const r = await action(); retryRef.current = null; return r; }
     catch (e) { setError(e.message || "Opération non confirmée. Réessayez."); return null; }
     finally { lock.current = false; setPending(false); }
   }
   async function save() { const p = await api.save(draft); setPreparation(p); return p; }
   const value = { preparation, draft, setDraft, messages, pending, error,
+    retry: () => retryRef.current ? execute(retryRef.current) : null,
     start: () => execute(async () => { const p = await api.start(); setPreparation(p); setDraft({}); setMessages([welcome]); return p; }),
     save: () => execute(save),
     ask: message => execute(async () => {
-      setMessages(m => [...m, { role: "user", content: message }]);
+      setMessages(m => m.at(-1)?.role === "user" && m.at(-1)?.content === message ? m : [...m, { role: "user", content: message }]);
       if (Object.keys(draft).length) await save();
       const data = await api.ask(message);
       setMessages(m => [...m, data.reply]);

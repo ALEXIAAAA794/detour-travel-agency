@@ -51,3 +51,25 @@ test("client React : stockage bloqué et refus de restauration restent explicite
   const interdit=createSupportClient({storage:stockage({id:"ancien",jeton:"test"}),fetchImpl:async()=>({ok:false,json:async()=>({error:{message:"Préparation inaccessible"}})})});
   await assert.rejects(interdit.restore(),/inaccessible/);
 });
+
+
+test("client React : lien email prioritaire, fragment retiré, token jamais dans une URL réseau",async()=>{
+ const {createSupportClient}=await importer();const id="11111111-1111-4111-8111-111111111111",jeton="a".repeat(64),appels=[];
+ let adresse;
+ const client=createSupportClient({storage:stockage({id:"ancien-client",jeton:"ancien"}),location:{pathname:"/assistant",search:"",hash:"#preparation="+id+"&jeton="+jeton},history:{replaceState:(_a,_b,u)=>{adresse=u;}},fetchImpl:async(url,o)=>{appels.push({url,o});return{ok:true,json:async()=>({id,voyage:{destination:"Dossier email"},historique:[]})};}});
+ assert.equal(adresse,"/assistant");const p=await client.restore();assert.equal(p.id,id);assert.equal(appels[0].o.headers.Authorization,"Bearer "+jeton);assert.ok(!appels[0].url.includes(jeton));assert.ok(!appels[0].url.includes("ancien-client"));
+ const expire=createSupportClient({location:{pathname:"/assistant",search:"",hash:"#preparation="+id+"&jeton="+jeton},history:{replaceState(){}},fetchImpl:async()=>({ok:false,json:async()=>({error:{code:"EMAIL_LINK_EXPIRED",message:"Ce lien de préparation a expiré. /contact"}})})});
+ await assert.rejects(expire.restore(),/expiré/);assert.equal(expire.current,null);
+ const invalide=createSupportClient({storage:stockage({id:"autre-client",jeton:"ancien"}),location:{pathname:"/assistant",search:"",hash:"#jeton=invalide"},history:{replaceState(){}},fetchImpl:()=>{throw Error("Ne doit pas ouvrir un autre dossier");}});
+ await assert.rejects(invalide.restore(),/invalide/);
+});
+
+
+test("client React : double initialisation StrictMode ne perd pas le lien email au profit d’un autre dossier",async()=>{
+ const {createSupportClient}=await importer();const id="11111111-1111-4111-8111-111111111111",token="b".repeat(64);
+ const location={pathname:"/assistant",search:"",hash:"#preparation="+id+"&jeton="+token};
+ const history={replaceState(){location.hash="";}};let adresse;
+ const options={location,history,storage:{getItem:()=>JSON.stringify({id:"autre-dossier",jeton:"autre"}),setItem(){throw Error("Stockage indisponible");}},fetchImpl:async(url,o)=>{adresse=url;assert.equal(o.headers.Authorization,"Bearer "+token);return{ok:true,json:async()=>({id,voyage:{},historique:[]})};}};
+ createSupportClient(options); // premier rendu abandonné
+ const actif=createSupportClient(options);assert.equal((await actif.restore()).id,id);assert.ok(!adresse.includes("autre-dossier"));
+});

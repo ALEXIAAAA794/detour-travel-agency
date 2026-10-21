@@ -481,3 +481,102 @@ https://openrouter.ai/api/v1/models/liquid/lfm-2.5-2.6b:free/endpoints
 https://openrouter.ai/docs/guides/features/structured-outputs
 https://openrouter.ai/docs/guides/routing/provider-selection
 https://openrouter.ai/docs/api/reference/limits
+
+
+## Conformité #18 / #19 et contrat compatible
+
+Voir [../docs/tests-ia.md](../docs/tests-ia.md) : 15 cas avec résultats observés,
+nature simulée/réelle, grille détaillée et décisions PO. Décision utilisateur
+appliquée : **français et anglais**, réponse dans la langue du client ; aucune
+imposition du français. Le système expose des garde-fous locaux sur les motifs
+explicitement testés, pas une garantie générale de résistance aux injections.
+Aucun appel fournisseur ni email réel n’a été effectué pour cette conformité.
+
+### Clé et contrat HTTP
+
+`IA_API_KEY` est un alias **exclusivement serveur** de la clé du fournisseur
+choisi par `AI_PROVIDER`. `GEMINI_API_KEY` / `OPENROUTER_API_KEY`, si présentes,
+restent prioritaires. Aucun changement du modèle/fournisseur ni des validations
+JSON existantes ; aucune variable de clé `VITE_*` à créer.
+
+Le contrat historique `/api/support/messages` reste disponible. Compatibilité :
+
+```http
+POST /api/chat
+Content-Type: application/json
+
+{"message":"Bonjour","historique":[],"jeton":"UUID_PREPARATION.SECRET_CONFIDENTIEL"}
+```
+
+Autre forme : `jeton` contient seulement le secret et `preparationId` indique
+l’UUID. L’alias impose un token valide ; `historique` est accepté mais ignoré,
+les rôles système et réponses du navigateur n’étant jamais une autorité.
+Les préférences et l’historique serveur du dossier autorisé alimentent le
+contexte. Réponse inchangée `{reply:{role,content,...}}` ; pas de secret renvoyé.
+Sans token : 401 sur l’alias, mauvais dossier/token : 404, lien expiré : 410.
+Message : 1 à 2000 caractères ; corps total limité à 16 Kio.
+
+### Liens de préparation email
+
+L’accusé `reception` existant reçoit un lien vers `/assistant` pour une demande
+liée à une préparation. Le token email est différent du token de session :
+son hash et son expiration sont dans `data/acces-preparations/<uuid>/`, et le
+lien brut nécessaire au worker est dans `data/liens-email/<reference>.json`.
+Ces dossiers sont ignorés par Git, hors du build et non servis par Express,
+permissions 0700/0600 POSIX, ACL utilisateur du processus et SYSTEM Windows.
+Le back-office/demande/JSON public ne reçoivent ni token ni URL confidentielle.
+L’URL transporte le secret dans le fragment ; React retire ce fragment avant
+la requête et utilise Authorization. Le header Referrer-Policy est no-referrer.
+Le client vérifie aussi la double initialisation React StrictMode et ne reprend
+jamais une ancienne session d’un autre dossier à la place d’un lien invalide.
+
+Configurer `SUPPORT_PUBLIC_URL` avec **l’origine du frontend** (sans chemin ni
+query, HTTPS sauf localhost). En développement Vite :
+`SUPPORT_PUBLIC_URL=http://localhost:5173`, et conserver le proxy `/api`.
+Le défaut `http://127.0.0.1:3001` vise Express servant le build React courant.
+Le serveur et le worker doivent partager `SUPPORT_EMAIL_LINKS_DIR` s’il est
+personnalisé, ainsi que le dossier de demandes existant. Aucune configuration
+privée n’a été lue ou modifiée ici.
+
+Validité : `SUPPORT_EMAIL_LINK_TTL_SECONDS=86400` par défaut (24 h depuis la
+mise en file), bornes 300 à 604800 s. Expiration vérifiée côté serveur pour
+chaque accès protégé, pas seulement au chargement. Réponse claire 410 :
+contacter `/contact` pour renouveler. Le renouvellement authentifié est un
+processus à définir avec la PO/le lot conseiller ; aucun endpoint public
+permettant d’envoyer un accès à une adresse arbitraire n’a été ajouté.
+Les doublons conservent le lien et sa date : pas de nouvel email ni de
+prolongation implicite. Les anciennes demandes sans préparation sont préservées.
+La possession du lien autorise sa préparation jusqu’à expiration ; ce n’est
+pas une authentification forte. Les jetons de session préexistants ne sont
+pas migrés. L’accusé reprend le délai indicatif public de 48 h ouvrées, au lieu
+de l’ancien texte 24 h divergent ; le moteur/file SMTP n’est pas refait.
+
+### Limitation et interface
+
+`SUPPORT_AI_RATE_LIMIT=20` : fenêtre fixe d’une minute, compteurs IP et
+préparation, partagés entre discussion, alias et génération/modification,
+y compris erreurs. 429 avec Retry-After ; aucun retry automatique. Pas de
+confiance accordée à X-Forwarded-For. Compteurs mémoire bornés à 10000 clés ;
+état local à un processus et réinitialisé au redémarrage. Une installation
+multi-instance ou derrière un proxy partagé requiert une décision infra ;
+aucune nouvelle base ni nouveau système d’authentification ajouté.
+
+Page et widget indiquent « Vous parlez à une IA », montrent le chargement,
+désactivent les actions pendant l’appel et proposent Réessayer après erreur.
+Ce bouton rejoue l’action échouée ; les transmissions conservent leurs
+protections de version et d’idempotence. Une discussion sans identifiant
+persistant de message peut être répétée après une coupure ambiguë : aucun
+réessai automatique. Le test navigateur local couvre un viewport iframe 375 px.
+
+Tests sans secrets ni réseau fournisseur :
+
+```powershell
+npm test --prefix support-ia
+python support-ia/backoffice_test.py
+python support-ia/email-acces_test.py
+npm --prefix site run build -- --outDir ../support-ia/data/conformite-interface-dist --emptyOutDir false
+```
+
+Les données temporaires fictives et les résultats de tests restent hors Git.
+Aucune nouvelle preuve de comportement réel du fournisseur n’est revendiquée.
+Les essais réels précédents restent des observations historiques documentées.
