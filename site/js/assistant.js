@@ -68,6 +68,13 @@ let projetVoyage = {};
 const boutonProgramme = document.querySelector("#generer-programme");
 const etatProgramme = document.querySelector("#etat-programme");
 const resultatProgramme = document.querySelector("#programme");
+const actionsProgramme = document.querySelector("#actions-programme");
+const changementProgramme = document.querySelector("#modification-programme");
+const boutonChangement = document.querySelector("#modifier-programme");
+const boutonTransmission = document.querySelector("#transmettre-programme");
+const accordProgramme = document.querySelector("#accord-programme");
+const etatTransmission = document.querySelector("#etat-transmission");
+let versionAffichee = null;
 let generationEnCours = false;
 let preparation = null;
 let synchronisation = false;
@@ -135,6 +142,9 @@ function commencerVoyage() {
   projetVoyage = {};
   resultatProgramme.replaceChildren();
   resultatProgramme.hidden = true;
+  actionsProgramme.hidden = true;
+  accordProgramme.checked = false;
+  etatTransmission.textContent = "";
   etatProgramme.textContent = "";
   etapeVoyage = 0;
 
@@ -425,6 +435,12 @@ if (lireAccesPreparation()) {
 function afficherProgramme() {
   resultatProgramme.replaceChildren();
   const sauvegarde = preparation?.programme;
+  actionsProgramme.hidden = !sauvegarde;
+  const cleVersion = preparation ? preparation.id + ":" + sauvegarde?.version + ":" + Boolean(preparation.programmeObsolete) : null;
+  if (versionAffichee !== cleVersion) accordProgramme.checked = false;
+  versionAffichee = cleVersion;
+  boutonTransmission.disabled = generationEnCours || !sauvegarde || preparation.programmeObsolete || sauvegarde.contenu.statut !== "proposition";
+  boutonChangement.disabled = generationEnCours || !sauvegarde || preparation.programmeObsolete;
   resultatProgramme.hidden = !sauvegarde;
   if (!sauvegarde) return;
   const p = sauvegarde.contenu;
@@ -466,7 +482,7 @@ boutonProgramme.addEventListener("click", async () => {
   const champs = [...detailsVoyage.querySelectorAll("input")];
   if (champs.some(champ => !champ.reportValidity())) return;
   generationEnCours = true;
-  const controles = [boutonProgramme, bouton, boutonVoyage, boutonModifier, boutonValider, ...champs];
+  const controles = [boutonChangement, boutonTransmission, accordProgramme, changementProgramme, boutonProgramme, bouton, boutonVoyage, boutonModifier, boutonValider, ...champs];
   const precedents = controles.map(c => c.disabled);
   controles.forEach(c => { c.disabled = true; });
   etatProgramme.textContent = "Génération du programme indicatif en cours…";
@@ -490,5 +506,49 @@ boutonProgramme.addEventListener("click", async () => {
   } finally {
     generationEnCours = false;
     controles.forEach((c, i) => { c.disabled = precedents[i]; });
+    afficherProgramme();
   }
 });
+
+async function agirProgramme(type) {
+  if (generationEnCours || envoiEnCours || bouton.disabled) return;
+  const modification = changementProgramme.value.trim();
+  if (type === "modifications" && (!modification || modification.length > 2000)) { etatProgramme.textContent = "Décrivez le changement souhaité (1 à 2 000 caractères)."; return; }
+  if (type === "transmission" && !accordProgramme.checked) { etatTransmission.textContent = "Votre accord explicite est nécessaire pour transmettre la version affichée."; return; }
+  const nom = document.querySelector("#client-nom"), email = document.querySelector("#client-email");
+  if (type === "transmission" && (!nom.reportValidity() || !email.reportValidity())) return;
+  const version = preparation?.programme?.version;
+  const accord = accordProgramme.checked;
+  generationEnCours = true;
+  const controles = [boutonProgramme, boutonChangement, boutonTransmission, accordProgramme, changementProgramme, bouton, boutonVoyage, boutonModifier, boutonValider, ...recapitulatif.querySelectorAll("input")];
+  const precedents = controles.map(c => c.disabled);
+  controles.forEach(c => { c.disabled = true; });
+  const etat = type === "transmission" ? etatTransmission : etatProgramme;
+  etat.textContent = type === "transmission" ? "Enregistrement de votre accord et transmission…" : "Modification du programme en cours…";
+  try {
+    await sauverPreferences({ ...projetVoyage });
+    if (!preparation.programme || preparation.programme.version !== version || preparation.programmeObsolete) throw new Error("Le programme a changé ou les préférences le rendent obsolète. Rechargez ou générez à nouveau, puis relisez-le.");
+    const r = await fetch("/api/support/preparations/" + preparation.id + "/programme/" + type, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + preparation.jeton },
+      body: JSON.stringify(type === "transmission" ? { versionAcceptee: version, accord, client: { nom: nom.value.trim(), email: email.value.trim() } } : { versionAttendue: version, modification }),
+      signal: AbortSignal.timeout(type === "transmission" ? 15000 : 100000)
+    });
+    const donnees = await r.json();
+    if (!r.ok) throw new Error(donnees.error?.message || "Opération non confirmée. Réessayez.");
+    if (type === "transmission") {
+      etat.textContent = "Version " + donnees.versionAcceptee + " validée et rattachée à la demande " + donnees.reference + ". Aucune réservation ni validation commerciale effectuée. " + (["EN_ATTENTE", "EN_COURS"].includes(donnees.email?.statut) ? "Accusé de réception en préparation." : donnees.email?.statut === "ACCEPTE_SMTP" ? "Accusé accepté par le service email." : "Envoi de l’accusé non confirmé ; transmission enregistrée.");
+    } else {
+      preparation = { ...preparation, ...donnees };
+      afficherProgramme();
+      etat.textContent = "Programme modifié et enregistré, version " + preparation.programme.version + ". Aucun nouvel envoi au conseiller.";
+      changementProgramme.value = "";
+    }
+  } catch (e) { etat.textContent = e.message || "Opération non confirmée. Réessayez avec la même version."; }
+  finally {
+    generationEnCours = false;
+    controles.forEach((c, i) => { c.disabled = precedents[i]; });
+    afficherProgramme();
+  }
+}
+boutonChangement.addEventListener("click", () => agirProgramme("modifications"));
+boutonTransmission.addEventListener("click", () => agirProgramme("transmission"));

@@ -1,4 +1,6 @@
 import html
+import time
+from contextlib import contextmanager
 import importlib.util
 import secrets
 import tempfile
@@ -19,7 +21,32 @@ API_KEY = os.environ.get("DETOUR_API_KEY", "")
 PORT = int(os.environ.get("PORT", "8080"))
 VERSION = "1.3.2"
 JETON_FORMULAIRE = secrets.token_urlsafe(32)
-VERROU_DEMANDES = threading.Lock()
+_VERROU_LOCAL_DEMANDES = threading.Lock()
+
+def dossier_demandes():
+    return os.environ.get("SUPPORT_DEMANDES_DIR") or os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "support-ia", "data", "demandes"))
+
+@contextmanager
+def verrou_demandes():
+    # Même verrou interprocessus que les écritures Express.
+    dossier = dossier_demandes()
+    os.makedirs(dossier, exist_ok=True)
+    chemin = os.path.join(dossier, ".ecriture.lock")
+    with _VERROU_LOCAL_DEMANDES:
+        limite = time.monotonic() + 8
+        while True:
+            try:
+                fd = os.open(chemin, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                os.close(fd)
+                break
+            except FileExistsError:
+                if time.monotonic() >= limite:
+                    raise OSError("Demandes occupées, réessayez.")
+                time.sleep(0.05)
+        try:
+            yield
+        finally:
+            os.unlink(chemin)
 
 # Même module et même dossier de notifications que le serveur Express.
 _chemin_notifications = os.path.abspath(os.path.join(
@@ -244,14 +271,11 @@ def prendre_en_charge(reference, jeton):
         identifiant = str(uuid.UUID(reference))
     except (ValueError, AttributeError):
         return "Référence invalide."
-    dossier = os.path.abspath(os.path.join(
-        os.path.dirname(__file__),
-        "..", "support-ia", "data", "demandes"
-    ))
+    dossier = dossier_demandes()
     chemin = os.path.join(dossier, identifiant + ".json")
     temporaire = None
     try:
-        with VERROU_DEMANDES:
+        with verrou_demandes():
             with open(chemin, encoding="utf-8") as fichier:
                 demande = json.load(fichier)
             if demande.get("statut") == "EN_ETUDE":
@@ -346,11 +370,11 @@ def enregistrer_proposition(reference, jeton, valeurs):
             raise ValueError()
     except (InvalidOperation, ValueError):
         return "Le prix total doit être supérieur à zéro."
-    dossier = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "support-ia", "data", "demandes"))
+    dossier = dossier_demandes()
     chemin = os.path.join(dossier, identifiant + ".json")
     temporaire = None
     try:
-        with VERROU_DEMANDES:
+        with verrou_demandes():
             with open(chemin, encoding="utf-8") as fichier:
                 demande = json.load(fichier)
             if not isinstance(demande, dict) or demande.get("statut") != "EN_ETUDE":
@@ -385,10 +409,7 @@ def enregistrer_proposition(reference, jeton, valeurs):
 
 def chemin_demande(reference):
     identifiant = str(uuid.UUID(reference))
-    return os.path.abspath(os.path.join(
-        os.path.dirname(__file__), "..", "support-ia", "data", "demandes",
-        identifiant + ".json"
-    ))
+    return os.path.join(dossier_demandes(), identifiant + ".json")
 
 
 def ecrire_demande(chemin, demande):
@@ -415,7 +436,7 @@ def valider_proposition(reference, jeton, version):
         return "Formulaire expiré. Actualisez la page."
     try:
         chemin = chemin_demande(reference)
-        with VERROU_DEMANDES:
+        with verrou_demandes():
             with open(chemin, encoding="utf-8") as fichier:
                 demande = json.load(fichier)
             proposition = demande.get("proposition", {})
@@ -454,7 +475,7 @@ def lire_proposition_client(reference, acces):
 def accepter_proposition(reference, acces, jeton):
     if not secrets.compare_digest(jeton, JETON_FORMULAIRE):
         return False
-    with VERROU_DEMANDES:
+    with verrou_demandes():
         demande = lire_proposition_client(reference, acces)
         if demande is None:
             return False
@@ -547,11 +568,28 @@ def panneau_emails(demande):
     return contenu + '</div>'
 
 
+def programme_accepte(demande):
+    instantane = demande.get("programmeAccepte")
+    if not isinstance(instantane, dict) or not isinstance(instantane.get("contenu"), dict):
+        return ""
+    p = instantane["contenu"]
+    morceaux = ["<section><h2>Programme accepté par le client</h2>",
+                "<p>Version %s — validation client : %s</p>" % (e(instantane.get("version")), e(instantane.get("valideLe"))),
+                "<p>Suggestions et estimation indicatives, sans disponibilité vérifiée ni réservation confirmée. Cette validation client ne vaut pas validation commerciale du conseiller.</p>",
+                "<h3>%s</h3><p>%s</p>" % (e(p.get("titre")), e(p.get("resume")))]
+    for jour in p.get("itineraire", []):
+        morceaux.append("<h3>Jour %s — %s</h3>" % (e(jour.get("jour")), e(jour.get("titre"))))
+        for etape in jour.get("etapes", []):
+            morceaux.append("<h4>%s</h4><ul>%s</ul>" % (e(etape.get("lieu")), "".join("<li>%s</li>" % e(a) for a in etape.get("activites", []))))
+    budget = p.get("budget", {})
+    morceaux.append("<h3>Estimation indicative totale</h3><p>%s – %s %s</p>" % (e(budget.get("minimum")), e(budget.get("maximum")), e(budget.get("devise"))))
+    for titre, valeurs in [("Suggestions de transport", p.get("transports", [])), ("Suggestions d’hébergement", p.get("hebergements", [])), ("Hypothèses", budget.get("hypotheses", [])), ("Informations manquantes", p.get("informationsManquantes", [])), ("Incohérences et points à vérifier", p.get("pointsAVerifier", []))]:
+        morceaux.append("<h3>%s</h3><ul>%s</ul>" % (e(titre), "".join("<li>%s</li>" % e(v) for v in valeurs)))
+    morceaux.append("</section>")
+    return "".join(morceaux)
+
 def demandes_voyage():
-    dossier = os.path.abspath(os.path.join(
-        os.path.dirname(__file__),
-        "..", "support-ia", "data", "demandes"
-    ))
+    dossier = dossier_demandes()
     demandes = []
     erreurs = 0
     try:
@@ -663,6 +701,7 @@ def demandes_voyage():
                 'En démonstration locale, ce lien fonctionne seulement sur cet ordinateur.</p>'
                 % e(lien)
             )
+        action += programme_accepte(demande)
         action += panneau_emails(demande)
         blocs.append(
             '<table border="1" cellpadding="8" cellspacing="0">'

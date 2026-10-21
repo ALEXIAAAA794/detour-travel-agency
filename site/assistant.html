@@ -141,6 +141,8 @@
   border-radius: 12px;
 }
 
+fieldset input[type="checkbox"] { width: auto; margin-right: 8px; }
+
 fieldset input {
   width: 100%;
   padding: 12px;
@@ -206,7 +208,17 @@ fieldset input {
   <button id="generer-programme" type="button">Générer mon programme</button>
   <p id="etat-programme" role="status" aria-live="polite"></p>
   <section id="programme" hidden aria-label="Programme de voyage indicatif"></section>
-  <p>Vous pouvez envoyer vos préférences indépendamment de la génération. Cet envoi ne valide ni ne transmet le programme IA ; sa validation sera disponible ultérieurement.</p>
+  <fieldset id="actions-programme" hidden>
+    <legend>Modifier ou transmettre le programme courant</legend>
+    <label for="modification-programme">Changement souhaité en langage naturel</label>
+    <textarea id="modification-programme" rows="3" maxlength="2000" placeholder="Par exemple : alléger le deuxième jour et ajouter une activité culturelle."></textarea>
+    <button id="modifier-programme" type="button">Demander cette modification du programme</button>
+    <p>Le formulaire de discussion reste destiné aux questions. Seule cette action modifie le programme.</p>
+    <label><input id="accord-programme" type="checkbox"> J’ai relu le programme affiché et j’accepte de transmettre cette version indicative au conseiller. Cela ne confirme aucune réservation.</label>
+    <button id="transmettre-programme" type="button">Valider ce programme et le transmettre au conseiller</button>
+    <p id="etat-transmission" role="status" aria-live="polite"></p>
+  </fieldset>
+  <p>Vous pouvez envoyer vos préférences indépendamment de la génération. Cet envoi ne valide ni ne transmet le programme IA. Pour cela, utilisez l’action dédiée ci-dessus.</p>
   <button id="valider-demande" type="button">
   Envoyer mes préférences au conseiller
   </button>

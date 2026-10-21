@@ -53,12 +53,15 @@ preparationsRouter.patch("/:id", autoriser, (req, res) => {
   sauver(p);
   res.json(publique(p));
 });
-preparationsRouter.post("/:id/programme", autoriser, async (req, res, next) => {
+preparationsRouter.post(["/:id/programme", "/:id/programme/modifications"], autoriser, async (req, res, next) => {
   const p = req.preparation;
   const erreur = (statut, code, message, plus = {}) => res.status(statut).json({ error: { code, message, ...plus } });
   // La version attendue évite qu’un clic répété ou un autre onglet régénère silencieusement.
   if (!Number.isSafeInteger(req.body?.versionAttendue) || req.body.versionAttendue < 0) return erreur(400, "INVALID_VERSION", "Version attendue obligatoire.");
   if (occupes.has(p.id)) return erreur(409, "PREPARATION_BUSY", "Une opération est déjà en cours. Réessayez ensuite.");
+  const modification = req.path.endsWith("/modifications");
+  if (modification && (typeof req.body.modification !== "string" || !req.body.modification.trim() || req.body.modification.trim().length > 2000)) return erreur(400, "INVALID_MODIFICATION", "Décrivez le changement en 1 à 2 000 caractères.");
+  if (modification && (!p.programme || p.programme.empreinteVoyage !== empreinteVoyage(p.voyage))) return erreur(409, "STALE_PROGRAMME", "Le programme doit être présent et à jour avant modification.");
   const version = p.programme?.version || 0;
   if (req.body.versionAttendue !== version) return erreur(409, "STALE_PROGRAMME", "Le programme a changé. Rechargez votre préparation.");
   occupes.add(p.id);
@@ -68,7 +71,7 @@ preparationsRouter.post("/:id/programme", autoriser, async (req, res, next) => {
   let etape = "appel_gemini";
   tracer(reference, debut, "debut", { etape });
   try {
-    const resultat = await genererProgramme(p);
+    const resultat = await genererProgramme(p, modification ? req.body.modification.trim() : undefined);
     if (resultat.problemes) {
       tracer(reference, debut, "refus", { etape: "preferences" });
       return erreur(422, "PREFERENCES_INCOMPLETE", "Précisez ou corrigez les préférences avant la génération.", { precisions: resultat.problemes });
@@ -77,6 +80,10 @@ preparationsRouter.post("/:id/programme", autoriser, async (req, res, next) => {
     const actuelle = JSON.parse(fs.readFileSync(fichier(p.id), "utf8"));
     if (empreinteVoyage(actuelle.voyage) !== empreinte || (actuelle.programme?.version || 0) !== version) return erreur(409, "STALE_PROGRAMME", "Les préférences ou le programme ont changé. Relancez la génération.");
     actuelle.programme = { version: version + 1, genereLe: new Date().toISOString(), empreinteVoyage: empreinte, contenu: resultat.programme };
+    if (modification) {
+      if (actuelle.historique.length >= 200) return erreur(409, "HISTORY_FULL", "Préparation complète.");
+      actuelle.historique.push({ role: "user", content: "Modification explicite du programme : " + req.body.modification.trim() }, { role: "model", content: "Programme modifié, version " + actuelle.programme.version });
+    }
     sauver(actuelle);
     tracer(reference, debut, "succes", { etape: "termine" });
     return res.json(publique(actuelle));
@@ -91,5 +98,12 @@ preparationsRouter.post("/:id/programme", autoriser, async (req, res, next) => {
     if (e.code === "AI_CONFIGURATION") return erreur(503, e.code, "La configuration Gemini du serveur est absente." + suite);
     return erreur(503, "AI_UNAVAILABLE", "Génération indisponible (réseau ou réponse Gemini inexploitable)." + suite);
   } finally { occupes.delete(p.id); }
+});
+preparationsRouter.post("/:id/programme/transmission", autoriser, async (req, res) => {
+  const id = req.preparation.id;
+  if (occupes.has(id)) return res.status(409).json({ error: { message: "Préparation occupée. Réessayez." } });
+  occupes.add(id);
+  try { return await require("./transmissions").transmettre(req, res); }
+  finally { occupes.delete(id); }
 });
 module.exports = { preparationsRouter, autoriser, sauver, occupes };

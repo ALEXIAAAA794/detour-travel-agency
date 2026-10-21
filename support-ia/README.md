@@ -254,7 +254,7 @@ JSON valide/invalide, structure invalide, dates inventées, panne, contrôle du 
 source serveur, persistance, versions, concurrence et réponses obsolètes.
 `assistant.test.js` vérifie aussi la restauration du programme, l’affichage texte,
 le verrou de double clic et la conservation du résultat en cas d’échec.
-La modification conversationnelle et la transmission du programme restent à l’étape 3.
+La modification conversationnelle et la transmission du programme sont décrites dans l’étape 3 ci-dessous.
 
 
 ### Diagnostic d’une génération en échec
@@ -282,10 +282,100 @@ Le bouton « Envoyer mes préférences au conseiller » conserve le parcours exi
 après un échec IA. Il peut planifier l’accusé de réception existant. Il n’envoie pas
 le contenu du programme et ne constitue pas une validation de celui-ci. La génération
 appelle uniquement la route de préparation ; la validation/transmission du programme
-reste réservée à l’étape 3. Une demande déjà transmise n’est ni supprimée ni réécrite.
+utilise désormais l’action dédiée décrite dans l’étape 3. Une demande déjà transmise n’est ni supprimée ni réécrite.
 
 Pour diagnostiquer un essai réel : relancer Express avec sa configuration habituelle,
 recharger la page et cliquer une seule fois sur « Générer mon programme ». Relever
 le message et les lignes de console portant la référence diagnostic, sans partager
 la configuration, les en-têtes ou le contenu client. Ne pas cliquer sur l’envoi des
 préférences pendant cet essai.
+
+
+## Support IA — étape 3 : modifier, accepter et transmettre
+
+Le formulaire de discussion pose une question et conserve l’historique ; il ne
+modifie pas le programme. Une action distincte « Demander cette modification du
+programme » accepte un changement en langage naturel (1 à 2 000 caractères).
+Le serveur fournit à Gemini les préférences, le programme courant et l’historique
+protégé, puis réutilise la validation JSON et les diagnostics de l’étape 2.
+Seule une réponse valide incrémente la version et enregistre l’échange de
+modification. Les erreurs, dont HTTP 503 fournisseur, conservent la version
+précédente et permettent un nouvel essai manuel, sans repli simulé en production.
+Une préférence modifiée rend le programme obsolète ; il faut le régénérer avant
+modification ou acceptation. Aucun envoi au conseiller lors d’une modification.
+
+Routes protégées par `Authorization: Bearer <jeton>` :
+
+- `POST /api/support/preparations/:id/programme/modifications` :
+  `{ "versionAttendue": 1, "modification": "Alléger le deuxième jour" }`.
+- `POST /api/support/preparations/:id/programme/transmission` :
+  `{ "versionAcceptee": 2, "accord": true, "client": { "nom": "...", "email": "..." } }`.
+  Aucun programme fourni par le navigateur n’est utilisé : le serveur copie
+  lui-même son programme sauvegardé et le revalide. La case d’accord est décochée
+  quand le programme affiché ou son état d’obsolescence change.
+
+L’acceptation exige une proposition valide (pas un statut `precisions`), des
+préférences complètes, une version à jour, des coordonnées valides et l’accord
+explicite. La demande contient `programmeAccepte` : contenu, préférences au moment
+de l’accord, version, `valideLe`, `accord`, `preparationId`, `demandeReference`.
+Cet instantané est indépendant de la version courante de préparation. Le
+back-office affiche son itinéraire, ses suggestions, son estimation, ses hypothèses,
+les informations manquantes et avertissements, ainsi que la version acceptée et
+la date d’accord. Tout le contenu est échappé ; aucun jeton client n’est ajouté.
+Les anciennes demandes sans programme conservent leur affichage.
+
+Pour une préparation sans demande, la transmission crée une seule demande `RECUE`.
+Si des préférences ont déjà été envoyées, le programme est ajouté à cette demande
+uniquement lorsqu’elle est `RECUE` ou `EN_ETUDE` avec, éventuellement, une proposition
+`BROUILLON`. Les champs existants, statuts et travaux du conseiller ne sont pas
+écrasés. Les coordonnées doivent correspondre à celles de la demande existante ;
+sinon HTTP 409 et contact conseiller. Plusieurs demandes déjà liées à une même
+préparation produisent également un conflit, sans suppression ni fusion automatique.
+Un état commercial validé/accepté refuse tout nouveau rattachement.
+
+Un réessai de la même version acceptée retourne le même rattachement, même si
+le conseiller a ensuite avancé le dossier : aucun nouvel instantané ni nouvelle
+demande. La file de notifications existante, unique par demande/type `reception`,
+assure l’absence de deuxième email. Après une coupure survenue après la sauvegarde,
+réessayer avec la même version permet aussi de planifier l’accusé manquant.
+L’écran distingue l’enregistrement de la transmission du statut réel de cet accusé.
+La transmission d’une autre version après un premier accord est refusée (409) :
+il faut contacter le conseiller ; aucun remplacement silencieux de l’instantané.
+L’ancien envoi de préférences réutilise également une demande liée identique et
+refuse de créer une autre demande si ses coordonnées/préférences diffèrent.
+
+La validation client ne change pas le statut commercial existant et ne confirme
+aucune réservation. La validation commerciale du conseiller et l’acceptation de
+sa proposition restent les parcours existants, distincts de l’accord sur un
+programme IA indicatif. Aucun paiement ni nouvelle authentification.
+
+Écritures : le fichier `.ecriture.lock` dans le dossier des demandes est partagé
+par Node et Python pour empêcher l’écrasement d’un travail conseiller concurrent.
+Le remplacement des JSON est atomique. Node renvoie un conflit ou une erreur
+réessayable si le dossier est occupé ; Python attend au plus huit secondes.
+Relancer les DEUX serveurs après mise à jour pour activer ce verrou partout.
+`SUPPORT_DEMANDES_DIR`, si utilisé, doit désigner le même dossier dans Node et
+Python ; sans cette variable, les chemins par défaut restent inchangés. Les
+notifications conservent leur chemin habituel : en production garder le dossier
+de données par défaut pour cette file existante.
+
+Limites réelles : un seul processus Express pour la coordination des programmes,
+stockage partagé local, accès client par possession du jeton, pas de vérification
+email/identité supplémentaire. Un arrêt brutal peut laisser un verrou : faire
+vérifier l’arrêt des écrivains et traiter ce verrou manuellement, sans l’effacer
+automatiquement. Les versions courantes précédentes ne sont pas archivées ; seul
+l’instantané accepté reste figé. La reprise client après changement ultérieur de
+version nécessite de contacter le conseiller pour tout nouvel accord. La précision
+factuelle et les disponibilités nécessitent toujours une vérification humaine.
+L’indisponibilité réelle HTTP 503 du dernier essai Gemini n’est pas résolue ni
+masquée par ces tests ; aucun appel réel n’est nécessaire pour la suite simulée.
+
+Vérifications : depuis `support-ia`, `npm test` (Gemini et notifications simulés,
+JSON temporaires isolés), puis `python backoffice_test.py` (anciennes/nouvelles
+demandes synthétiques, programme échappé, verrou Python reconnu par Node).
+La suite `etape3.test.js` couvre modifications valides/invalides, panne, version
+périmée, accès interdit, question sans mutation, consentement et coordonnées,
+concurrence, transmission répétée, programme navigateur ignoré, rattachement à
+une demande en étude, conservation du brouillon, état commercial fermé et
+immutabilité de l’instantané après modification. Les tests d’interface utilisent
+un DOM simulé ; la présentation visuelle reste à vérifier dans le navigateur.

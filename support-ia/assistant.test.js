@@ -16,6 +16,8 @@ function page({ acces = null, fetch = async () => ({ ok: false }), stockageBloqu
     focus() {}
     scrollIntoView() {}
     setCustomValidity() {}
+    reportValidity() { return true; }
+    checkValidity() { return true; }
   }
   const document = { querySelector(id) { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); }, createElement() { return new Element(); } };
   const contexte = vm.createContext({ document, fetch, AbortSignal, sessionStorage: {
@@ -112,4 +114,36 @@ test("programme restauré et affichage texte ; doubles clics et panne préserven
   await seconde;
   assert.match(rendu.children[1].textContent, /Version 2/);
   assert.match(p.elements.get("#etat-programme").textContent, /Panne simulée/);
+});
+
+test("actions explicites : modification versionnée, consentement et transmission sans programme navigateur", async () => {
+  const contenu = { statut: "proposition", titre: "Lyon", resume: "Indicatif", itineraire: [], transports: [], hebergements: [], budget: { minimum: 100, maximum: 200, devise: "EUR", hypotheses: [] }, informationsManquantes: [], pointsAVerifier: [] };
+  let courant = { id: "ancienne", historique: [], voyage: { destination: "Lyon", dates: "mai", participants: 2, budget: "500", activites: "culture", experience: "repos", rythme: "calme", contraintes: "aucune" }, programme: { version: 1, contenu }, programmeObsolete: false };
+  const appels = [];
+  const p = page({ acces: { id: "ancienne", jeton: "confidentiel" }, fetch: async (url, options) => {
+    appels.push({ url, body: options.body ? JSON.parse(options.body) : null });
+    if (url.endsWith("/modifications")) courant = { ...courant, programme: { version: 2, contenu } };
+    return { ok: true, json: async () => url.endsWith("/transmission") ? { reference: "demande-test", versionAcceptee: 2, email: { statut: "NON_PLANIFIE" } } : courant };
+  } });
+  await tick();
+  assert.equal(p.elements.get("#actions-programme").hidden, false);
+  const transmettre = p.elements.get("#transmettre-programme").listeners.click;
+  await transmettre();
+  assert.match(p.elements.get("#etat-transmission").textContent, /accord explicite/);
+  assert.equal(appels.filter(a => a.url.endsWith("/transmission")).length, 0);
+  p.elements.get("#modification-programme").value = "Ajouter une promenade";
+  await p.elements.get("#modifier-programme").listeners.click();
+  assert.equal(appels.find(a => a.url.endsWith("/modifications")).body.versionAttendue, 1);
+  assert.equal(p.elements.get("#accord-programme").checked, false);
+  p.elements.get("#accord-programme").checked = true;
+  p.elements.get("#client-nom").value = "Client";
+  p.elements.get("#client-email").value = "client@example.invalid";
+  await transmettre();
+  const envoye = appels.find(a => a.url.endsWith("/transmission")).body;
+  assert.equal(envoye.versionAcceptee, 2);
+  assert.equal(envoye.accord, true);
+  assert.equal(envoye.programme, undefined);
+  assert.match(p.elements.get("#etat-transmission").textContent, /Version 2 validée/);
+  assert.match(p.elements.get("#etat-transmission").textContent, /Envoi de l’accusé non confirmé/);
+  assert.equal(appels.filter(a => a.url.endsWith("/demandes")).length, 0);
 });

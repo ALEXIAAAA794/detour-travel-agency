@@ -1,5 +1,6 @@
 const express = require("express");
 const { autoriser } = require("./preparations");
+const { verrouiller, trouver } = require("./stockage-demandes");
 const { planifierEmail } = require("./emails");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -87,7 +88,14 @@ demandesRouter.post("/", (req, res, next) => {
     ...(req.preparation ? { preparationId: req.preparation.id } : {})
   };
 
+  let liberer;
   try {
+    liberer = verrouiller();
+    const liee = req.preparation ? trouver(req.preparation.id) : null;
+    if (liee) {
+      if (JSON.stringify(liee.client) !== JSON.stringify(contenu.client) || JSON.stringify(liee.voyage) !== JSON.stringify(contenu.voyage)) return res.status(409).json({ error: { message: "Une demande existe déjà pour cette préparation. Contactez le conseiller pour modifier les préférences transmises." } });
+      return res.status(200).json({ reference: liee.reference, statut: liee.statut, email: await planifierEmail(liee.reference, "reception") });
+    }
     fs.mkdirSync(dossierDemandes, { recursive: true });
 
     const fichier = path.join(dossierDemandes, requestId + ".json");
@@ -131,7 +139,7 @@ demandesRouter.post("/", (req, res, next) => {
     });
   } catch (erreur) {
     next(erreur);
-  }
+  } finally { if (liberer) liberer(); }
 });
 
 module.exports = { demandesRouter };
