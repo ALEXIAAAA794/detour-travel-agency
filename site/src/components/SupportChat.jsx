@@ -1,17 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-
-const MESSAGE_URL = "/api/support/messages";
+import { Link } from "react-router-dom";
+import { Sources, useSupport } from "../support/SupportContext.jsx";
 
 export default function SupportChat() {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [pending, setPending] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content: "Bonjour ! Je peux vous aider à imaginer votre prochain voyage. Que recherchez-vous ?",
-    },
-  ]);
+  const { messages, pending, error, ask } = useSupport();
   const conversationRef = useRef(null);
 
   useEffect(() => {
@@ -28,47 +22,7 @@ export default function SupportChat() {
     if (!contenu || pending) return;
 
     setMessage("");
-    setMessages((precedents) => [
-      ...precedents,
-      { role: "user", content: contenu },
-    ]);
-    setPending(true);
-
-    try {
-      const response = await fetch(MESSAGE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: contenu }),
-      });
-      const donnees = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          donnees.error?.message || "Le service d’assistance est indisponible."
-        );
-      }
-
-      if (typeof donnees.reply?.content !== "string") {
-        throw new Error("La réponse de l’assistant est invalide.");
-      }
-
-      setMessages((precedents) => [
-        ...precedents,
-        { role: "assistant", content: donnees.reply.content },
-      ]);
-    } catch (erreur) {
-      console.error("Échec de l’envoi au support IA :", erreur);
-      setMessages((precedents) => [
-        ...precedents,
-        {
-          role: "assistant",
-          content:
-            "Je n’arrive pas à joindre l’assistant pour le moment. Réessayez plus tard ou contactez notre équipe.",
-        },
-      ]);
-    } finally {
-      setPending(false);
-    }
+    await ask(contenu);
   }
 
   return (
@@ -106,6 +60,7 @@ export default function SupportChat() {
                 key={`${index}-${item.role}`}
               >
                 {item.content}
+                <Sources sources={item.sources} />
               </p>
             ))}
             {pending && (
@@ -115,6 +70,8 @@ export default function SupportChat() {
             )}
           </div>
 
+          {error && <p role="alert">{error}</p>}
+          <Link className="support-chat__contact" to="/assistant">Personnaliser mon voyage et gérer mon programme</Link>
           <form className="support-chat__form" onSubmit={envoyerMessage}>
             <label className="support-chat__sr-only" htmlFor="support-chat-message">
               Votre message

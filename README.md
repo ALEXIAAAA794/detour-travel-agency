@@ -39,6 +39,8 @@ La clé d'approbation est demandée au conseiller à chaque confirmation ou annu
 ## brand/
 
 Logo et visuels sources.
-<<<<<<< Updated upstream
-=======
-//
+
+
+## Support IA intégré
+
+La préparation persistante et les programmes sont accessibles sur `/assistant` dans le site React. Voir [le guide d’intégration](support-ia/INTEGRATION.md) pour la comparaison des branches, les tests et l’état de Gemini. Le backend TypeScript/Prisma et les pages publiques existantes sont conservés.

@@ -1611,3 +1611,12 @@ a {
   background-size: cover;
   background-position: center
 }
+/* Espace de préparation Support IA : complète la charte et le widget existants. */
+.support-workspace { display: grid; gap: 24px; padding-bottom: 48px; }
+.support-workspace fieldset { border: 0; padding: 0; min-width: 0; }
+.support-workspace input:not([type="checkbox"]), .support-workspace textarea { display: block; width: 100%; margin: 8px 0 16px; padding: 12px; border: 1px solid var(--muted, #647985); border-radius: 8px; font: inherit; }
+.support-workspace textarea { min-height: 90px; }
+.support-workspace [role="log"] { max-height: 360px; overflow: auto; }
+.support-workspace [role="log"] p, .support-programme { white-space: pre-wrap; overflow-wrap: anywhere; }
+.support-sources { display: block; font-size: .85em; }
+.support-sources a { margin-right: 8px; text-decoration: underline; }

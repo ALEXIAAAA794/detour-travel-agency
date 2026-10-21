@@ -1,0 +1,114 @@
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
+const crypto = require("node:crypto");
+process.env.SUPPORT_PREPARATIONS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "detour-e3-preparations-"));
+process.env.SUPPORT_DEMANDES_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "detour-e3-demandes-"));
+process.env.GEMINI_API_KEY = "simule";
+const emails = new Set();
+require.cache[require.resolve("./emails")] = { exports: { planifierEmail: async (ref, type) => { emails.add(ref + type); return { statut: "EN_ATTENTE" }; } } };
+const { app } = require("./server");
+const { verrouiller } = require("./stockage-demandes");
+const voyage = { destination: "Lyon", dates: "mai, 2 jours", participants: 2, budget: "500 EUR", activites: "culture", experience: "détente", rythme: "calme", contraintes: "aucune" };
+const contenu = { statut: "proposition", titre: "Lyon", resume: "Indicatif", itineraire: [{ jour: 1, titre: "Visite", etapes: [{ lieu: "Centre", activites: ["Promenade"] }] }], transports: ["Train suggéré"], hebergements: ["Hôtel suggéré"], budget: { minimum: 300, maximum: 500, devise: "EUR", hypotheses: ["2 personnes"] }, informationsManquantes: [], pointsAVerifier: ["Disponibilités inconnues"] };
+const client = { nom: "Client test", email: "client@example.invalid" };
+test("étape 3 : modifications explicites et transmission atomique/idempotente", async () => {
+  const nativeFetch = global.fetch;
+  let mode = "valide", appel, debut, finir;
+  global.fetch = async (url, options) => {
+    if (!String(url).startsWith("https://generativelanguage.googleapis.com/")) return nativeFetch(url, options);
+    appel = JSON.parse(options.body);
+    if (mode === "attente") { debut(); await new Promise(r => { finir = r; }); }
+    if (mode === "panne") return { ok: false, status: 503 };
+    return { ok: true, status: 200, json: async () => ({ candidates: [{ finishReason: "STOP", content: { parts: [{ text: appel.generationConfig ? mode === "invalide" ? "{}" : JSON.stringify(contenu) : "Une simple réponse" }] } }] }) };
+  };
+  const serveur = app.listen(0, "127.0.0.1");
+  await new Promise(r => serveur.once("listening", r));
+  const base = "http://127.0.0.1:" + serveur.address().port;
+  const req = (route, body, jeton, method = "POST") => fetch(base + route, { method, headers: { "Content-Type": "application/json", ...(jeton ? { Authorization: "Bearer " + jeton } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  const creer = async () => {
+    const p = await (await req("/api/support/preparations")).json();
+    const route = "/api/support/preparations/" + p.id;
+    await req(route, { voyage }, p.jeton, "PATCH");
+    await req(route + "/programme", { versionAttendue: 0 }, p.jeton);
+    return { ...p, route };
+  };
+  try {
+    const p = await creer();
+    const modifier = (version = 1, jeton = p.jeton) => req(p.route + "/programme/modifications", { versionAttendue: version, modification: "Alléger la première journée" }, jeton);
+    const transmettre = (version, plus = {}, jeton = p.jeton) => req(p.route + "/programme/transmission", { versionAcceptee: version, accord: true, client, ...plus }, jeton);
+    const lire = async () => (await req(p.route, null, p.jeton, "GET")).json();
+    assert.equal((await modifier(1, "interdit")).status, 404);
+    assert.equal((await transmettre(1, {}, "interdit")).status, 404);
+    assert.equal((await transmettre(1, { accord: false })).status, 400);
+    assert.equal((await transmettre(1, { client: { nom: "", email: "x" } })).status, 400);
+    assert.equal((await transmettre(9)).status, 409);
+    for (const modeErreur of ["invalide", "panne"]) {
+      mode = modeErreur;
+      assert.equal((await modifier()).status, mode === "invalide" ? 502 : 503);
+      assert.equal((await lire()).programme.version, 1);
+    }
+    mode = "attente";
+    const commence = new Promise(r => { debut = r; });
+    const modification = modifier();
+    await commence;
+    assert.equal((await modifier()).status, 409);
+    assert.equal((await transmettre(1)).status, 409);
+    finir();
+    assert.equal((await modification).status, 200);
+    assert.match(JSON.stringify(appel), /Alléger la première journée/);
+    assert.match(JSON.stringify(appel), /Programme courant/);
+    assert.equal((await modifier(1)).status, 409);
+    mode = "valide";
+    await req("/api/support/messages", { preparationId: p.id, message: "Pourquoi ce choix ?" }, p.jeton);
+    assert.equal((await lire()).programme.version, 2);
+    assert.equal(emails.size, 0);
+    const liberer = verrouiller();
+    try { assert.equal((await transmettre(2)).status, 409); } finally { liberer(); }
+    const envoi = await transmettre(2, { programme: { titre: "Faux programme navigateur" } });
+    assert.equal(envoi.status, 200);
+    const recu = await envoi.json();
+    const fichier = path.join(process.env.SUPPORT_DEMANDES_DIR, recu.reference + ".json");
+    const accepte = JSON.parse(fs.readFileSync(fichier));
+    assert.deepEqual(accepte.programmeAccepte.contenu, contenu);
+    assert.equal(accepte.programmeAccepte.version, 2);
+    assert.equal(accepte.programmeAccepte.accord, true);
+    assert.equal(accepte.programmeAccepte.demandeReference, recu.reference);
+    assert.equal(accepte.empreinte, undefined);
+    assert.equal(accepte.jeton, undefined);
+    assert.equal((await transmettre(2)).status, 200);
+    assert.equal(emails.size, 1);
+    assert.equal(fs.readdirSync(process.env.SUPPORT_DEMANDES_DIR).filter(n => n.endsWith(".json")).length, 1);
+    assert.equal((await modifier(2)).status, 200);
+    assert.deepEqual(JSON.parse(fs.readFileSync(fichier)).programmeAccepte, accepte.programmeAccepte);
+    assert.equal((await transmettre(3)).status, 409);
+    assert.equal((await transmettre(2)).status, 200);
+    // Une ancienne demande reçoit le programme sans perdre le brouillon conseiller.
+    const q = await creer();
+    const ancienEnvoi = await req("/api/support/demandes", { requestId: crypto.randomUUID(), preparationId: q.id, client, voyage }, q.jeton);
+    assert.equal(ancienEnvoi.status, 201);
+    const ancienneRef = (await ancienEnvoi.json()).reference;
+    const ancienFichier = path.join(process.env.SUPPORT_DEMANDES_DIR, ancienneRef + ".json");
+    const ancienne = JSON.parse(fs.readFileSync(ancienFichier));
+    ancienne.statut = "EN_ETUDE";
+    ancienne.proposition = { statut: "BROUILLON", titre: "Travail conseiller à conserver" };
+    fs.writeFileSync(ancienFichier, JSON.stringify(ancienne));
+    const rattachement = await req(q.route + "/programme/transmission", { versionAcceptee: 1, accord: true, client }, q.jeton);
+    assert.equal(rattachement.status, 200);
+    assert.equal((await rattachement.json()).reference, ancienneRef);
+    assert.deepEqual(JSON.parse(fs.readFileSync(ancienFichier)).proposition, ancienne.proposition);
+    assert.equal(emails.size, 2);
+    const r = await creer();
+    await req("/api/support/demandes", { requestId: crypto.randomUUID(), preparationId: r.id, client, voyage }, r.jeton);
+    const fichierFerme = fs.readdirSync(process.env.SUPPORT_DEMANDES_DIR).filter(n => n.endsWith(".json")).map(n => path.join(process.env.SUPPORT_DEMANDES_DIR,n)).find(n => JSON.parse(fs.readFileSync(n)).preparationId === r.id);
+    const fermee = JSON.parse(fs.readFileSync(fichierFerme));
+    fermee.statut = "PROPOSITION_VALIDEE";
+    fs.writeFileSync(fichierFerme, JSON.stringify(fermee));
+    assert.equal((await req(r.route + "/programme/transmission", { versionAcceptee: 1, accord: true, client }, r.jeton)).status, 409);
+    await req(r.route, { voyage: { ...voyage, rythme: "rapide" } }, r.jeton, "PATCH");
+    assert.equal((await req(r.route + "/programme/modifications", { versionAttendue: 1, modification: "modifier" }, r.jeton)).status, 409);
+    assert.equal((await req(r.route, null, r.jeton, "GET")).status, 200);
+  } finally { global.fetch = nativeFetch; serveur.closeAllConnections(); await new Promise(r => serveur.close(r)); }
+});
