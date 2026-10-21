@@ -113,3 +113,12 @@ dossier de données. Le traitement par le conseiller reste à développer.
 - Vérification des champs, des dates et du prix côté serveur.
 - Brouillon conservé après actualisation : test manuel réussi.
 - Aucun envoi au client, paiement ou réservation déclenché.
+
+## Validation et acceptation de la proposition
+
+- Le conseiller valide le brouillon enregistré, qui devient non modifiable.
+- Le client consulte la proposition via un lien confidentiel.
+- Son acceptation est enregistrée et visible dans le back-office.
+- Test manuel du parcours complet réussi.
+- Aucun email automatique, paiement ou réservation prestataire déclenché.
+- Accès par lien secret dans cette version locale, sans compte client.

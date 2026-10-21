@@ -372,6 +372,139 @@ def enregistrer_proposition(reference, jeton, valeurs):
                 pass
 
 
+
+def chemin_demande(reference):
+    identifiant = str(uuid.UUID(reference))
+    return os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "..", "support-ia", "data", "demandes",
+        identifiant + ".json"
+    ))
+
+
+def ecrire_demande(chemin, demande):
+    temporaire = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=os.path.dirname(chemin),
+            suffix=".tmp", delete=False
+        ) as fichier:
+            temporaire = fichier.name
+            json.dump(demande, fichier, ensure_ascii=False, indent=2)
+        os.replace(temporaire, chemin)
+        temporaire = None
+    finally:
+        if temporaire:
+            try:
+                os.unlink(temporaire)
+            except OSError:
+                pass
+
+
+def valider_proposition(reference, jeton, version):
+    if not secrets.compare_digest(jeton, JETON_FORMULAIRE):
+        return "Formulaire expiré. Actualisez la page."
+    try:
+        chemin = chemin_demande(reference)
+        with VERROU_DEMANDES:
+            with open(chemin, encoding="utf-8") as fichier:
+                demande = json.load(fichier)
+            proposition = demande.get("proposition", {})
+            if demande.get("statut") == "PROPOSITION_VALIDEE":
+                return None
+            if demande.get("statut") != "EN_ETUDE" or proposition.get("statut") != "BROUILLON":
+                return "Enregistrez d’abord un brouillon pour cette demande en étude."
+            if version != proposition.get("modifieLe"):
+                return "Le brouillon a changé. Actualisez et relisez-le avant validation."
+            maintenant = datetime.now(timezone.utc).isoformat()
+            proposition["statut"] = "VALIDEE"
+            proposition["valideeLe"] = maintenant
+            demande["statut"] = "PROPOSITION_VALIDEE"
+            demande["modifieLe"] = maintenant
+            demande["accesClient"] = secrets.token_urlsafe(32)
+            ecrire_demande(chemin, demande)
+        return None
+    except (OSError, ValueError, AttributeError):
+        return "Impossible de valider cette proposition."
+
+
+def lire_proposition_client(reference, acces):
+    try:
+        with open(chemin_demande(reference), encoding="utf-8") as fichier:
+            demande = json.load(fichier)
+        secret = demande.get("accesClient", "")
+        if not acces or not secret or not secrets.compare_digest(acces, secret):
+            return None
+        if demande.get("statut") not in ("PROPOSITION_VALIDEE", "PROPOSITION_ACCEPTEE"):
+            return None
+        return demande
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def accepter_proposition(reference, acces, jeton):
+    if not secrets.compare_digest(jeton, JETON_FORMULAIRE):
+        return False
+    with VERROU_DEMANDES:
+        demande = lire_proposition_client(reference, acces)
+        if demande is None:
+            return False
+        if demande["statut"] == "PROPOSITION_ACCEPTEE":
+            return True
+        maintenant = datetime.now(timezone.utc).isoformat()
+        demande["statut"] = "PROPOSITION_ACCEPTEE"
+        demande["proposition"]["statut"] = "ACCEPTEE"
+        demande["proposition"]["accepteeLe"] = maintenant
+        demande["modifieLe"] = maintenant
+        try:
+            ecrire_demande(chemin_demande(reference), demande)
+        except OSError:
+            return False
+        return True
+
+
+def page_proposition_client(demande, acces):
+    proposition = demande["proposition"]
+    lignes = "".join(
+        '<tr><th>%s</th><td style="white-space:pre-wrap;overflow-wrap:anywhere">%s</td></tr>'
+        % (e(titre), e(valeur))
+        for titre, valeur in [
+            ("Programme", proposition.get("programme")),
+            ("Départ", proposition.get("dateDebut")),
+            ("Retour", proposition.get("dateFin")),
+            ("Nombre de voyageurs", demande.get("voyage", {}).get("participants")),
+            ("Prix total", str(proposition.get("prixTotal", "")) + " " + str(proposition.get("devise", "")))
+        ]
+    )
+    if demande["statut"] == "PROPOSITION_ACCEPTEE":
+        action = '<p><strong>Votre acceptation a été enregistrée.</strong> Aucun paiement n’a été effectué. La réservation reste à confirmer par l’agence.</p>'
+    else:
+        action = (
+            '<p>Relisez la proposition avant de l’accepter. '
+            'Cette action enregistre votre accord ; elle ne réalise aucun paiement '
+            'et ne confirme pas une réservation prestataire.</p>'
+            '<form method="post" action="/proposition/accepter">'
+            '<input type="hidden" name="reference" value="%s">'
+            '<input type="hidden" name="acces" value="%s">'
+            '<input type="hidden" name="jeton" value="%s">'
+            '<label><input type="checkbox" name="accord" value="oui" required>'
+            ' J’ai lu et j’accepte cette proposition.</label><br>'
+            '<button type="submit">Accepter la proposition</button></form>'
+            % (e(demande["reference"]), e(acces), e(JETON_FORMULAIRE))
+        )
+    return (
+        '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<meta name="referrer" content="no-referrer"><title>DÉTOUR — Votre proposition</title>'
+        '<style>body{background:#F8F6F2;color:#142B3A;font-family:Arial,sans-serif;padding:24px}'
+        'main{max-width:760px;margin:auto;background:white;padding:24px;border-radius:16px}'
+        'table{width:100%%;border-collapse:collapse}th,td{padding:12px;border:1px solid #D8C3A5;text-align:left}'
+        'button{background:#142B3A;color:white;border:0;border-radius:24px;padding:12px 20px;margin-top:16px}'
+        '</style></head><body><main><h1>%s</h1><p>Référence : %s</p>'
+        '<table>%s</table>%s</main></body></html>'
+        % (e(proposition.get("titre")), e(demande["reference"]), lignes, action)
+    )
+
+
 def demandes_voyage():
     dossier = os.path.abspath(os.path.join(
         os.path.dirname(__file__),
@@ -428,6 +561,8 @@ def demandes_voyage():
         styles_statut = {
             "RECUE": ("Reçue", "#D8C3A5", "#142B3A"),
             "EN_ETUDE": ("En cours d’étude", "#142B3A", "#FFFFFF"),
+            "PROPOSITION_VALIDEE": ("Proposition validée", "#D8C3A5", "#142B3A"),
+            "PROPOSITION_ACCEPTEE": ("Acceptée par le client", "#142B3A", "#FFFFFF"),
         }
         lignes = ""
         for titre, valeur in champs:
@@ -462,6 +597,28 @@ def demandes_voyage():
             action += formulaire_proposition(demande)
             if demande.get("proposition", {}).get("statut") == "BROUILLON":
                 action += '<p><b>Brouillon enregistré</b> — non envoyé au client.</p>'
+                action += (
+                    '<form method="post" action="/demandes/valider-proposition">'
+                    '<input type="hidden" name="reference" value="%s">'
+                    '<input type="hidden" name="jeton" value="%s">'
+                    '<input type="hidden" name="version" value="%s">'
+                    '<p>La validation porte sur le brouillon enregistré. '
+                    'Enregistrez vos dernières modifications avant de valider.</p>'
+                    '<button type="submit">Valider la proposition enregistrée</button></form>'
+                    % (e(demande.get("reference")), e(JETON_FORMULAIRE),
+                       e(demande["proposition"].get("modifieLe")))
+                )
+        if demande.get("statut") in ("PROPOSITION_VALIDEE", "PROPOSITION_ACCEPTEE"):
+            lien = "/proposition?" + urllib.parse.urlencode({
+                "reference": demande["reference"], "acces": demande.get("accesClient", "")
+            })
+            action += (
+                '<p><a href="%s">Consulter la proposition côté client</a></p>'
+                '<p>Lien confidentiel : son détenteur peut consulter et accepter cette offre. '
+                'Aucun email automatique n’a été envoyé. '
+                'En démonstration locale, ce lien fonctionne seulement sur cet ordinateur.</p>'
+                % e(lien)
+            )
         blocs.append(
             '<table border="1" cellpadding="8" cellspacing="0">'
             + lignes + "</table>" + action + "<br>"
@@ -479,12 +636,17 @@ def demandes_voyage():
     return page("Demandes de voyage", body, err=avertissement)
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
-        sys.stderr.write("[%s] %s\n" % (datetime.now().strftime("%H:%M:%S"), fmt % args))
+        if urllib.parse.urlparse(self.path).path.startswith("/proposition"):
+            sys.stderr.write("[%s] Page proposition client\n" % datetime.now().strftime("%H:%M:%S"))
+        else:
+            sys.stderr.write("[%s] %s\n" % (datetime.now().strftime("%H:%M:%S"), fmt % args))
     def send_html(self, content, status=200):
         body = content.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
         self.wfile.write(body)
     def send_static(self, name):
@@ -498,6 +660,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", types.get(os.path.splitext(path)[1], "application/octet-stream"))
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
         self.wfile.write(body)
     def do_GET(self):
@@ -505,6 +669,12 @@ class Handler(BaseHTTPRequestHandler):
         q = urllib.parse.parse_qs(url.query)
         msg = q.get("msg", [""])[0]
         err = q.get("err", [""])[0]
+        if url.path == "/proposition":
+            acces = q.get("acces", [""])[0]
+            demande = lire_proposition_client(q.get("reference", [""])[0], acces)
+            if demande is None:
+                return self.send_html("<h1>Proposition introuvable ou accès invalide.</h1>", 404)
+            return self.send_html(page_proposition_client(demande, acces))
         if url.path.startswith("/static/"):
             return self.send_static(url.path[len("/static/"):])
         if url.path == "/":
@@ -525,6 +695,15 @@ class Handler(BaseHTTPRequestHandler):
         form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
         f = lambda k: form.get(k, [""])[0]
         path = urllib.parse.urlparse(self.path).path
+        if path == "/proposition/accepter":
+            if f("accord") != "oui" or not accepter_proposition(f("reference"), f("acces"), f("jeton")):
+                return self.send_html("<h1>Acceptation non enregistrée. Actualisez votre lien et réessayez.</h1>", 400)
+            return self.redirect("/proposition", reference=f("reference"), acces=f("acces"))
+        if path == "/demandes/valider-proposition":
+            erreur = valider_proposition(f("reference"), f("jeton"), f("version"))
+            if erreur:
+                return self.send_html(page("Validation impossible", '<a href="/demandes">Retour aux demandes</a>', err=erreur), 400)
+            return self.redirect("/demandes")
         if path == "/demandes/proposition":
             valeurs = {cle: f(cle) for cle in ("titre", "programme", "dateDebut", "dateFin", "prixTotal", "devise")}
             erreur = enregistrer_proposition(f("reference"), f("jeton"), valeurs)
