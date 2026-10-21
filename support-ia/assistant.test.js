@@ -72,3 +72,44 @@ test("restauration du brouillon : première préférence manquante et historique
   assert.match(p.texte(), /Quand souhaitez-vous partir/);
   assert.equal(vm.runInContext("etapeVoyage", p.contexte), 1);
 });
+
+test("programme restauré et affichage texte ; doubles clics et panne préservent le résultat", async () => {
+  const contenu = { statut: "proposition", titre: "<img src=x onerror=alert(1)>", resume: "Indicatif", itineraire: [{ jour: 1, titre: "Jour libre", etapes: [{ lieu: "Centre", activites: ["<script>alert(1)</script>"] }] }], transports: [], hebergements: [], budget: { minimum: 100, maximum: 200, devise: "EUR", hypotheses: ["Deux voyageurs"] }, informationsManquantes: [], pointsAVerifier: [] };
+  const voyage = { destination: "Lyon", dates: "mai, deux jours", participants: 2, budget: "200 EUR", activites: "culture", experience: "repos", rythme: "calme", contraintes: "aucune" };
+  let courant = { id: "ancienne", voyage, historique: [], programme: { version: 1, contenu }, programmeObsolete: false };
+  let appels = 0, terminer, commence;
+  const debut = new Promise(r => { commence = r; });
+  let panne = false;
+  const p = page({ acces: { id: "ancienne", jeton: "secret" }, fetch: async (url, options) => {
+    assert.doesNotMatch(url, /\/demandes/);
+    if (url.endsWith("/programme")) {
+      appels++;
+      commence();
+      await new Promise(r => { terminer = r; });
+      if (panne) return { ok: false, json: async () => ({ error: { message: "Panne simulée, programme conservé" } }) };
+      courant = { ...courant, programme: { version: 2, contenu } };
+    }
+    return { ok: true, json: async () => courant };
+  } });
+  await tick();
+  const rendu = p.elements.get("#programme");
+  assert.equal(rendu.hidden, false);
+  assert.equal(rendu.children[0].textContent, contenu.titre);
+  const generer = p.elements.get("#generer-programme").listeners.click;
+  const premiere = generer();
+  await debut;
+  await generer();
+  assert.equal(appels, 1);
+  assert.equal(p.elements.get("#generer-programme").disabled, true);
+  terminer();
+  await premiere;
+  assert.match(rendu.children[1].textContent, /Version 2/);
+  assert.equal(p.elements.get("#generer-programme").disabled, false);
+  panne = true;
+  const seconde = generer();
+  await tick();
+  terminer();
+  await seconde;
+  assert.match(rendu.children[1].textContent, /Version 2/);
+  assert.match(p.elements.get("#etat-programme").textContent, /Panne simulée/);
+});

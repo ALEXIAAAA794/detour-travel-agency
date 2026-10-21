@@ -192,3 +192,100 @@ via Express sur le port 3001. Recharger ensuite la page du navigateur.
 
 Tests du démarrage et de la restauration sans réseau ni IA :
 `node --test assistant.test.js` depuis `support-ia`.
+
+
+## Support IA — étape 2 : programme indicatif
+
+Dans le récapitulatif, « Générer mon programme » sauvegarde les corrections puis
+appelle `POST /api/support/preparations/:id/programme` avec
+`Authorization: Bearer <jeton>` et `{ "versionAttendue": 0 }` pour le premier
+programme (ensuite le numéro actuellement affiché). Le backend relit exclusivement
+les préférences enregistrées : aucune préférence fournie à cette route ne sert
+à générer le programme. Aucun email ni demande conseiller n’est créé par cette action.
+
+Structure `programme.contenu` : `statut` (`proposition` ou `precisions`), `titre`,
+`resume`, `itineraire` (jours numérotés, titres, étapes avec lieu et activités),
+`transports`, `hebergements`, `budget` (`minimum`, `maximum`, `devise`, `hypotheses`),
+`informationsManquantes` et `pointsAVerifier`. Validation effective des types,
+longueurs, nombres, bornes budgétaires, ordre des jours et tailles de listes ;
+les champs supplémentaires sont exclus par liste blanche. Maximum 30 jours,
+10 étapes/jour, 10 activités/étape, 30 entrées pour les autres listes. Titres/lieux
+limités à 200 caractères, résumé à 3 000 et autres textes à 1 000. Budget total
+indicatif entre 0 et 100 000 000, minimum <= maximum et devise de trois lettres.
+Une réponse demandant des précisions doit contenir au moins une question ;
+une proposition doit comporter au moins un jour. Hypothèses budgétaires obligatoires.
+
+Les préférences indispensables absentes, les dates numériques impossibles ou
+inversées (`AAAA-MM-JJ`, `JJ/MM/AAAA`, `JJ.MM.AAAA`) produisent un HTTP 422 avec
+les précisions demandées. Les formulations naturelles restent confiées à Gemini,
+qui reçoit la consigne de demander des précisions en cas d’ambiguïté, de respecter
+la langue du client et de ne pas inventer de dates exactes. Le backend rejette aussi
+les dates numériques précises inventées à partir d’une période approximative.
+
+Le programme sauvegardé comprend `version`, `genereLe`, `empreinteVoyage` et
+`contenu`. Le GET protégé restaure cette version. Le champ `programmeObsolete`
+signale un changement ultérieur des préférences. Une génération réussie remplace
+la version courante et incrémente son numéro ; les versions antérieures ne sont
+pas archivées dans cette étape. Les anciennes préparations sans programme restent
+compatibles. Une erreur IA (503), une réponse invalide (502) ou un conflit (409)
+ne remplace jamais un programme sauvegardé. Après un conflit de version, recharger
+la page avant de réessayer. Les informations sensibles ne sont pas journalisées.
+
+Les boutons et champs concernés sont bloqués durant la génération. Le verrou
+serveur commun aux opérations de préparation évite les générations simultanées
+et les modifications pendant le calcul. La version attendue et la comparaison
+finale des préférences/version empêchent l’enregistrement d’un résultat devenu
+obsolète. Cette garantie reste prévue pour un seul processus Express : un déploiement
+multiprocessus nécessitera une coordination partagée. Après une interruption réseau,
+recharger pour récupérer une éventuelle génération terminée côté serveur.
+
+Gemini utilise toujours `GEMINI_MODEL` (défaut inchangé), avec un délai de 90 s,
+16 000 jetons de sortie maximum, une enveloppe de réponse limitée à 512 000 octets
+et un JSON de programme limité à 100 000 octets. Le navigateur attend au plus 100 s.
+Les suggestions, estimations et données à vérifier sont affichées exclusivement
+comme du texte. Aucun catalogue, disponibilité, prix ferme ni réservation n’est
+vérifié par cette étape ; la fiabilité factuelle exige un contrôle conseiller.
+Les libellés de l’interface restent en français ; la langue du contenu généré est
+demandée au modèle à partir des réponses et de l’historique client.
+
+Tests : `npm test` et `python backoffice_test.py` depuis `support-ia`.
+La suite `programmes.test.js` simule Gemini et utilise un stockage temporaire isolé :
+JSON valide/invalide, structure invalide, dates inventées, panne, contrôle du jeton,
+source serveur, persistance, versions, concurrence et réponses obsolètes.
+`assistant.test.js` vérifie aussi la restauration du programme, l’affichage texte,
+le verrou de double clic et la conservation du résultat en cas d’échec.
+La modification conversationnelle et la transmission du programme restent à l’étape 3.
+
+
+### Diagnostic d’une génération en échec
+
+Les journaux standard du processus Express contiennent désormais une référence
+aléatoire propre à l’opération, sa durée, l’étape (`appel_gemini`, `http_gemini`,
+`enveloppe_json`, `extraction`, `programme_json`, `schema`, `dates`, `taille` ou
+`sauvegarde`), le statut HTTP Gemini lorsqu’il existe et certains motifs de fin
+comme `MAX_TOKENS`. Aucune clé, URL, jeton, identité, préférence, conversation,
+réponse brute ni message d’erreur fournisseur n’est journalisé. La référence
+retournée au navigateur permet de retrouver l’échec dans la console serveur.
+Les journaux ne sont pas écrits dans les dossiers de données.
+
+Un 400/404 fournisseur invite à contrôler la configuration et le nom du modèle ;
+un 429 peut indiquer un quota ou une limitation ; un 5xx peut indiquer une panne
+fournisseur. Un délai dépassé est distingué d’une erreur réseau. Un statut 200 ne
+suffit pas : vérifier ensuite la fin de génération, l’extraction, le JSON et le schéma.
+Le mode de réponse JSON est explicitement demandé à Gemini ; un encadrement
+Markdown complet éventuel est retiré avant parsing, sans accepter de texte arbitraire
+et sans assouplir la validation. Aucun nouvel appel automatique ni repli simulé.
+Référence API : https://ai.google.dev/api/generate-content
+
+Le bouton « Envoyer mes préférences au conseiller » conserve le parcours existant
+`POST /api/support/demandes` (coordonnées + préférences), même sans programme ou
+après un échec IA. Il peut planifier l’accusé de réception existant. Il n’envoie pas
+le contenu du programme et ne constitue pas une validation de celui-ci. La génération
+appelle uniquement la route de préparation ; la validation/transmission du programme
+reste réservée à l’étape 3. Une demande déjà transmise n’est ni supprimée ni réécrite.
+
+Pour diagnostiquer un essai réel : relancer Express avec sa configuration habituelle,
+recharger la page et cliquer une seule fois sur « Générer mon programme ». Relever
+le message et les lignes de console portant la référence diagnostic, sans partager
+la configuration, les en-têtes ou le contenu client. Ne pas cliquer sur l’envoi des
+préférences pendant cet essai.

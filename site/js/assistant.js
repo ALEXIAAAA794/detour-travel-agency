@@ -65,6 +65,10 @@ const questions = [
 let etapeVoyage = -1;
 let projetVoyage = {};
 
+const boutonProgramme = document.querySelector("#generer-programme");
+const etatProgramme = document.querySelector("#etat-programme");
+const resultatProgramme = document.querySelector("#programme");
+let generationEnCours = false;
 let preparation = null;
 let synchronisation = false;
 let versionPreparation = 0;
@@ -115,9 +119,12 @@ async function sauverPreferences(voyage) {
     body: JSON.stringify({ voyage })
   });
   if (!r.ok) throw new Error("Sauvegarde impossible");
+  const etat = await r.json();
+  preparation = { ...preparation, ...etat };
+  if (preparation.programme) afficherProgramme();
 }
 function commencerVoyage() {
-  if (envoiEnCours || (bouton.disabled && !synchronisation)) return;
+  if (generationEnCours || envoiEnCours || (bouton.disabled && !synchronisation)) return;
   versionPreparation += 1;
   preparation = null;
   chargementPreparation = null;
@@ -126,6 +133,9 @@ function commencerVoyage() {
   bouton.disabled = false;
 
   projetVoyage = {};
+  resultatProgramme.replaceChildren();
+  resultatProgramme.hidden = true;
+  etatProgramme.textContent = "";
   etapeVoyage = 0;
 
   recapitulatif.hidden = true;
@@ -305,7 +315,7 @@ let dernierContenu = "";
 let referenceEnvoi = "";
 
 boutonValider.addEventListener("click", async () => {
-  if (envoiEnCours) return;
+  if (envoiEnCours || generationEnCours) return;
 
   const champs = recapitulatif.querySelectorAll("input");
 
@@ -394,6 +404,7 @@ if (lireAccesPreparation()) {
     if (version !== versionPreparation) return;
     for (const m of restauree.historique) afficherMessage(m.role === "user" ? "Vous" : "Assistant", m.content);
     projetVoyage = { ...restauree.voyage };
+    afficherProgramme();
     // Reprendre la première réponse manquante, y compris pour un ancien brouillon.
     const manquante = questions.findIndex(q => projetVoyage[q.cle] === undefined);
     if (manquante === -1) {
@@ -410,3 +421,74 @@ if (lireAccesPreparation()) {
     if (version === versionPreparation) { synchronisation = false; bouton.disabled = false; }
   });
 }
+
+function afficherProgramme() {
+  resultatProgramme.replaceChildren();
+  const sauvegarde = preparation?.programme;
+  resultatProgramme.hidden = !sauvegarde;
+  if (!sauvegarde) return;
+  const p = sauvegarde.contenu;
+  function ajouter(parent, tag, texte) {
+    const element = document.createElement(tag);
+    element.textContent = texte;
+    parent.appendChild(element);
+    return element;
+  }
+  function liste(titre, valeurs) {
+    ajouter(resultatProgramme, "h3", titre);
+    const ul = ajouter(resultatProgramme, "ul", "");
+    if (!valeurs.length) ajouter(ul, "li", "—");
+    for (const valeur of valeurs) ajouter(ul, "li", valeur);
+  }
+  ajouter(resultatProgramme, "h2", p.titre);
+  ajouter(resultatProgramme, "p", "Version " + sauvegarde.version + " · Programme indicatif, sans disponibilité vérifiée, réservation ni prix définitif. À vérifier avec un conseiller.");
+  if (preparation.programmeObsolete) ajouter(resultatProgramme, "p", "Les préférences ont changé depuis cette version. Générez à nouveau le programme.");
+  if (p.statut === "precisions") ajouter(resultatProgramme, "p", "Des précisions sont nécessaires avant de finaliser les suggestions.");
+  ajouter(resultatProgramme, "p", p.resume);
+  for (const jour of p.itineraire) {
+    ajouter(resultatProgramme, "h3", "Jour " + jour.jour + " — " + jour.titre);
+    for (const etape of jour.etapes) {
+      ajouter(resultatProgramme, "h4", etape.lieu);
+      const ul = ajouter(resultatProgramme, "ul", "");
+      for (const activite of etape.activites) ajouter(ul, "li", activite);
+    }
+  }
+  liste("Suggestions de transport", p.transports);
+  liste("Suggestions d’hébergement", p.hebergements);
+  ajouter(resultatProgramme, "h3", "Estimation budgétaire indicative pour tous les voyageurs");
+  ajouter(resultatProgramme, "p", p.statut === "precisions" ? "Estimation à préciser après vos réponses." : p.budget.minimum + " – " + p.budget.maximum + " " + p.budget.devise + " (à confirmer)");
+  liste("Hypothèses de l’estimation", p.budget.hypotheses);
+  liste("Informations manquantes", p.informationsManquantes);
+  liste("Incohérences et points à vérifier", p.pointsAVerifier);
+}
+boutonProgramme.addEventListener("click", async () => {
+  if (generationEnCours || envoiEnCours || bouton.disabled) return;
+  const champs = [...detailsVoyage.querySelectorAll("input")];
+  if (champs.some(champ => !champ.reportValidity())) return;
+  generationEnCours = true;
+  const controles = [boutonProgramme, bouton, boutonVoyage, boutonModifier, boutonValider, ...champs];
+  const precedents = controles.map(c => c.disabled);
+  controles.forEach(c => { c.disabled = true; });
+  etatProgramme.textContent = "Génération du programme indicatif en cours…";
+  try {
+    await sauverPreferences({ ...projetVoyage });
+    const reponse = await fetch("/api/support/preparations/" + preparation.id + "/programme", {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + preparation.jeton },
+      body: JSON.stringify({ versionAttendue: preparation.programme?.version || 0 }),
+      signal: AbortSignal.timeout(100000)
+    });
+    const donnees = await reponse.json();
+    if (!reponse.ok) {
+      const precisions = donnees.error?.precisions;
+      throw new Error((donnees.error?.message || "Génération indisponible. Réessayez.") + (Array.isArray(precisions) ? " " + precisions.join(" ") : ""));
+    }
+    preparation = { ...preparation, ...donnees };
+    afficherProgramme();
+    etatProgramme.textContent = "Programme indicatif enregistré. Aucune demande transmise au conseiller.";
+  } catch (e) {
+    etatProgramme.textContent = e.message || "Génération indisponible. Le programme existant est conservé ; réessayez.";
+  } finally {
+    generationEnCours = false;
+    controles.forEach((c, i) => { c.disabled = precedents[i]; });
+  }
+});

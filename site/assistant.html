@@ -131,6 +131,9 @@
     }
   }
 
+  #programme { margin: 24px 0; padding: 20px; border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-background); }
+  #programme h3, #programme h4 { color: var(--color-primary); }
+
   fieldset {
   margin: 24px 0;
   padding: 16px;
@@ -200,8 +203,12 @@ fieldset input {
   <button id="modifier-voyage" type="button">
   Recommencer le questionnaire
   </button>
+  <button id="generer-programme" type="button">Générer mon programme</button>
+  <p id="etat-programme" role="status" aria-live="polite"></p>
+  <section id="programme" hidden aria-label="Programme de voyage indicatif"></section>
+  <p>Vous pouvez envoyer vos préférences indépendamment de la génération. Cet envoi ne valide ni ne transmet le programme IA ; sa validation sera disponible ultérieurement.</p>
   <button id="valider-demande" type="button">
-  Valider et envoyer ma demande
+  Envoyer mes préférences au conseiller
   </button>
 </section>
 
