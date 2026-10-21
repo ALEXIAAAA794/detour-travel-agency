@@ -41,5 +41,4 @@ La clé d'approbation est demandée au conseiller à chaque confirmation ou annu
 Logo et visuels sources.
 <<<<<<< Updated upstream
 =======
-bonjour tout le monde Cava ? 
->>>>>>> Stashed changes
+//
