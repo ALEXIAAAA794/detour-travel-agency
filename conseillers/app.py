@@ -1,4 +1,5 @@
 import html
+import importlib.util
 import secrets
 import tempfile
 import threading
@@ -19,6 +20,15 @@ PORT = int(os.environ.get("PORT", "8080"))
 VERSION = "1.3.2"
 JETON_FORMULAIRE = secrets.token_urlsafe(32)
 VERROU_DEMANDES = threading.Lock()
+
+# Même module et même dossier de notifications que le serveur Express.
+_chemin_notifications = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "..", "support-ia", "notifications.py"
+))
+_spec_notifications = importlib.util.spec_from_file_location("detour_notifications", _chemin_notifications)
+notifications = importlib.util.module_from_spec(_spec_notifications)
+_spec_notifications.loader.exec_module(notifications)
+
 TYPES = {"transport": "Transport", "hebergement": "Hébergement", "activite": "Activité"}
 def e(value):
     return html.escape("" if value is None else str(value))
@@ -505,6 +515,38 @@ def page_proposition_client(demande, acces):
     )
 
 
+def panneau_emails(demande):
+    libelles = {
+        "NON_PLANIFIE": "Non planifié", "EN_ATTENTE": "En attente du service emails",
+        "EN_COURS": "Envoi en cours", "ACCEPTE_SMTP": "Accepté par le service email",
+        "NON_CONFIGURE": "Configuration email absente", "ECHEC": "Envoi échoué",
+        "INCERTAIN": "Résultat incertain : vérifier la boîte du client", "ILLISIBLE": "État illisible"
+    }
+    reference = demande.get("reference", "")
+    types = [("reception", "Accusé de réception")]
+    if demande.get("statut") in ("PROPOSITION_VALIDEE", "PROPOSITION_ACCEPTEE"):
+        types.append(("proposition", "Email de proposition"))
+    contenu = '<div style="background:#F8F6F2;color:#142B3A;padding:12px;margin:12px 0"><b>Notifications email</b>'
+    for type_email, titre in types:
+        etat = notifications.etat(reference, type_email)
+        statut_email = etat.get("statut", "NON_PLANIFIE")
+        contenu += '<p>%s : <strong>%s</strong>%s</p>' % (
+            e(titre), e(libelles.get(statut_email, statut_email)),
+            " (destinataire de test configuré)" if etat.get("test") else ""
+        )
+        if statut_email in ("NON_PLANIFIE", "ECHEC", "NON_CONFIGURE"):
+            contenu += (
+                '<form method="post" action="/demandes/reessayer-email">'
+                '<input type="hidden" name="reference" value="%s">'
+                '<input type="hidden" name="jeton" value="%s">'
+                '<input type="hidden" name="type_email" value="%s">'
+                '<button type="submit">Planifier / réessayer : %s</button></form>'
+                % (e(reference), e(JETON_FORMULAIRE), e(type_email), e(titre)))
+        if statut_email in ("INCERTAIN", "EN_COURS"):
+            contenu += '<p>Ne pas relancer à l’aveugle : vérifier la réception avant toute intervention.</p>'
+    return contenu + '</div>'
+
+
 def demandes_voyage():
     dossier = os.path.abspath(os.path.join(
         os.path.dirname(__file__),
@@ -557,6 +599,8 @@ def demandes_voyage():
             ("Budget souhaité", voyage.get("budget")),
             ("Activités", voyage.get("activites")),
             ("Expérience recherchée", voyage.get("experience")),
+            ("Rythme souhaité", voyage.get("rythme", "Non renseigné")),
+            ("Contraintes particulières", voyage.get("contraintes", "Non renseigné")),
         ]
         styles_statut = {
             "RECUE": ("Reçue", "#D8C3A5", "#142B3A"),
@@ -615,10 +659,11 @@ def demandes_voyage():
             action += (
                 '<p><a href="%s">Consulter la proposition côté client</a></p>'
                 '<p>Lien confidentiel : son détenteur peut consulter et accepter cette offre. '
-                'Aucun email automatique n’a été envoyé. '
+                'Consultez ci-dessous le suivi de l’email de proposition. '
                 'En démonstration locale, ce lien fonctionne seulement sur cet ordinateur.</p>'
                 % e(lien)
             )
+        action += panneau_emails(demande)
         blocs.append(
             '<table border="1" cellpadding="8" cellspacing="0">'
             + lignes + "</table>" + action + "<br>"
@@ -695,6 +740,21 @@ class Handler(BaseHTTPRequestHandler):
         form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
         f = lambda k: form.get(k, [""])[0]
         path = urllib.parse.urlparse(self.path).path
+        if path == "/demandes/reessayer-email":
+            if not secrets.compare_digest(f("jeton"), JETON_FORMULAIRE):
+                return self.send_html(page("Email", "", err="Formulaire expiré. Actualisez la page."), 400)
+            try:
+                with open(chemin_demande(f("reference")), encoding="utf-8") as fichier:
+                    demande_email = json.load(fichier)
+                type_email = f("type_email")
+                if type_email not in ("reception", "proposition"):
+                    raise ValueError()
+                if type_email == "proposition" and demande_email.get("statut") not in ("PROPOSITION_VALIDEE", "PROPOSITION_ACCEPTEE"):
+                    raise ValueError()
+                notifications.reessayer(f("reference"), type_email)
+            except (OSError, ValueError):
+                return self.send_html(page("Email", "", err="Demande ou notification invalide."), 400)
+            return self.redirect("/demandes")
         if path == "/proposition/accepter":
             if f("accord") != "oui" or not accepter_proposition(f("reference"), f("acces"), f("jeton")):
                 return self.send_html("<h1>Acceptation non enregistrée. Actualisez votre lien et réessayez.</h1>", 400)
@@ -703,6 +763,11 @@ class Handler(BaseHTTPRequestHandler):
             erreur = valider_proposition(f("reference"), f("jeton"), f("version"))
             if erreur:
                 return self.send_html(page("Validation impossible", '<a href="/demandes">Retour aux demandes</a>', err=erreur), 400)
+            try:
+                notifications.ajouter(f("reference"), "proposition")
+            except (OSError, ValueError):
+                return self.send_html(page("Proposition validée", '<a href="/demandes">Retour aux demandes</a>',
+                                           err="Proposition conservée ; email non planifié. Réessayez depuis la liste."), 503)
             return self.redirect("/demandes")
         if path == "/demandes/proposition":
             valeurs = {cle: f(cle) for cle in ("titre", "programme", "dateDebut", "dateFin", "prixTotal", "devise")}

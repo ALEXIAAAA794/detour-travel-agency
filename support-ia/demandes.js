@@ -1,16 +1,20 @@
 const express = require("express");
+const { autoriser } = require("./preparations");
+const { planifierEmail } = require("./emails");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const demandesRouter = express.Router();
-const dossierDemandes = path.join(__dirname, "data", "demandes");
+const dossierDemandes = process.env.SUPPORT_DEMANDES_DIR || path.join(__dirname, "data", "demandes");
 
 const champsVoyage = [
   "destination",
   "dates",
   "budget",
   "activites",
-  "experience"
+  "experience",
+  "rythme",
+  "contraintes"
 ];
 
 function texteValide(valeur, maximum) {
@@ -20,6 +24,12 @@ function texteValide(valeur, maximum) {
 }
 
 demandesRouter.post("/", (req, res, next) => {
+  if (req.body?.preparationId) {
+    req.params.id = req.body.preparationId;
+    return autoriser(req, res, next);
+  }
+  next();
+}, async (req, res, next) => {
   const donnees = req.body;
 
   if (!donnees || typeof donnees !== "object" || Array.isArray(donnees)) {
@@ -63,7 +73,9 @@ demandesRouter.post("/", (req, res, next) => {
       participants: voyage.participants,
       budget: voyage.budget.trim(),
       activites: voyage.activites.trim(),
-      experience: voyage.experience.trim()
+      experience: voyage.experience.trim(),
+      rythme: voyage.rythme.trim(),
+      contraintes: voyage.contraintes.trim()
     }
   };
 
@@ -71,7 +83,8 @@ demandesRouter.post("/", (req, res, next) => {
     reference: requestId,
     statut: "RECUE",
     creeLe: new Date().toISOString(),
-    ...contenu
+    ...contenu,
+    ...(req.preparation ? { preparationId: req.preparation.id } : {})
   };
 
   try {
@@ -106,13 +119,15 @@ demandesRouter.post("/", (req, res, next) => {
 
       return res.status(200).json({
         reference: existante.reference,
-        statut: existante.statut
+        statut: existante.statut,
+        email: await planifierEmail(existante.reference, "reception")
       });
     }
 
     return res.status(201).json({
       reference: demande.reference,
-      statut: demande.statut
+      statut: demande.statut,
+      email: await planifierEmail(demande.reference, "reception")
     });
   } catch (erreur) {
     next(erreur);
