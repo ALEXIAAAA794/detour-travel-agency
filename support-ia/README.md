@@ -97,3 +97,19 @@ Démarrage avec la configuration locale, depuis support-ia :
 
 Cette intégration nécessite que Node.js et Python accèdent au même
 dossier de données. Le traitement par le conseiller reste à développer.
+
+## Prise en charge par le conseiller
+
+- Passage du statut RECUE à EN_ETUDE depuis le back-office.
+- Statut enregistré sur disque et conservé après actualisation.
+- Badge beige « Reçue » et bleu nuit « En cours d’étude ».
+- Protection du formulaire par jeton et écriture via fichier temporaire.
+- Cette action ne confirme aucune réservation et n’envoie aucun email.
+
+## Proposition du conseiller
+
+- Création et modification d’un brouillon pour une demande EN_ETUDE.
+- Titre, programme, dates, prix total et devise.
+- Vérification des champs, des dates et du prix côté serveur.
+- Brouillon conservé après actualisation : test manuel réussi.
+- Aucun envoi au client, paiement ou réservation déclenché.
