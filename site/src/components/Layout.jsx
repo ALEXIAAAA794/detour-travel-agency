@@ -6,26 +6,33 @@ const NAV = [
   ["/", "Accueil"],
   ["/destinations", "Nos destinations"],
   ["/agence", "L'agence"],
-  ["/contact", "Devis gratuit"],
+  ["/contact", "Contact"],
+  ["/espace", "Mon espace"],
 ];
 
 function Header() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const onAccountPage = pathname.startsWith("/espace");
   useEffect(() => setOpen(false), [pathname]); // ferme le menu mobile après navigation
 
   return (
     <header className="site-header">
       <div className="wrap">
-        <Link className="logo" to="/"><b>DÉTOUR</b><small>Voyages insolites. Partez autrement.</small></Link>
+        <Link className="logo" to="/" aria-label="DÉTOUR Voyages, accueil">
+          <img src="/img/detour-logo-rebrand.png" alt="DÉTOUR Voyages" />
+        </Link>
         <nav className={"main-nav" + (open ? " open" : "")} id="nav" aria-label="Navigation principale">
           {NAV.map(([to, label]) => (
             <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => (isActive ? "active" : "")}>
               {label}
             </NavLink>
           ))}
+          {onAccountPage && <Link className="mobile-nav-action" to="/pre-reservation">Nouvelle demande</Link>}
         </nav>
-        <Link className="pill" to="/contact">Devis gratuit</Link>
+        <Link className="pill" to={onAccountPage ? "/pre-reservation" : "/contact"}>
+          {onAccountPage ? "Nouvelle demande" : "Demander un devis"}
+        </Link>
         <button className="menu-toggle" type="button" aria-label="Menu" aria-expanded={open}
           aria-controls="nav" onClick={() => setOpen((o) => !o)}>☰</button>
       </div>
@@ -39,8 +46,10 @@ function Footer() {
       <div className="wrap">
         <div className="foot">
           <div>
-            <Link className="logo" to="/"><b>DÉTOUR</b></Link>
-            <p>Voyages insolites et week-ends sur mesure depuis 2012. Nos conseillers passionnés composent votre séjour selon vos envies.</p>
+            <Link className="logo" to="/" aria-label="DÉTOUR Voyages, accueil">
+              <img src="/img/detour-logo-rebrand.png" alt="DÉTOUR Voyages" />
+            </Link>
+            <p>Prenez le pas de côté. Une personne compose votre voyage et vérifie chaque prix, chaque place et chaque horaire.</p>
           </div>
           <div>
             <h3>Liens utiles</h3>

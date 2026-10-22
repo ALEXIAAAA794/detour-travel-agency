@@ -12,39 +12,58 @@ function scene(svg) {
 }
 
 const SKY_SAND =
-  '<defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6ecdc"/><stop offset="1" stop-color="#D8C3A5"/></linearGradient></defs><rect width="400" height="200" fill="url(#a)"/>';
+  '<defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6F1E7"/><stop offset="1" stop-color="#BCD3EA"/></linearGradient></defs><rect width="400" height="200" fill="url(#a)"/>';
 const SKY_BLUE =
-  '<defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3e8eb"/><stop offset="1" stop-color="#f6efe3"/></linearGradient></defs><rect width="400" height="200" fill="url(#a)"/>';
+  '<defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BCD3EA"/><stop offset="1" stop-color="#F6F1E7"/></linearGradient></defs><rect width="400" height="200" fill="url(#a)"/>';
 
 export const SCENES = {
+  nantes: scene(
+    SKY_BLUE +
+    '<path d="M0 136h400v64H0z" fill="#BCD3EA"/>' +
+    '<path d="M0 145l55-18 44 14 50-34 46 32 44-20 53 19 48-31 60 26v67H0z" fill="#16233F"/>' +
+    '<path d="M32 200v-42h32v42m38 0v-63h28v63m46 0v-48h32v48m44 0v-77h30v77m40 0v-55h30v55" fill="#F6F1E7"/>'
+  ),
+  lyon: scene(
+    SKY_SAND +
+    '<path d="M0 147h400v53H0z" fill="#BCD3EA"/>' +
+    '<path d="M0 128l44-22 44 22 44-34 48 34 42-28 45 28 44-42 50 42 39-18v72H0z" fill="#16233F"/>' +
+    '<path d="M0 158q50-16 100 0t100 0 100 0 100 0v42H0z" fill="#6B7385"/>' +
+    '<path d="M90 144v-36h16v36m95 0v-40h16v40m78 0v-44h16v44" stroke="#F6F1E7" stroke-width="5"/>'
+  ),
+  lille: scene(
+    SKY_BLUE +
+    '<path d="M0 200V93h65v107zm80 0V76h57v124zm75 0V105h52v95zm70 0V84h58v116zm74 0V119h49v81z" fill="#16233F"/>' +
+    '<path d="M170 79V42l10-11 10 11v38h-7V51h-7v28zm-8 26 28-25 28 25v10h-56z" fill="#6B7385"/>' +
+    '<path d="M0 200h400" stroke="#F6F1E7" stroke-width="4"/>'
+  ),
   barcelone: scene(
     SKY_SAND +
-    '<circle cx="310" cy="64" r="28" fill="#C58B62"/>' +
-    '<path d="M110 200V92l8-48 8 48v108zM140 200V70l9-58 9 58v130zM176 200V96l7-38 7 38v104zM212 200V74l9-52 9 52v126zM246 200V104l6-30 6 30v96zM272 200V120l5-22 5 22v80z" fill="#34495a"/>' +
-    '<rect y="178" width="400" height="22" fill="#142B3A"/>'
+    '<circle cx="310" cy="64" r="28" fill="#BCD3EA"/>' +
+    '<path d="M110 200V92l8-48 8 48v108zM140 200V70l9-58 9 58v130zM176 200V96l7-38 7 38v104zM212 200V74l9-52 9 52v126zM246 200V104l6-30 6 30v96zM272 200V120l5-22 5 22v80z" fill="#16233F"/>' +
+    '<rect y="178" width="400" height="22" fill="#16233F"/>'
   ),
   grece: scene(
     SKY_BLUE +
-    '<circle cx="64" cy="44" r="20" fill="#C58B62"/>' +
-    '<rect y="110" width="400" height="90" fill="#647985"/>' +
-    '<path d="M0 200V150l70-24 90 14 80-30 90 28 70-8v70z" fill="#D8C3A5"/>' +
-    '<rect x="48" y="126" width="46" height="44" fill="#fff"/><rect x="100" y="116" width="36" height="52" fill="#fff"/>' +
-    '<rect x="150" y="136" width="52" height="34" fill="#fff"/><rect x="238" y="96" width="64" height="74" fill="#fff"/>' +
-    '<path d="M246 96a24 24 0 0148 0z" fill="#4d6574"/><rect x="314" y="118" width="44" height="52" fill="#fff"/>' +
-    '<rect x="256" y="120" width="12" height="22" fill="#647985"/><rect x="272" y="120" width="12" height="22" fill="#647985"/>'
+    '<circle cx="64" cy="44" r="20" fill="#F6F1E7"/>' +
+    '<rect y="110" width="400" height="90" fill="#6B7385"/>' +
+    '<path d="M0 200V150l70-24 90 14 80-30 90 28 70-8v70z" fill="#BCD3EA"/>' +
+    '<rect x="48" y="126" width="46" height="44" fill="#F6F1E7"/><rect x="100" y="116" width="36" height="52" fill="#F6F1E7"/>' +
+    '<rect x="150" y="136" width="52" height="34" fill="#F6F1E7"/><rect x="238" y="96" width="64" height="74" fill="#F6F1E7"/>' +
+    '<path d="M246 96a24 24 0 0148 0z" fill="#16233F"/><rect x="314" y="118" width="44" height="52" fill="#F6F1E7"/>' +
+    '<rect x="256" y="120" width="12" height="22" fill="#6B7385"/><rect x="272" y="120" width="12" height="22" fill="#6B7385"/>'
   ),
   perou: scene(
     SKY_SAND +
-    '<circle cx="92" cy="62" r="24" fill="#C58B62"/>' +
-    '<path d="M0 142L90 84l60 40 70-62 80 72 100-42v110H0z" fill="#8da1ad"/>' +
-    '<path d="M0 200v-48l120-50 80 40 90-60 110 80v38z" fill="#4d6574"/>' +
-    '<path d="M226 162h126M240 176h112M256 190h96" stroke="#D8C3A5" stroke-width="5" fill="none"/>'
+    '<circle cx="92" cy="62" r="24" fill="#BCD3EA"/>' +
+    '<path d="M0 142L90 84l60 40 70-62 80 72 100-42v110H0z" fill="#BCD3EA"/>' +
+    '<path d="M0 200v-48l120-50 80 40 90-60 110 80v38z" fill="#16233F"/>' +
+    '<path d="M226 162h126M240 176h112M256 190h96" stroke="#BCD3EA" stroke-width="5" fill="none"/>'
   ),
 };
 
 export const DESTINATIONS = [
   {
-    id: "nantes", name: "Nantes", tag: "Nouveau", filters: ["insolite", "creatif"],
+    id: "nantes", name: "Nantes", tag: "Créatif", filters: ["insolite", "creatif"],
     short: "Machines imaginaires et nuit à l'Hôtel des Machines.",
     eyebrow: "Week-end créatif", title: "Nantes, la ville des machines",
     desc: "Un week-end créatif et décalé dans la cité des ducs, entre éléphant géant et ateliers imaginaires.",
@@ -53,11 +72,11 @@ export const DESTINATIONS = [
       ["Hébergement", "1 nuit à l'Hôtel des Machines", "Centre-ville"],
       ["Activité", "Atelier de machines imaginaires", "Sans effort sportif"],
     ],
-    price: 179, cta: "Réserver ce week-end",
-    g: "linear-gradient(160deg,#dfe5e9,#647985 60%,#D8C3A5)",
+    cta: "Demander ce voyage",
+    g: "linear-gradient(160deg,#BCD3EA,#6B7385 60%,#BCD3EA)", scene: SCENES.nantes,
   },
   {
-    id: "lyon", name: "Lyon", tag: "Top ventes", filters: ["insolite", "aventure"],
+    id: "lyon", name: "Lyon", tag: "Enquête", filters: ["insolite", "aventure"],
     short: "Enquête dans les traboules et hôtel au cœur de la ville.",
     eyebrow: "Jeu de piste", title: "Lyon, entre traboules et lumières",
     desc: "Partez à l'aventure dans le Vieux-Lyon avec notre jeu de piste exclusif, puis dormez au cœur de la Presqu'île.",
@@ -66,8 +85,8 @@ export const DESTINATIONS = [
       ["Hébergement", "1 nuit à l'Hôtel des Lumières", "Presqu'île"],
       ["Activité", "Enquête des traboules", "En extérieur"],
     ],
-    price: 179, cta: "Réserver ce week-end",
-    g: "linear-gradient(160deg,#ecdcc4,#C58B62 60%,#647985)",
+    cta: "Demander ce voyage",
+    g: "linear-gradient(160deg,#F6F1E7,#BCD3EA 60%,#6B7385)", scene: SCENES.lyon,
   },
   {
     id: "lille", name: "Lille", tag: "Gourmand", filters: ["gourmand"],
@@ -79,8 +98,8 @@ export const DESTINATIONS = [
       ["Hébergement", "1 nuit à l'Hôtel du Beffroi"],
       ["Activité", "Fabrique de gaufres", "Atelier culinaire"],
     ],
-    price: 148, cta: "Réserver ce week-end",
-    g: "linear-gradient(160deg,#e3e8eb,#8da1ad 50%,#D8C3A5)",
+    cta: "Demander ce voyage",
+    g: "linear-gradient(160deg,#BCD3EA,#BCD3EA 50%,#BCD3EA)", scene: SCENES.lille,
   },
   {
     id: "barcelone", name: "Barcelone", tag: "Soleil", filters: ["insolite", "gourmand"],
@@ -92,8 +111,8 @@ export const DESTINATIONS = [
       ["Hébergement", "2 nuits en hôtel de charme", "Quartier gothique"],
       ["Activité", "Visite guidée de l'œuvre de Gaudí", "Suivie d'un atelier tapas"],
     ],
-    price: 249, cta: "Réserver ce week-end",
-    g: "linear-gradient(160deg,#f6ecdc,#C58B62 60%,#142B3A)",
+    cta: "Demander ce voyage",
+    g: "linear-gradient(160deg,#F6F1E7,#BCD3EA 60%,#16233F)",
     scene: SCENES.barcelone,
   },
   {
@@ -106,8 +125,8 @@ export const DESTINATIONS = [
       ["Hébergement", "4 nuits en hôtel de charme", "Vue mer"],
       ["Activité", "Balade en bateau et dîner chez l'habitant", "Cuisine locale"],
     ],
-    price: 499, cta: "Demander ce voyage",
-    g: "linear-gradient(160deg,#e3e8eb,#647985 60%,#142B3A)",
+    cta: "Demander ce voyage",
+    g: "linear-gradient(160deg,#BCD3EA,#6B7385 60%,#16233F)",
     scene: SCENES.grece,
   },
   {
@@ -120,8 +139,8 @@ export const DESTINATIONS = [
       ["Hébergement", "8 nuits en hôtels et lodges", "Cuzco, vallée sacrée"],
       ["Activité", "Randonnée guidée sur un sentier inca", "Rythme adapté"],
     ],
-    price: 1290, cta: "Demander ce voyage",
-    g: "linear-gradient(160deg,#ecdcc4,#8da1ad 55%,#4d6574)",
+    cta: "Demander ce voyage",
+    g: "linear-gradient(160deg,#F6F1E7,#BCD3EA 55%,#16233F)",
     scene: SCENES.perou,
   },
 ];

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ICONS } from "../data.js";
 
-const SUFFIX = " | DÉTOUR - Voyages insolites et week-ends sur mesure";
+const SUFFIX = " | DÉTOUR Voyages — Prenez le pas de côté";
 
 export function usePageMeta(title, description) {
   useEffect(() => {

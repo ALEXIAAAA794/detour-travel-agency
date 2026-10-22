@@ -5,10 +5,9 @@ import { Cta, Features, usePageMeta } from "../components/Common.jsx";
 
 
 const FEATURES = [
-  ["spark", "100 % sur mesure", "Chaque séjour est préparé par un conseiller selon vos envies, vos dates et votre budget."],
-  ["headset", "Une équipe à l'écoute", "Du mardi au samedi, de 10h à 19h, nous répondons à vos questions avant, pendant et après le voyage."],
-  ["leaf", "Sans voiture", "On privilégie le train pour voyager plus simplement et plus respectueusement."],
-  ["shield", "Devis gratuit sous 48 h", "Réponse sous 48 h ouvrées, sans engagement, avec un interlocuteur dédié."],
+  ["spark", "Curiosité", "On cherche les adresses à côté, celles qu'un moteur ne trouve pas."],
+  ["shield", "Exactitude", "Votre conseiller vérifie les prix, les places et les horaires avant de vous envoyer sa proposition."],
+  ["headset", "Attention", "Une personne compose votre voyage, le signe et vous accompagne."],
 ];
 
 /* Avis : défilement infini */
@@ -18,19 +17,19 @@ const ALL = [...HALF, ...HALF];
 function DestCard({ d }) {
   const vars = {
     "--g": d.g,
-    "--img": d.scene || `url(/img/${d.id}.jpg)`,
+    "--img": d.scene || "none",
   };
   return (
     <article className="dest">
       <Link to={`/destinations#${d.id}`}>
-        <div className="photo" role="img" aria-label={`Photo de ${d.name}`} style={vars}>
+        <div className="photo" role="img" aria-label={`Illustration de ${d.name}`} style={vars}>
           <span className="tag">{d.tag}</span>
         </div>
         <div className="body">
           <div>
             <h3>{d.name}</h3>
             <p>{d.short}</p>
-            <p className="price">À partir de {d.price.toLocaleString("fr-FR")} €*</p>
+            <p className="price">Tarif vérifié par un conseiller avant envoi</p>
           </div>
           <span className="go" aria-hidden="true">→</span>
         </div>
@@ -64,14 +63,14 @@ export default function Home() {
         <div className="wrap">
           <span className="eyebrow">Votre agence de voyages insolites</span>
           <h1>
-            Des week-ends sur mesure, <em>sans prise de tête</em>
+            Le voyage commence par le dét<span className="brand-leap">o</span>ur.
           </h1>
           <p className="lead">
-            Découvrez la France autrement avec DÉTOUR : des séjours en train, sans voiture, préparés par nos conseillers pour créer des expériences uniques et inoubliables.
+            Votre conseiller compose un voyage inattendu, puis vérifie chaque prix, place et horaire avant de vous l'envoyer.
           </p>
           <div className="hero-cta">
-            <Link className="pill" to="/contact">Demander un devis gratuit</Link>
-            <Link className="pill ghost" to="/destinations">Voir nos destinations</Link>
+            <Link className="pill" to="/pre-reservation">Parler de mon projet</Link>
+            <Link className="pill ghost" to="/destinations">Explorer nos idées</Link>
           </div>
 
           <form className="search-card" role="search" onSubmit={onSearch}>
@@ -119,7 +118,7 @@ export default function Home() {
               <p className="empty">Aucune destination ne correspond à « {q} ».</p>
             )}
             <p className="note">
-              * Prix indicatif par personne, base 2 personnes, 1 nuit + 1 activité. Nantes, Lyon, Lille et Barcelone : train A/R depuis Paris. Grèce et Pérou : vol A/R depuis Paris, nuits et durée indiquées sur le devis. Sous réserve de disponibilité au moment de la réservation.
+              Chaque tarif et disponibilité est vérifié par un conseiller avant d'être proposé.
             </p>
           </section>
         </div>
@@ -156,7 +155,7 @@ export default function Home() {
                     <ul>
                       <li>2 jours · 1 nuit</li>
                       <li>Enquête &amp; gastronomie</li>
-                      <li>À partir de 179 €</li>
+                      <li>Tarif vérifié par votre conseiller avant envoi</li>
                     </ul>
                     <Link className="pill" to="/destinations#lyon" tabIndex={-1}>
                       Voir l'itinéraire
@@ -193,6 +192,7 @@ export default function Home() {
                 ))}
               </ul>
             </div>
+            <p className="client-small">Avis présentés à titre d'exemples de démonstration, non issus de clients vérifiés.</p>
           </section>
 
           <Cta

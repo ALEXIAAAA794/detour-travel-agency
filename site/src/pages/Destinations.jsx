@@ -10,7 +10,7 @@ const STEPS = [
 ];
 
 function DestinationCard({ d, hidden }) {
-  const vars = { "--g": d.g, "--img": `url(/img/${d.id}.jpg)` };
+  const vars = { "--g": d.g, "--img": d.scene || "none" };
   if (d.scene) vars["--scene"] = d.scene;
   return (
     <article className="d-card" id={d.id} hidden={hidden}>
@@ -30,7 +30,7 @@ function DestinationCard({ d, hidden }) {
           ))}
         </dl>
         <div className="d-foot">
-          <div className="price-box"><small>À partir de</small><b>{d.price.toLocaleString("fr-FR")} €</b> <span>/ pers.*</span></div>
+          <p className="price-note">Le prix et les disponibilités sont vérifiés par un conseiller avant l’envoi de votre proposition.</p>
           <Link className="pill" to={`/contact?destination=${encodeURIComponent(d.name)}`}>{d.cta}</Link>
         </div>
       </div>
@@ -65,8 +65,6 @@ export default function Destinations() {
               <DestinationCard key={d.id} d={d} hidden={filter !== "all" && !d.filters.includes(filter)} />
             ))}
           </div>
-
-          <p className="note">* Prix indicatifs constatés, par personne, base 2 personnes. Nantes, Lyon, Lille et Barcelone : train A/R depuis Paris. Grèce et Pérou : vol A/R depuis Paris, durée et nombre de nuits précisés sur le devis. Les tarifs et disponibilités varient selon les dates et sont confirmés par votre conseiller.</p>
 
           <Steps title="Un voyage en trois étapes" items={STEPS} />
           <Cta title="Une autre idée en tête ?" text="Ces séjours sont des points de départ : on les adapte, ou on en crée un nouveau pour vous." />
