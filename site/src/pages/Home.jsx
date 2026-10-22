@@ -16,21 +16,36 @@ const HALF = [...REVIEWS, ...REVIEWS, ...REVIEWS];
 const ALL = [...HALF, ...HALF];
 
 function DestCard({ d }) {
-  const vars = {
+  // Same order as the original static site:
+  // 1. real photo (--img)
+  // 2. SVG illustration (--scene) if no photo
+  // 3. gradient (--g) as last fallback
+  const style = {
     "--g": d.g,
-    "--img": d.scene || `url(/img/${d.id}.jpg)`,
+    "--img": `url(/img/${d.id}.jpg)`,          // ← files must be in public/img/
   };
+  if (d.scene) {
+    style["--scene"] = d.scene;
+  }
+
   return (
     <article className="dest">
       <Link to={`/destinations#${d.id}`}>
-        <div className="photo" role="img" aria-label={`Photo de ${d.name}`} style={vars}>
+        <div
+          className="photo"
+          role="img"
+          aria-label={`Photo de ${d.name}`}
+          style={style}
+        >
           <span className="tag">{d.tag}</span>
         </div>
         <div className="body">
           <div>
             <h3>{d.name}</h3>
             <p>{d.short}</p>
-            <p className="price">À partir de {d.price.toLocaleString("fr-FR")} €*</p>
+            <p className="price">
+              À partir de {d.price.toLocaleString("fr-FR")} €*
+            </p>
           </div>
           <span className="go" aria-hidden="true">→</span>
         </div>
@@ -64,7 +79,8 @@ export default function Home() {
         <div className="wrap">
           <span className="eyebrow">Votre agence de voyages insolites</span>
           <h1>
-            Des week-ends sur mesure, <em>sans prise de tête</em>
+            Des week-ends sur mesure,{" "}
+            <em>sans prise de tête</em>
           </h1>
           <p className="lead">
             Découvrez la France autrement avec DÉTOUR : des séjours en train, sans voiture, préparés par nos conseillers pour créer des expériences uniques et inoubliables.
