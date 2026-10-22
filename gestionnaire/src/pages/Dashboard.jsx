@@ -1,36 +1,31 @@
-import Reservations from "./Reservations.jsx";
+﻿import Reservations from "./Reservations.jsx";
 import { useState } from "react";
-
+import Requests from "./Requests.jsx";
 const sections = [
   {
     id: "overview",
-    number: "01",
     title: "Vue d'ensemble",
     description: "Les informations essentielles de votre agence.",
   },
   {
     id: "reservations",
-    number: "02",
-    title: "Réservations",
+    title: "RÃ©servations",
     description: "Suivez les demandes et les confirmations de voyages.",
   },
   {
     id: "clients",
-    number: "03",
     title: "Clients",
-    description: "Retrouvez les voyageurs et leurs coordonnées.",
+    description: "Retrouvez les voyageurs et leurs coordonnÃ©es.",
   },
   {
     id: "quotes",
-    number: "04",
     title: "Demandes de devis",
-    description: "Consultez les demandes à étudier.",
+    description: "Consultez les demandes Ã  Ã©tudier.",
   },
   {
     id: "trips",
-    number: "05",
     title: "Voyages",
-    description: "Consultez les destinations proposées.",
+    description: "Consultez les destinations proposÃ©es.",
   },
 ];
 
@@ -50,17 +45,14 @@ export default function Dashboard({ user, onLogout }) {
   return (
     <main className="dashboard">
       <aside className="dashboard-sidebar">
-        <a
-          className="dashboard-brand"
-          href="#overview"
-          onClick={(event) => {
-            event.preventDefault();
-            setActiveSection("overview");
-          }}
-        >
-          DÉT<span>O</span>UR
-          <small>VOYAGES · ESPACE CONSEILLER</small>
-        </a>
+        <a className="dashboard-brand" href="/" aria-label="DÃ©tour Voyages">
+  <img
+    src="/brand/logo-officiel.png"
+    alt="DÃ©tour Voyages"
+    className="dashboard-logo"
+  />
+  <small>VOYAGES Â· ESPACE CONSEILLER</small>
+</a>
 
         <p className="sidebar-label">ESPACE DE TRAVAIL</p>
 
@@ -74,7 +66,6 @@ export default function Dashboard({ user, onLogout }) {
               }`}
               onClick={() => setActiveSection(section.id)}
             >
-              <span className="nav-number">{section.number}</span>
               <span>{section.title}</span>
             </button>
           ))}
@@ -88,7 +79,7 @@ export default function Dashboard({ user, onLogout }) {
             className="logout-button"
             onClick={onLogout}
           >
-            Se déconnecter ↗
+            Se dÃ©connecter â†—
           </button>
         </div>
       </aside>
@@ -96,10 +87,10 @@ export default function Dashboard({ user, onLogout }) {
       <section className="dashboard-main">
         <header className="dashboard-header">
           <div>
-            <p className="eyebrow">DÉTOUR VOYAGES / ESPACE CONSEILLER</p>
+            <p className="eyebrow">DÃ‰TOUR VOYAGES / ESPACE CONSEILLER</p>
             <h1>Bienvenue, {firstName}<span className="title-dot">.</span></h1>
             <p className="header-subtitle">
-              Les bons voyages commencent par une attention aux détails.
+              Les bons voyages commencent par une attention aux dÃ©tails.
             </p>
           </div>
 
@@ -117,12 +108,12 @@ export default function Dashboard({ user, onLogout }) {
         <div className="dashboard-content">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">VOTRE AGENCE, EN UN CLIN D’ŒIL</p>
+              <p className="eyebrow">VOTRE AGENCE, EN UN CLIN Dâ€™Å’IL</p>
               <h2>{activeItem?.title}</h2>
               <p>{activeItem?.description}</p>
             </div>
             <span className="date-label">
-              DÉTOUR · CONSEIL PERSONNALISÉ
+              DÃ‰TOUR Â· CONSEIL PERSONNALISÃ‰
             </span>
           </div>
 
@@ -131,21 +122,21 @@ export default function Dashboard({ user, onLogout }) {
               <section className="welcome-panel">
                 <div className="welcome-copy">
                   <span className="panel-kicker">LE VOYAGE, AUTREMENT</span>
-                  <h2>Un peu de détour.<br />Beaucoup d’attention.</h2>
+                  <h2>Un peu de dÃ©tour.<br />Beaucoup dâ€™attention.</h2>
                   <p>
-                    Retrouvez vos clients, suivez les réservations
-                    et préparez chaque voyage avec soin.
+                    Retrouvez vos clients, suivez les rÃ©servations
+                    et prÃ©parez chaque voyage avec soin.
                   </p>
                   <button
                     className="primary-button"
                     onClick={() => setActiveSection("reservations")}
                   >
-                    Voir les réservations <span>↗</span>
+                    Voir les rÃ©servations <span>â†—</span>
                   </button>
                 </div>
                 <div className="welcome-mark" aria-hidden="true">
                   <span>O</span>
-                  <small>PRENEZ LE PAS<br />DE CÔTÉ.</small>
+                  <small>PRENEZ LE PAS<br />DE CÃ”TÃ‰.</small>
                 </div>
               </section>
 
@@ -159,8 +150,7 @@ export default function Dashboard({ user, onLogout }) {
                       className="dashboard-card"
                       onClick={() => setActiveSection(section.id)}
                     >
-                      <span className="card-number">{section.number}</span>
-                      <span className="card-arrow">↗</span>
+                      <span className="card-arrow">â†—</span>
                       <h3>{section.title}</h3>
                       <p>{section.description}</p>
                       <span className="card-link">Ouvrir la rubrique</span>
@@ -171,18 +161,18 @@ export default function Dashboard({ user, onLogout }) {
           )}
 
           {activeSection === "reservations" && <Reservations />}
+          {activeSection === "quotes" && <Requests />}
 
-{activeSection !== "overview" && activeSection !== "reservations" && (
+{activeSection !== "overview" && activeSection !== "reservations" && activeSection !== "quotes" && (
   <section className="empty-section">
-    <span className="empty-number">{activeItem?.number}</span>
     <h3>{activeItem?.title}</h3>
     <p>
       {activeSection === "clients" &&
-        "Retrouvez les informations des voyageurs et leurs coordonnées."}
+        "Retrouvez les informations des voyageurs et leurs coordonnÃ©es."}
       {activeSection === "quotes" &&
-        "Consultez les demandes reçues et préparez vos propositions de voyage."}
+        "Consultez les demandes reÃ§ues et prÃ©parez vos propositions de voyage."}
       {activeSection === "trips" &&
-        "Consultez les destinations et les informations sur les séjours proposés."}
+        "Consultez les destinations et les informations sur les sÃ©jours proposÃ©s."}
     </p>
     <button
       type="button"
@@ -196,10 +186,11 @@ export default function Dashboard({ user, onLogout }) {
         </div>
 
         <footer className="dashboard-footer">
-          <span>DÉTOUR VOYAGES</span>
-          <span>Prenez le pas de côté.</span>
+          <span>DÃ‰TOUR VOYAGES</span>
+          <span>Prenez le pas de cÃ´tÃ©.</span>
         </footer>
       </section>
     </main>
   );
 }
+
