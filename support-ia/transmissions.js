@@ -29,7 +29,7 @@ async function transmettre(req, res) {
     }
   } catch (e) { return erreur(e.code === "EEXIST" ? 409 : e.status || 500, e.status ? e.message : "Transmission non confirmée. Réessayez sans changer de version."); }
   finally { if (liberer) liberer(); }
-  const email = await planifierEmail(demande.reference, "reception");
+  const email = await planifierEmail(demande.reference, "reception", p.id);
   return res.json({ reference: demande.reference, statut: demande.statut, versionAcceptee: demande.programmeAccepte.version, valideLe: demande.programmeAccepte.valideLe, email });
 }
 module.exports = { transmettre };

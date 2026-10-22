@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import "./styles/style.css"; // = votre css/style.css, inchangé
+import "./styles/support-brand.css"; // Styles limités au parcours et au widget Support IA.
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

@@ -1,11 +1,13 @@
 const express = require("express");
+const { fournisseurConfigure, nomFournisseur } = require("./ai");
 const { tracer, referenceDiagnostic } = require("./diagnostic");
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { genererProgramme, empreinteVoyage } = require("./programmes");
 const dossier = process.env.SUPPORT_PREPARATIONS_DIR || path.join(__dirname, "data", "preparations");
-const champs = ["destination", "dates", "participants", "budget", "activites", "experience", "rythme", "contraintes"];
+const { problemesDates } = require("./dates");
+const champs = ["dateDepart", "dateRetour", "destination", "dates", "participants", "budget", "activites", "experience", "rythme", "contraintes"];
 const preparationsRouter = express.Router();
 const occupes = new Set();
 function fichier(id) { return path.join(dossier, id + ".json"); }
@@ -23,7 +25,11 @@ function autoriser(req, res, next) {
     if (!/^[0-9a-f-]{36}$/.test(id)) throw Error();
     p = JSON.parse(fs.readFileSync(fichier(id), "utf8"));
     const empreinte = crypto.createHash("sha256").update(jeton).digest("hex");
-    if (!crypto.timingSafeEqual(Buffer.from(empreinte), Buffer.from(p.empreinte))) throw Error();
+    if (!crypto.timingSafeEqual(Buffer.from(empreinte), Buffer.from(p.empreinte))) {
+      const acces = require("./acces-email").verifierLien(id, jeton);
+      if (acces === "expire") return res.status(410).set("Cache-Control", "no-store").json({ error: { code: "EMAIL_LINK_EXPIRED", message: "Ce lien de préparation a expiré. Contactez un conseiller via /contact pour demander un nouveau lien." } });
+      if (acces !== "valide") throw Error();
+    }
   } catch { return res.status(404).json({ error: { message: "Préparation inaccessible." } }); }
   res.set("Cache-Control", "no-store");
   req.preparation = p;
@@ -37,13 +43,25 @@ preparationsRouter.post("/", (req, res) => {
   res.set("Cache-Control", "no-store").status(201).json({ ...publique(p), jeton });
 });
 preparationsRouter.get("/:id", autoriser, (req, res) => res.json(publique(req.preparation)));
+// Preuve limitée à la demande autorisée : aucune coordonnée ni contenu privé retourné.
+preparationsRouter.get("/:id/confirmation-preferences", autoriser, (req, res, next) => {
+  try {
+    const d = require("./stockage-demandes").trouver(req.preparation.id);
+    if (!d || d.origineTransmission !== "preferences") return res.status(404).json({ error: { message: "Aucun envoi de préférences vérifiable / No verified preferences submission." } });
+    res.json({ reference: d.reference, transmisLe: d.creeLe, type: "preferences" });
+  } catch (e) { next(e); }
+});
 preparationsRouter.patch("/:id", autoriser, (req, res) => {
   const p = req.preparation;
   if (occupes.has(p.id)) return res.status(409).json({ error: { message: "Préparation occupée. Réessayez." } });
   const voyage = req.body?.voyage;
-  if (!voyage || typeof voyage !== "object" || Array.isArray(voyage) || Object.entries(voyage).some(([k,v]) => !champs.includes(k) || (k === "participants" ? !Number.isSafeInteger(v) || v < 1 : typeof v !== "string" || !v.trim() || v.trim().length > 2000))) {
+  if (!voyage || typeof voyage !== "object" || Array.isArray(voyage) || Object.entries(voyage).some(([k,v]) => !champs.includes(k) || (k === "participants" ? !Number.isSafeInteger(v) || v < 1 : typeof v !== "string" || (!v.trim() && !["dateDepart", "dateRetour"].includes(k)) || v.trim().length > 2000))) {
     return res.status(400).json({ error: { message: "Préférences invalides." } });
   }
+  const erreursDates = problemesDates(voyage);
+  if (erreursDates.length) return res.status(400).json({ error: { message: erreursDates.join(" ") } });
+  // Préserver le texte historique même si un ancien client ne le renvoie plus.
+  if (p.voyage.dates && voyage.dates === undefined) voyage.dates = p.voyage.dates;
   const changements = Object.entries(voyage).filter(([k,v]) => p.voyage[k] !== v);
   if (changements.length) {
     if (p.historique.length >= 200) return res.status(409).json({ error: { message: "Préparation complète." } });
@@ -53,7 +71,7 @@ preparationsRouter.patch("/:id", autoriser, (req, res) => {
   sauver(p);
   res.json(publique(p));
 });
-preparationsRouter.post(["/:id/programme", "/:id/programme/modifications"], autoriser, async (req, res, next) => {
+preparationsRouter.post(["/:id/programme", "/:id/programme/modifications"], autoriser, require("./limitation").limiterPreparation, async (req, res, next) => {
   const p = req.preparation;
   const erreur = (statut, code, message, plus = {}) => res.status(statut).json({ error: { code, message, ...plus } });
   // La version attendue évite qu’un clic répété ou un autre onglet régénère silencieusement.
@@ -68,8 +86,10 @@ preparationsRouter.post(["/:id/programme", "/:id/programme/modifications"], auto
   const empreinte = empreinteVoyage(p.voyage);
   const reference = referenceDiagnostic();
   const debut = Date.now();
-  let etape = "appel_gemini";
-  tracer(reference, debut, "debut", { etape });
+  let fournisseur;
+  try { fournisseur = fournisseurConfigure(); } catch { fournisseur = "inconnu"; }
+  let etape = fournisseur === "openrouter" ? "appel_openrouter" : "appel_gemini";
+  tracer(reference, debut, "debut", { etape, fournisseur });
   try {
     const resultat = await genererProgramme(p, modification ? req.body.modification.trim() : undefined);
     if (resultat.problemes) {
@@ -85,18 +105,24 @@ preparationsRouter.post(["/:id/programme", "/:id/programme/modifications"], auto
       actuelle.historique.push({ role: "user", content: "Modification explicite du programme : " + req.body.modification.trim() }, { role: "model", content: "Programme modifié, version " + actuelle.programme.version });
     }
     sauver(actuelle);
-    tracer(reference, debut, "succes", { etape: "termine" });
+    tracer(reference, debut, "succes", { etape: "termine", fournisseur });
     return res.json(publique(actuelle));
   } catch (e) {
-    tracer(reference, debut, "echec", { ...(e.diagnostic || { etape }), code: etape === "sauvegarde" ? "PROGRAMME_STORAGE" : e.code });
+    tracer(reference, debut, "echec", { fournisseur, ...(e.diagnostic || { etape }), code: etape === "sauvegarde" ? "PROGRAMME_STORAGE" : e.code });
+    const nom = nomFournisseur(fournisseur);
     const suite = " Vos préférences et votre programme sont conservés. Vous pouvez réessayer. Référence diagnostic : " + reference;
     if (etape === "sauvegarde") return erreur(500, "PROGRAMME_STORAGE", "Le programme n’a pas pu être enregistré." + suite);
-    if (e.code === "INVALID_PROGRAMME") return erreur(502, e.code, "Le programme reçu est invalide (JSON ou structure)." + suite);
-    if (e.code === "AI_HTTP") return erreur(503, e.code, "Gemini a refusé l’appel (HTTP " + e.diagnostic.statutHTTP + ")." + suite);
-    if (e.code === "AI_TIMEOUT") return erreur(504, e.code, "Le délai de réponse de Gemini est dépassé." + suite);
-    if (e.code === "AI_INCOMPLETE") return erreur(502, e.code, "Gemini a renvoyé une réponse incomplète ou interrompue." + suite);
-    if (e.code === "AI_CONFIGURATION") return erreur(503, e.code, "La configuration Gemini du serveur est absente." + suite);
-    return erreur(503, "AI_UNAVAILABLE", "Génération indisponible (réseau ou réponse Gemini inexploitable)." + suite);
+    if (e.code === "INVALID_PROGRAMME") return erreur(502, e.code, nom + " : le programme reçu est invalide (JSON ou structure)." + suite);
+    const explicationsHTTP = {
+      NO_COMPATIBLE_ENDPOINT: " Aucun fournisseur disponible ne satisfait les paramètres et les contraintes de routage gratuit ; le modèle n’est pas nécessairement absent.",
+      NO_ENDPOINT_POLICY: " Aucun endpoint ne respecte les règles de confidentialité ou de routage du compte.",
+      MODEL_NOT_FOUND: " L’identifiant du modèle est refusé ou introuvable ; vérifiez sa présence dans le catalogue."
+    };
+    if (e.code === "AI_HTTP") return erreur(503, e.code, nom + " a refusé l’appel (HTTP " + e.diagnostic.statutHTTP + (e.diagnostic.codeFournisseur ? ", code " + e.diagnostic.codeFournisseur : "") + ")." + (explicationsHTTP[e.diagnostic.categorieFournisseur] || "") + suite);
+    if (e.code === "AI_TIMEOUT") return erreur(504, e.code, "Le délai de réponse de " + nom + " est dépassé." + suite);
+    if (e.code === "AI_INCOMPLETE") return erreur(502, e.code, nom + " a renvoyé une réponse incomplète ou interrompue." + suite);
+    if (e.code === "AI_CONFIGURATION") return erreur(503, e.code, "La configuration " + nom + " du serveur est absente ou non autorisée (OpenRouter : modèle :free obligatoire)." + suite);
+    return erreur(503, "AI_UNAVAILABLE", nom + " : génération indisponible (réseau ou réponse inexploitable)." + suite);
   } finally { occupes.delete(p.id); }
 });
 preparationsRouter.post("/:id/programme/transmission", autoriser, async (req, res) => {

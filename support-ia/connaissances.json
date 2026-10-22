@@ -1,0 +1,143 @@
+{
+  "version": 2,
+  "perimetre": "Sources publiques React de pre-dev ; actualité externe non vérifiée.",
+  "entrees": [
+    {
+      "id": "agence-horaires",
+      "question": "Quels horaires sont publiés ?",
+      "reponses": {
+        "fr": "Le site public affiche une ouverture du mardi au samedi, de 10 h à 19 h. Ces horaires publiés ne constituent pas une vérification en temps réel.",
+        "en": "The public website lists opening hours from Tuesday to Saturday, 10 am to 7 pm. These published hours have not been verified in real time."
+      },
+      "provenance": [
+        {
+          "fichier": "site/src/components/Layout.jsx",
+          "extrait": "Mardi au samedi, 10h-19h",
+          "sha256": "d0a83966626755fcb7108b5bc7af9ff32c2c174194553aac2c2c79ee6aac780e"
+        }
+      ],
+      "verification": "contenu_du_depot_uniquement"
+    },
+    {
+      "id": "agence-contact",
+      "question": "Comment contacter DÉTOUR ?",
+      "reponses": {
+        "fr": "Le site indique contact@detour-voyages.fr, le 02 40 00 00 00 et l’adresse 12 rue des Écluses, 44000 Nantes. Il s’agit des coordonnées publiées dans le dépôt, sans confirmation de leur actualité.",
+        "en": "The website lists contact@detour-voyages.fr, telephone 02 40 00 00 00 and 12 rue des Écluses, 44000 Nantes. These are the contact details published in the repository; their current validity has not been confirmed."
+      },
+      "provenance": [
+        {
+          "fichier": "site/src/components/Layout.jsx",
+          "extrait": "12 rue des Écluses, 44000 Nantes",
+          "sha256": "1bc4e75810d94693a9208f16b83580bf4d67a8766204e3986f1d6d5997827312"
+        },
+        {
+          "fichier": "site/src/components/Layout.jsx",
+          "extrait": "02 40 00 00 00",
+          "sha256": "e9bb041f67fb7a59807848e397c857ce5ce1a5d3082e9946f3a5545f7d58db01"
+        },
+        {
+          "fichier": "site/src/components/Layout.jsx",
+          "extrait": "contact@detour-voyages.fr",
+          "sha256": "5ffee1fb5da84c4e686f202d806daa9fb94150dafd7272d6964c493df881de34"
+        }
+      ],
+      "verification": "contenu_du_depot_uniquement"
+    },
+    {
+      "id": "agence-destinations",
+      "question": "Quelles destinations sont présentées ?",
+      "reponses": {
+        "fr": "Le site présente des idées de séjours à Nantes, Lyon, Lille, Barcelone, en Grèce et au Pérou, personnalisables. Cela ne confirme aucune prestation ni disponibilité pour vos dates.",
+        "en": "The website presents customisable trip ideas in Nantes, Lyon, Lille, Barcelona, Greece and Peru. This does not confirm any service or availability for your dates."
+      },
+      "provenance": [
+        {
+          "fichier": "site/src/pages/Contact.jsx",
+          "extrait": "[\"Je ne sais pas encore\", \"Nantes\", \"Lyon\", \"Lille\", \"Barcelone\", \"Grèce\", \"Pérou\", \"Autre\"]",
+          "sha256": "d69c0aea5a3a2fb21c76922434c47d3a615dfac484733bfa054873e3aff189c5"
+        },
+        {
+          "fichier": "site/src/pages/Destinations.jsx",
+          "extrait": "Tous nos séjours sont <strong>personnalisables</strong>",
+          "sha256": "7fe380f38bad1c7839c9472b4eeeb01562b01520390c51857cac1f2a792fa5c1"
+        }
+      ],
+      "verification": "contenu_du_depot_uniquement"
+    },
+    {
+      "id": "devis-gratuit",
+      "question": "Le devis est-il gratuit ?",
+      "reponses": {
+        "fr": "Le formulaire public est présenté comme une demande de devis gratuit. Vous pouvez l’ouvrir sur la page Contact ; son envoi utilise la messagerie du visiteur.",
+        "en": "The public form is presented as a free quote request. It is available on the Contact page and uses the visitor’s email application to send the request."
+      },
+      "provenance": [
+        {
+          "fichier": "site/src/pages/Contact.jsx",
+          "extrait": "Demandez votre devis gratuit",
+          "sha256": "a6406e5bfaf9dccb85e8adc90d38c576c398a5e65a6acde5426735e4bbe8bad2"
+        },
+        {
+          "fichier": "site/src/pages/Contact.jsx",
+          "extrait": "mailto:contact@detour-voyages.fr?subject=",
+          "sha256": "d186d298ff760f54f6d6ce6895e242cecc1633a4ff4f94f5ebdc4ff14a2d418f"
+        }
+      ],
+      "verification": "contenu_du_depot_uniquement"
+    },
+    {
+      "id": "devis-delai",
+      "question": "Quel délai est publié pour le devis ?",
+      "reponses": {
+        "fr": "La page de devis public annonce une réponse sous 48 h ouvrées. Il s’agit de l’indication publiée, à confirmer au conseiller ; aucun délai de service réel n’est garanti par cette base.",
+        "en": "The public quote page lists a response within 48 working hours. This is a published indication to confirm with an adviser, not a verified service guarantee."
+      },
+      "provenance": [
+        {
+          "fichier": "site/src/pages/Contact.jsx",
+          "extrait": "sous 48 h ouvrées",
+          "sha256": "5f79a9cfdb3c788785b7305e72497c9a22bd89fef3afebeb471e3bfe7cedaa53"
+        }
+      ],
+      "verification": "contenu_du_depot_uniquement"
+    },
+    {
+      "id": "tarifs-indicatifs",
+      "question": "Les tarifs publiés sont-ils garantis ?",
+      "reponses": {
+        "fr": "Les prix affichés sont indicatifs, par personne sur une base de deux personnes. Les tarifs et disponibilités varient selon les dates et doivent être confirmés par le conseiller. La base ne permet pas de confirmer un prix actuel ni une place disponible.",
+        "en": "Displayed prices are indicative per person, based on two travellers. Rates and availability vary by date and must be confirmed by an adviser. This knowledge base cannot confirm a current price or availability."
+      },
+      "provenance": [
+        {
+          "fichier": "site/src/pages/Destinations.jsx",
+          "extrait": "Prix indicatifs constatés, par personne, base 2 personnes.",
+          "sha256": "272e29c9cc51c08e532f84e4890559938b82ad8f8d93251adbb74f3774423a74"
+        },
+        {
+          "fichier": "site/src/pages/Destinations.jsx",
+          "extrait": "Les tarifs et disponibilités varient selon les dates et sont confirmés par votre conseiller.",
+          "sha256": "c43726f574833950a4a3c367d23d3b59c5d552ede55bb27c8d9a04489df73cf6"
+        }
+      ],
+      "verification": "contenu_du_depot_uniquement"
+    },
+    {
+      "id": "voyage-train",
+      "question": "Quel transport est présenté ?",
+      "reponses": {
+        "fr": "Le site présente Nantes, Lyon, Lille et Barcelone en train aller-retour depuis Paris, et la Grèce et le Pérou en avion aller-retour depuis Paris. Cela ne garantit ni horaire, ni billet, ni disponibilité et ne vaut pas réservation.",
+        "en": "The website presents Nantes, Lyon, Lille and Barcelona with return trains from Paris, and Greece and Peru with return flights from Paris. This does not guarantee a timetable, ticket or availability and is not a booking."
+      },
+      "provenance": [
+        {
+          "fichier": "site/src/pages/Destinations.jsx",
+          "extrait": "Nantes, Lyon, Lille et Barcelone : train A/R depuis Paris. Grèce et Pérou : vol A/R depuis Paris",
+          "sha256": "750d40aa70a5b7d75bf40ae0fe4d66ecbc6b26ba956889e966dd92908a9c24e0"
+        }
+      ],
+      "verification": "contenu_du_depot_uniquement"
+    }
+  ]
+}

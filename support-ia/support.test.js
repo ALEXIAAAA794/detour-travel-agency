@@ -1,3 +1,4 @@
+process.env.SUPPORT_AI_RATE_LIMIT = "1000";
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -8,6 +9,8 @@ process.env.GEMINI_API_KEY = "simulated-test-key";
 process.env.GEMINI_MODEL = "test-model";
 process.env.SUPPORT_DEMANDES_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "detour-demandes-test-"));
 require.cache[require.resolve("./emails")] = { exports: { planifierEmail: async () => ({ statut: "EN_ATTENTE" }) } };
+process.env.SUPPORT_SITE_DIST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), ".detour-spa-test-"));
+fs.writeFileSync(path.join(process.env.SUPPORT_SITE_DIST_DIR, "index.html"), "<html><body>SPA_TEST_INTEGRATION</body></html>");
 const { app } = require("./server");
 const nativeFetch = global.fetch;
 let appels = [];
@@ -54,7 +57,7 @@ test("préparations persistantes, contexte Gemini et accès confidentiel", async
     const demande = {
       requestId: require("node:crypto").randomUUID(), preparationId: a.id,
       client: { nom: "Client test", email: "test@example.invalid" },
-      voyage: { destination: "Lyon", dates: "mai", participants: 2, budget: "à définir", activites: "culture", experience: "détente", rythme: " tranquille ", contraintes: "aucune" }
+      voyage: { destination: "Lyon", dateDepart: "2027-05-10", dateRetour: "2027-05-10", participants: 2, budget: "à définir", activites: "culture", experience: "détente", rythme: " tranquille ", contraintes: "aucune" }
     };
     assert.equal((await requete("/api/support/demandes", "POST", demande, b.jeton)).status, 404);
     assert.equal((await requete("/api/support/demandes", "POST", { ...demande, voyage: { ...demande.voyage, contraintes: " " } }, a.jeton)).status, 400);
@@ -73,5 +76,10 @@ test("préparations persistantes, contexte Gemini et accès confidentiel", async
     assert.equal((await requete("/api/support/demandes", "POST", { requestId: "invalide" })).status, 400);
     assert.equal((await requete("/api/support/messages", "POST", { message: " " })).status, 400);
     assert.equal((await requete("/api/support/health")).status, 200);
+    assert.equal((await requete("/api/support/inconnue")).status, 404);
+    const spa = await requete("/assistant");
+    assert.equal(spa.status, 200);
+    assert.match(await spa.text(), /SPA_TEST_INTEGRATION/);
+    assert.equal((await requete("/contact")).status, 200);
   } finally { serveur.closeAllConnections(); await new Promise(r => serveur.close(r)); global.fetch = nativeFetch; }
 });

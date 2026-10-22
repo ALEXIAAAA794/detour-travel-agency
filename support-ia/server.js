@@ -3,17 +3,35 @@ const express = require("express");
 const app = express();
 
 const path = require("node:path");
+const siteDist = process.env.SUPPORT_SITE_DIST_DIR || path.join(__dirname, "../site/dist");
 
 const { demandesRouter } = require("./demandes");
 
 app.use(express.json({ limit: "16kb" }));
 
-app.use(express.static(path.join(__dirname, "../site")));
+app.use((req,res,next)=>{res.set("Referrer-Policy","no-referrer");next();});
+app.use(express.static(siteDist));
+const limiterIA = require("./limitation").limiterRequetes;
+app.post("/api/chat", (req,res,next)=>{
+  const b=req.body;
+  const compose = typeof b?.jeton === "string" ? b.jeton.match(/^([a-f0-9-]{36})\.([a-f0-9]{64})$/i) : null;
+  if (!b || typeof b !== "object" || Array.isArray(b)) return res.status(400).json({error:{code:"INVALID_REQUEST",message:"Requête invalide."}});
+  const id=b.preparationId || compose?.[1];
+  const token=compose?.[2] || b.jeton;
+  if (typeof id!=="string" || typeof token!=="string") return res.status(401).json({error:{code:"PREPARATION_REQUIRED",message:"Une préparation et son jeton sont obligatoires."}});
+  req.body={message:b.message,preparationId:id}; // historique navigateur volontairement ignoré
+  req.headers.authorization="Bearer "+token;
+  req.url="/api/support/messages";
+  next();
+});
+app.post("/api/support/messages", limiterIA);
+app.post(["/api/support/preparations/:id/programme", "/api/support/preparations/:id/programme/modifications"], limiterIA);
+
 
 const { preparationsRouter, autoriser, sauver, occupes } = require("./preparations");
 app.use("/api/support/preparations", preparationsRouter);
-
-const { interrogerIA } = require("./gemini");
+const { interrogerIA, nomFournisseur } = require("./ai");
+const { repondreFAQ } = require("./connaissances");
 
 app.get("/api/support/health", (req, res) => {
   res.status(200).json({
@@ -28,7 +46,7 @@ app.post("/api/support/messages", async (req, res, next) => {
     return autoriser(req, res, next);
   }
   next();
-}, async (req, res) => {
+}, require("./limitation").limiterPreparation, async (req, res) => {
   const donnees = req.body;
 
   if (
@@ -61,25 +79,29 @@ app.post("/api/support/messages", async (req, res, next) => {
     if (p && p.historique.length >= 200) return res.status(409).json({ error: { message: "Préparation complète. Commencez une nouvelle préparation." } });
     if (p) occupes.add(p.id);
     try {
-    const texte = await interrogerIA(message, p);
+    const faq = repondreFAQ(message);
+    const texte = faq ? faq.content : await interrogerIA(message, p);
     if (p) {
-      p.historique.push({ role: "user", content: message }, { role: "model", content: texte });
+      p.historique.push({ role: "user", content: message }, { role: "model", content: texte, ...(faq ? { sources: faq.sources, type: "faq", baseVersion: faq.baseVersion } : {}) });
       sauver(p);
     }
 
     return res.status(200).json({
       reply: {
         role: "assistant",
-        content: texte
+        content: texte,
+        ...(faq ? { type: faq.type, sources: faq.sources, informationsManquantes: faq.informationsManquantes, baseVersion: faq.baseVersion } : { type: "conversation" })
       }
     });
   } catch (erreur) {
-    console.error("Échec de l’appel Gemini.");
+    const fournisseur = nomFournisseur(erreur.diagnostic?.fournisseur);
+    console.error("Échec de l’appel " + fournisseur + ".");
 
     return res.status(503).json({
       error: {
         code: "AI_UNAVAILABLE",
-        message: "L’assistant est temporairement indisponible."
+        message: fournisseur + " : l’assistant est temporairement indisponible. Réessayez.",
+        fournisseur: erreur.diagnostic?.fournisseur || "inconnu"
       }
     });
   } finally {
@@ -88,6 +110,16 @@ app.post("/api/support/messages", async (req, res, next) => {
 });
 
 app.use("/api/support/demandes", demandesRouter);
+
+app.use((req, res, next) => {
+  if (req.method !== "GET" || req.path.startsWith("/api/")) {
+    return next();
+  }
+
+  res.sendFile("index.html", { root: siteDist }, (erreur) => {
+    if (erreur) next(erreur);
+  });
+});
 
 app.use((erreur, req, res, next) => {
   if (res.headersSent) {
@@ -122,8 +154,9 @@ app.use((erreur, req, res, next) => {
   });
 });
 
-if (require.main === module) app.listen(3001, "127.0.0.1", () => {
-  console.log("Support IA démarré sur http://127.0.0.1:3001");
-});
+const port = Number(process.env.PORT || 3001);
 
+if (require.main === module) app.listen(port, "127.0.0.1", () => {
+  console.log(`Support IA démarré sur http://127.0.0.1:${port}`);
+});
 module.exports = { app };
