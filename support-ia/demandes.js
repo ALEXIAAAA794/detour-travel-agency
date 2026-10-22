@@ -10,7 +10,6 @@ const dossierDemandes = process.env.SUPPORT_DEMANDES_DIR || path.join(__dirname,
 
 const champsVoyage = [
   "destination",
-  "dates",
   "budget",
   "activites",
   "experience",
@@ -52,6 +51,7 @@ demandesRouter.post("/", (req, res, next) => {
     !texteValide(client.email, 254) ||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email.trim()) ||
     !voyage ||
+    require("./dates").problemesDates(voyage, true).length > 0 ||
     !champsVoyage.every((cle) => texteValide(voyage[cle], 2000)) ||
     !Number.isSafeInteger(voyage.participants) ||
     voyage.participants < 1
@@ -70,7 +70,9 @@ demandesRouter.post("/", (req, res, next) => {
     },
     voyage: {
       destination: voyage.destination.trim(),
-      dates: voyage.dates.trim(),
+      ...(typeof voyage.dates === "string" ? { dates: voyage.dates.trim() } : {}),
+      dateDepart: voyage.dateDepart,
+      dateRetour: voyage.dateRetour,
       participants: voyage.participants,
       budget: voyage.budget.trim(),
       activites: voyage.activites.trim(),
@@ -83,6 +85,7 @@ demandesRouter.post("/", (req, res, next) => {
   const demande = {
     reference: requestId,
     statut: "RECUE",
+    origineTransmission: "preferences",
     creeLe: new Date().toISOString(),
     ...contenu,
     ...(req.preparation ? { preparationId: req.preparation.id } : {})

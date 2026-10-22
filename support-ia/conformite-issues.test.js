@@ -61,7 +61,7 @@ test("expiration et isolation email vérifiées pour chaque route protégée",as
  const conserve=JSON.parse(fs.readFileSync(cap,"utf8"));assert.equal(conserve.preparationId,a.id);assert.equal(conserve.jeton,undefined);
  assert.ok(Date.parse(conserve.expireLe)>Date.now());
  fs.writeFileSync(cap,JSON.stringify({...conserve,expireLe:"2000-01-01T00:00:00Z"}));
- for(const [url,method,body] of [[route,"GET",null],[route,"PATCH",{voyage:{destination:"Altération"}}],[route+"/programme","POST",{versionAttendue:0}],[route+"/programme/modifications","POST",{versionAttendue:0,modification:"x"}],[route+"/programme/transmission","POST",{}],["/api/support/messages","POST",{message:"Bonjour",preparationId:a.id}],["/api/chat","POST",{message:"Bonjour",jeton:a.id+"."+jeton}],["/api/support/demandes","POST",{preparationId:a.id}]]){
+ for(const [url,method,body] of [[route,"GET",null],[route+"/confirmation-preferences","GET",null],[route,"PATCH",{voyage:{destination:"Altération"}}],[route+"/programme","POST",{versionAttendue:0}],[route+"/programme/modifications","POST",{versionAttendue:0,modification:"x"}],[route+"/programme/transmission","POST",{}],["/api/support/messages","POST",{message:"Bonjour",preparationId:a.id}],["/api/chat","POST",{message:"Bonjour",jeton:a.id+"."+jeton}],["/api/support/demandes","POST",{preparationId:a.id}]]){
   const r=await req(url,body,jeton,method);assert.equal(r.status,410,url);assert.equal((await r.json()).error.code,"EMAIL_LINK_EXPIRED");
  }
  assert.equal((await req(route,null,a.jeton,"GET")).status,200,"Ancienne session conservée");
@@ -149,7 +149,7 @@ test("quota de préparation isolé : un ID seul ne consomme pas le budget d’un
 
 test("une référence de demande d’un autre dossier ne peut pas être reprise même avec les mêmes coordonnées",async()=>{
  const a=await(await req("/api/support/preparations")).json(),b=await(await req("/api/support/preparations")).json();
- const demande={requestId:crypto.randomUUID(),client:{nom:"Test isolation",email:"test@example.invalid"},voyage:{destination:"Lyon",dates:"2 jours en mai",participants:2,budget:"500 EUR",activites:"culture",experience:"découverte",rythme:"calme",contraintes:"aucune"}};
+ const demande={requestId:crypto.randomUUID(),client:{nom:"Test isolation",email:"test@example.invalid"},voyage:{destination:"Lyon",dateDepart:"2027-05-10",dateRetour:"2027-05-10",participants:2,budget:"500 EUR",activites:"culture",experience:"découverte",rythme:"calme",contraintes:"aucune"}};
  assert.equal((await req("/api/support/demandes",{...demande,preparationId:a.id},a.jeton)).status,201);
  const avant=emails;
  assert.equal((await req("/api/support/demandes",{...demande,preparationId:b.id},b.jeton)).status,409);

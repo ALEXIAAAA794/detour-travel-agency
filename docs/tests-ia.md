@@ -1,5 +1,8 @@
 # Vérifications Support IA — issues #18 et #19
 
+> **Périmètre actualisé — décision utilisateur prioritaire.** Cette livraison couvre uniquement l’assistant IA et le parcours client jusqu’à la transmission et sa confirmation, avec le backend nécessaire. Dates et charte sont limitées à ce parcours. Emails, SMTP, back-office et propositions commerciales restent hors périmètre ; leur code existant est conservé. Les critères d’emails et d’accès depuis un email sont des dépendances des autres lots, **non déclarées validées ici**. Les observations locales/simulées ci-dessous restent un historique technique, pas une recette de ces dépendances.
+
+
 Vérifications initiales le 21 octobre 2026, point final le 22 octobre 2026,
 sur `feature/ai-support-integration`, checkout
 `C:\Users\DELL1\detour-travel-agency-integration`, avec données fictives isolées.
@@ -99,10 +102,10 @@ aucune fonctionnalité ou nouveau cas de produit n’a été ajouté.
 | --- | --- | --- |
 | #18 Clé serveur, hors navigateur/Git | Satisfait pour l’implémentation courante | `IA_API_KEY` alias des clés serveur, tests des deux transports, index et bundles contrôlés ; aucun secret .env consulté. Pas d’affirmation d’audit universel de tous les secrets/historiques Git. |
 | #18 POST /api/chat, message/historique/jeton | Satisfait, compatibilité documentée | Alias conservant `/api/support/messages`, token composé ou preparationId, historique du navigateur ignoré, historique serveur testé. |
-| #18 Lien email expirant et contrôle serveur | Satisfait localement | Capacité 24 h par défaut, hash dans un dossier de préparation ; refus 410 à chaque accès après expiration. |
+| #18 Lien email expirant et contrôle d’accès depuis l’email | Dépendance des autres lots — non validée dans cette livraison | Observations locales historiques conservées ; recette du lien, de son expiration et de son accès à charge du lot responsable. |
 | #18 Isolation des clients | Satisfait pour les routes testées | Croisement de jetons/dossiers refusé, pas d’accès par ID seul, fragment retiré et jamais dans une URL de requête. |
-| #18 Raccordement email existant | Satisfait au niveau code/queue/MIME | Réception enrichie via `planifierEmail` et `notifications.py`, sans refaire SMTP ni les propositions commerciales ; réessai conserve le lien. |
-| #18 Livraison SMTP et origine HTTPS réelle | Dépendance déploiement/service email | Régler SUPPORT_PUBLIC_URL, configurer/exécuter le worker existant ; aucun email réel envoyé ici. |
+| #18 Raccordement email existant | Dépendance des autres lots — non validée dans cette livraison | Code existant conservé ; anciens essais de queue/MIME seulement informatifs, sans recette de livraison ou d’accès. |
+| #18 Livraison SMTP et origine du lien | Dépendance des autres lots — non validée | Configuration, envoi, réception et origine publique à prendre en charge par le lot responsable ; aucune action SMTP dans le périmètre IA. |
 | #18 Mention IA, chargement, erreur/Réessayer, mobile | Satisfait sur le périmètre testé | Page/widget, test navigateur 375 px avec panne/latence simulées, build. |
 | #18 Longueur et appels/minute | Satisfait sur un processus | Message 1–2000, corps 16 Kio, 20/min IP/préparation partagés ; multi-instance/proxy nécessite adaptation d’infrastructure. |
 | #18 Prix, disponibilité, vol et réservation | Satisfait sur garde-fous et cas locaux ; évaluation réelle restante | Prix/disponibilité FAQ et vol précis ne passent pas au modèle ; instructions et affichage indicatif, aucune route/outillage de réservation donné à l’IA. Pas de garantie sur toute sortie libre du modèle. |
@@ -186,9 +189,10 @@ résultats décrits. Les serveurs/onglets de vérification sont ensuite arrêté
 ### Conclusion par issue
 
 - **#18 — dépendance externe**, pas de défaut de code constaté dans le
-  périmètre vérifié : accès, bon dossier et expiration sont prouvés localement.
-  La réception SMTP et l’ouverture depuis une boîte réelle avec l’origine
-  publique effective restent à valider avec intervention utilisateur.
+  périmètre IA vérifié. Les observations historiques locales ne constituent
+  pas une validation du lot email : envoi, réception, lien, bon dossier,
+  expiration et renouvellement restent des dépendances des autres lots,
+  non déclarées validées dans cette livraison.
 - **#19 — prête à clôturer sur le périmètre fonctionnel documenté**, avec
   la décision utilisateur FR/EN explicitement portée à validation PO : les
   15 cas passent localement, FAQ/destinations sourcées, absence d’information
@@ -198,11 +202,12 @@ résultats décrits. Les serveurs/onglets de vérification sont ensuite arrêté
   des 15 cas, cette recette supplémentaire reste à planifier et n’est pas
   revendiquée comme réalisée.
 
-### Un seul parcours manuel résiduel
+### Recette email à charge des autres lots — hors périmètre IA
 
 Avec intervention utilisateur et uniquement une adresse de test choisie :
 déclencher un accusé via le service email existant, le recevoir, ouvrir son
 lien sur le frontend cible et vérifier la préparation fictive attendue.
-L’expiration et l’isolation étant déjà vérifiées automatiquement et dans le
-navigateur, aucune attente de 24 h ni nouvelle série de diagnostics n’est
-nécessaire. Ce parcours SMTP n’a pas été exécuté automatiquement.
+Les observations historiques d’expiration et d’isolation ne valent pas
+validation du parcours email livré par les autres lots. Cette recette et
+son organisation relèvent du lot responsable ; aucune action email, SMTP
+ou nouvelle série de diagnostics n’est demandée dans cette livraison IA.

@@ -57,7 +57,7 @@ test("préparations persistantes, contexte Gemini et accès confidentiel", async
     const demande = {
       requestId: require("node:crypto").randomUUID(), preparationId: a.id,
       client: { nom: "Client test", email: "test@example.invalid" },
-      voyage: { destination: "Lyon", dates: "mai", participants: 2, budget: "à définir", activites: "culture", experience: "détente", rythme: " tranquille ", contraintes: "aucune" }
+      voyage: { destination: "Lyon", dateDepart: "2027-05-10", dateRetour: "2027-05-10", participants: 2, budget: "à définir", activites: "culture", experience: "détente", rythme: " tranquille ", contraintes: "aucune" }
     };
     assert.equal((await requete("/api/support/demandes", "POST", demande, b.jeton)).status, 404);
     assert.equal((await requete("/api/support/demandes", "POST", { ...demande, voyage: { ...demande.voyage, contraintes: " " } }, a.jeton)).status, 400);

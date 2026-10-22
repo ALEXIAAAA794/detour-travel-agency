@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { problemesDates } from "./dates.js";
 import { createSupportClient } from "./client.js";
 const Context = createContext(null);
-const welcome = { role: "assistant", content: "Bonjour ! Je peux vous aider à imaginer votre prochain voyage. Que recherchez-vous ?" };
+import { welcomeMessage } from "./identity.js";
+const welcome = welcomeMessage("fr");
 export function SupportProvider({ children }) {
   const apiRef = useRef(null);
   if (!apiRef.current) { let storage; try { storage = window.sessionStorage; } catch {} apiRef.current = createSupportClient({ storage, location: window.location, history: window.history }); }
@@ -24,8 +26,10 @@ export function SupportProvider({ children }) {
     catch (e) { setError(e.message || "Opération non confirmée. Réessayez."); return null; }
     finally { lock.current = false; setPending(false); }
   }
-  async function save() { const p = await api.save(draft); setPreparation(p); return p; }
-  const value = { preparation, draft, setDraft, messages, pending, error,
+  async function save() { const errors = problemesDates(draft); if(errors.length) throw new Error(errors.join(" ")); const p = await api.save(draft); setPreparation(p); return p; }
+  const [language, updateLanguage] = useState(() => { try { return sessionStorage.getItem("detour-support-language") === "en" ? "en" : "fr"; } catch { return "fr"; } });
+  function setLanguage(v) { updateLanguage(v); try { sessionStorage.setItem("detour-support-language", v); } catch {} }
+  const value = { language, setLanguage, verifyPreferencesTransmission: () => api.confirmationPreferences(), preparation, draft, setDraft, messages: messages.map((m,i) => i === 0 && m === welcome ? welcomeMessage(language) : m), pending, error,
     retry: () => retryRef.current ? execute(retryRef.current) : null,
     start: () => execute(async () => { const p = await api.start(); setPreparation(p); setDraft({}); setMessages([welcome]); return p; }),
     save: () => execute(save),
@@ -40,7 +44,7 @@ export function SupportProvider({ children }) {
     generate: () => execute(async () => { await save(); const p = await api.generate(); setPreparation(p); return p; }),
     modify: modification => execute(async () => { const version = preparation?.programme?.version; await save(); const p = await api.modify(modification, version); setPreparation(p); setMessages(m => [...m, { role: "user", content: "Modification : " + modification }, { role: "assistant", content: "Programme enregistré, version " + p.programme.version }]); return p; }),
     transmit: (client, accord) => execute(async () => { const version = preparation?.programme?.version; await save(); return api.transmit(client, version, accord); }),
-    sendPreferences: (client, requestId) => execute(async () => { await save(); return api.sendPreferences(client, draft, requestId); })
+    sendPreferences: (client, requestId, onConfirmed) => execute(async () => { await save(); const r = await api.sendPreferences(client, draft, requestId); onConfirmed?.(r); return r; })
   };
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

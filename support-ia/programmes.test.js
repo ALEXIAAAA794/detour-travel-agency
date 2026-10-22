@@ -11,13 +11,13 @@ process.env.GEMINI_API_KEY = "simulated";
 process.env.GEMINI_MODEL = "modele-simule";
 const { app } = require("./server");
 const { validerProgramme, problemesPreferences } = require("./programmes");
-const voyage = { destination: "Lyon", dates: "en mai, 2 jours", participants: 2, budget: "500 EUR", activites: "culture", experience: "détente", rythme: "calme", contraintes: "aucune" };
+const voyage = { destination: "Lyon", dateDepart: "2027-05-10", dateRetour: "2027-05-10", participants: 2, budget: "500 EUR", activites: "culture", experience: "détente", rythme: "calme", contraintes: "aucune" };
 const programme = { statut: "proposition", titre: "Lyon indicatif", resume: "Suggestions à vérifier", itineraire: [{ jour: 1, titre: "Découverte", etapes: [{ lieu: "Lyon", activites: ["Promenade"] }] }], transports: ["Train à vérifier"], hebergements: ["Hôtel suggéré"], budget: { minimum: 300, maximum: 500, devise: "EUR", hypotheses: ["Deux voyageurs, hors acheminement"] }, informationsManquantes: [], pointsAVerifier: ["Disponibilités et tarifs non vérifiés"] };
 test("validation stricte et dates impossibles/inversées", () => {
   assert.deepEqual(validerProgramme(programme), programme);
   for (const invalide of [null, {}, { ...programme, itineraire: [{ ...programme.itineraire[0], jour: 2 }] }, { ...programme, titre: "a".repeat(201) }, { ...programme, budget: { ...programme.budget, maximum: -1 } }, { ...programme, budget: { ...programme.budget, devise: 123 } }, { ...programme, itineraire: Array(31).fill(programme.itineraire[0]) }, { ...programme, transports: [123] }, { ...programme, statut: "precisions" }]) assert.throws(() => validerProgramme(invalide));
-  assert.ok(problemesPreferences({ ...voyage, dates: "2027-02-30 au 2027-03-05" }).some(p => p.includes("impossible")));
-  assert.ok(problemesPreferences({ ...voyage, dates: "20/05/2027 au 10/05/2027" }).some(p => p.includes("inversées")));
+  assert.ok(problemesPreferences({ ...voyage, dateDepart: "2027-02-30", dateRetour: "2027-03-05" }).some(p => p.includes("impossible")));
+  assert.ok(problemesPreferences({ ...voyage, dateDepart: "2027-05-20", dateRetour: "2027-05-10" }).some(p => p.includes("inversées")));
   assert.equal(problemesPreferences(voyage).length, 0);
 });
 test("API programmes : accès, contexte, versions, échecs, persistance et concurrence", async () => {
@@ -33,7 +33,7 @@ test("API programmes : accès, contexte, versions, échecs, persistance et concu
     if (mode === "vide") return { ok: true, status: 200, json: async () => ({ candidates: [] }) };
     if (mode === "enveloppe") return { ok: true, status: 200, json: async () => { throw new SyntaxError("secret-client-ne-pas-journaliser"); } };
     if (mode === "panne") throw Error("panne simulée");
-    let contenu = mode === "json" ? "{invalide" : mode === "structure" ? JSON.stringify({ titre: "incomplet" }) : JSON.stringify(mode === "dates" ? { ...programme, resume: "Départ le 2027-05-01" } : programme);
+    let contenu = mode === "json" ? "{invalide" : mode === "structure" ? JSON.stringify({ titre: "incomplet" }) : JSON.stringify(mode === "duree" ? { ...programme, itineraire: [programme.itineraire[0], { ...programme.itineraire[0], jour: 2 }] } : mode === "dates" ? { ...programme, resume: "Départ le 2027-05-01" } : programme);
     if (mode === "fenced") contenu = "```json\n" + contenu + "\n```";
     return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: contenu }] } }] }) };
   };
@@ -56,6 +56,7 @@ test("API programmes : accès, contexte, versions, échecs, persistance et concu
     assert.equal((await valide.json()).programme.version, 1);
     assert.match(requeteIA.url, /modele-simule/);
     assert.match(requeteIA.corps.systemInstruction.parts[0].text, /Lyon/);
+    assert.match(requeteIA.corps.systemInstruction.parts[0].text, /2027-05-10/);
     assert.doesNotMatch(JSON.stringify(requeteIA), /INJECTION_NAVIGATEUR/);
     assert.equal(requeteIA.corps.generationConfig.maxOutputTokens, 16000);
     assert.equal(requeteIA.corps.generationConfig.responseMimeType, "application/json");
@@ -65,7 +66,7 @@ test("API programmes : accès, contexte, versions, échecs, persistance et concu
     const consoleInfo = console.info;
     console.info = ligne => logs.push(JSON.parse(ligne));
     try {
-    for (const [m, statut] of [["json",502],["structure",502],["dates",502],["panne",503],["http400",503],["http429",503],["http503",503],["timeout",504],["tronquee",502],["vide",503],["enveloppe",503]]) {
+    for (const [m, statut] of [["json",502],["structure",502],["dates",502],["duree",502],["panne",503],["http400",503],["http429",503],["http503",503],["timeout",504],["tronquee",502],["vide",503],["enveloppe",503]]) {
       mode = m;
       assert.equal((await generer(1)).status, statut);
       assert.equal(fs.readFileSync(fichier, "utf8"), original);

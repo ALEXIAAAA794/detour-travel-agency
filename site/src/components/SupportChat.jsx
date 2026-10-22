@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { assistantTitle, authorLabel } from "../support/identity.js";
 import { Sources, useSupport } from "../support/SupportContext.jsx";
 
 export default function SupportChat() {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const { messages, pending, error, ask, retry } = useSupport();
-  const conversationRef = useRef(null);
+  const { language, messages, pending, error, ask, retry } = useSupport();
+  const conversationRef = useRef(null), inputRef = useRef(null), launcherRef = useRef(null), wasOpen = useRef(false);
+  useEffect(() => {
+    if(open) inputRef.current?.focus();
+    else if(wasOpen.current) launcherRef.current?.focus();
+    wasOpen.current = open;
+  }, [open]);
 
   useEffect(() => {
     conversationRef.current?.scrollTo({
@@ -26,22 +32,23 @@ export default function SupportChat() {
   }
 
   return (
-    <aside className="support-chat" aria-label="Assistant voyage">
+    <aside className="support-chat support-brand" aria-label={assistantTitle(language)}>
       <section
         className="support-chat__panel"
         id="support-chat-panel"
-        aria-label="Conversation avec l’assistant"
+        aria-label={language === "en" ? "Conversation with Nicia" : "Conversation avec Nicia"}
         hidden={!open}
+        onKeyDown={e=>{if(e.key === "Escape") setOpen(false);}}
       >
           <header className="support-chat__header">
             <div>
-              <strong>Votre assistant voyage</strong>
-              <span>Vous parlez à une IA · You are speaking with AI</span>
+              <strong>{assistantTitle(language)}</strong>
+              <span>{language === "en" ? "You are speaking with AI" : "Vous parlez à une IA"}</span>
             </div>
             <button
               className="support-chat__close"
               type="button"
-              aria-label="Fermer l’assistant"
+              aria-label={language === "en" ? "Close Nicia" : "Fermer Nicia"}
               onClick={() => setOpen(false)}
             >
               ×
@@ -59,13 +66,13 @@ export default function SupportChat() {
                 className={`support-chat__message support-chat__message--${item.role}`}
                 key={`${index}-${item.role}`}
               >
-                {item.content}
+                <b>{authorLabel(item.role, language)} : </b>{item.content}
                 <Sources sources={item.sources} />
               </p>
             ))}
             {pending && (
               <p className="support-chat__typing" role="status">
-                L’assistant prépare sa réponse…
+                {language === "en" ? "Nicia is preparing a reply…" : "Nicia prépare sa réponse…"}
               </p>
             )}
           </div>
@@ -78,6 +85,7 @@ export default function SupportChat() {
             </label>
             <input
               id="support-chat-message"
+              ref={inputRef}
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               placeholder="Écrivez votre message…"
@@ -96,12 +104,15 @@ export default function SupportChat() {
 
       <button
         className="support-chat__launcher"
+        ref={launcherRef}
         type="button"
+        aria-label={open ? language === "en" ? "Close Nicia" : "Fermer Nicia" : assistantTitle(language)}
         aria-expanded={open}
         aria-controls="support-chat-panel"
+        aria-label={open ? language === "en" ? "Close Nicia" : "Fermer Nicia" : assistantTitle(language)}
         onClick={() => setOpen((etat) => !etat)}
       >
-        {open ? "Fermer" : "Besoin d’aide ?"}
+        <img src="/support-brand/detour-monogramme.svg" width="32" height="32" alt="" />{open ? language === "en" ? "close Nicia" : "fermer Nicia" : language === "en" ? "ask Nicia" : "parler à Nicia"}
       </button>
     </aside>
   );

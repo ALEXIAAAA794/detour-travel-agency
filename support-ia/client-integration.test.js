@@ -73,3 +73,21 @@ test("client React : double initialisation StrictMode ne perd pas le lien email 
  createSupportClient(options); // premier rendu abandonné
  const actif=createSupportClient(options);assert.equal((await actif.restore()).id,id);assert.ok(!adresse.includes("autre-dossier"));
 });
+
+test("Nicia : identité, accueil et auteurs FR/EN sans changer les rôles techniques", async () => {
+  const {assistantName,assistantTitle,authorLabel,welcomeMessage}=await import("../site/src/support/identity.js");
+  assert.equal(assistantName,"Nicia");
+  for(const lang of ["fr","en"]){
+    const title=assistantTitle(lang), welcome=welcomeMessage(lang);
+    assert.equal(title,lang==="en"?"Nicia, your AI assistant":"Nicia, votre assistant IA");
+    assert.ok(welcome.content.includes(title));assert.equal(welcome.role,"assistant");
+    for(const role of ["assistant","model"])assert.equal(authorLabel(role,lang),"Nicia");
+    assert.equal(authorLabel("user",lang),lang==="en"?"You":"Vous");
+  }
+  const {instructionSysteme}=require("./ai-context");
+  for(const programme of [false,true]){
+    const prompt=instructionSysteme({voyage:{},historique:[]},{programme});
+    assert.match(prompt,/Vous êtes Nicia/);assert.match(prompt,/Nicia, votre assistant IA/);assert.match(prompt,/Nicia, your AI assistant/);
+    assert.match(prompt,/Ne déclenchez jamais de réservation/);assert.match(prompt,/langue du client/);
+  }
+});

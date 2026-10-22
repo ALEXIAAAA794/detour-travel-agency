@@ -58,6 +58,13 @@ export function createSupportClient({ fetchImpl = fetch, storage, location, hist
       if (p.programme?.version !== version || p.programmeObsolete) throw new Error("Le programme a changé ou est obsolète. Relisez-le après rechargement ou régénération.");
       return request("preparations/" + p.id + "/programme/transmission", { versionAcceptee: version, accord, client }, p);
     },
+    async confirmationPreferences() {
+      const p = await this.restore();
+      if (!p) throw new Error("Aucun envoi vérifiable / No verified submission. Consultez votre préparation / Open your preparation.");
+      const proof = await request("preparations/" + p.id + "/confirmation-preferences", null, p, 8000, "GET");
+      if (proof.type !== "preferences" || typeof proof.reference !== "string" || !/^[a-f0-9-]{36}$/i.test(proof.reference)) throw new Error("Confirmation invalide / Invalid confirmation.");
+      return { reference: proof.reference, transmisLe: proof.transmisLe };
+    },
     async sendPreferences(client, voyage, requestId) { const p = await ensure(); return request("demandes", { preparationId: p.id, requestId, client, voyage }, p); }
   };
 }

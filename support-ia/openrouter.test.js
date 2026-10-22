@@ -45,7 +45,7 @@ test('OpenRouter simulé : contrat, erreurs, confidentialité, programme conserv
     assert.equal(corps.response_format, undefined);
     const p = await (await req('/api/support/preparations')).json();
     const route = '/api/support/preparations/' + p.id;
-    const voyage = { destination: 'Lyon', dates: 'mai, 2 jours', participants: 2, budget: '500 EUR', activites: 'culture', experience: 'détente', rythme: 'calme', contraintes: 'aucune' };
+    const voyage = { destination: 'Lyon', dateDepart: "2027-05-10", dateRetour: "2027-05-10", participants: 2, budget: '500 EUR', activites: 'culture', experience: 'détente', rythme: 'calme', contraintes: 'aucune' };
     await req(route, 'PATCH', { voyage }, p.jeton);
     const generer = (v, token = p.jeton) => req(route + '/programme', 'POST', { versionAttendue: v, voyage: { destination: 'injection' } }, token);
     assert.equal((await generer(0, 'interdit')).status, 404);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import SupportChat from "./SupportChat.jsx";
+import { useSupport } from "../support/SupportContext.jsx";
 
 const NAV = [
   ["/", "Accueil"],
@@ -67,7 +68,16 @@ function Footer() {
 }
 
 export default function Layout() {
+  const { language } = useSupport();
   const { pathname, hash } = useLocation();
+  const assistantRoute = ["/assistant", "/assistant.html", "/assistant/confirmation"].includes(pathname);
+
+  useEffect(() => {
+    if (!assistantRoute) return;
+    const icon = document.querySelector('link[rel="icon"]'), previous = icon?.getAttribute("href");
+    if (icon) icon.setAttribute("href", "/support-brand/detour-monogramme.svg");
+    return () => { if(icon && previous) icon.setAttribute("href", previous); };
+  }, [assistantRoute]);
 
   /* Les liens d'ancre (/destinations#lyon) et le retour en haut de page ne sont pas gérés par le routeur. */
   useEffect(() => {
@@ -78,10 +88,10 @@ export default function Layout() {
   return (
     <>
       <a className="skip" href="#contenu">Aller au contenu</a>
-      <Header />
+      {assistantRoute ? <header className="support-brand support-shell"><div className="wrap"><Link to="/" aria-label="DÉTOUR — accueil"><img src="/support-brand/detour-logo-mono-encre.svg" width="160" alt="DÉTOUR" /></Link><Link to="/contact">contact</Link></div></header> : <Header />}
       <Outlet />
-      <Footer />
-      <SupportChat />
+      {assistantRoute ? <footer className="support-brand support-footer"><div className="wrap">DÉTOUR Voyages · <Link to="/contact">{language === "en" ? "contact an adviser" : "contacter un conseiller"}</Link></div></footer> : <Footer />}
+      {!assistantRoute && <SupportChat />}
     </>
   );
 }

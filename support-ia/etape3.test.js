@@ -12,7 +12,7 @@ const emails = new Set();
 require.cache[require.resolve("./emails")] = { exports: { planifierEmail: async (ref, type) => { emails.add(ref + type); return { statut: "EN_ATTENTE" }; } } };
 const { app } = require("./server");
 const { verrouiller } = require("./stockage-demandes");
-const voyage = { destination: "Lyon", dates: "mai, 2 jours", participants: 2, budget: "500 EUR", activites: "culture", experience: "détente", rythme: "calme", contraintes: "aucune" };
+const voyage = { destination: "Lyon", dateDepart: "2027-05-10", dateRetour: "2027-05-10", participants: 2, budget: "500 EUR", activites: "culture", experience: "détente", rythme: "calme", contraintes: "aucune" };
 const contenu = { statut: "proposition", titre: "Lyon", resume: "Indicatif", itineraire: [{ jour: 1, titre: "Visite", etapes: [{ lieu: "Centre", activites: ["Promenade"] }] }], transports: ["Train suggéré"], hebergements: ["Hôtel suggéré"], budget: { minimum: 300, maximum: 500, devise: "EUR", hypotheses: ["2 personnes"] }, informationsManquantes: [], pointsAVerifier: ["Disponibilités inconnues"] };
 const client = { nom: "Client test", email: "client@example.invalid" };
 test("étape 3 : modifications explicites et transmission atomique/idempotente", async () => {

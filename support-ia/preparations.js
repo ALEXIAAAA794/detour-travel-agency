@@ -6,7 +6,8 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { genererProgramme, empreinteVoyage } = require("./programmes");
 const dossier = process.env.SUPPORT_PREPARATIONS_DIR || path.join(__dirname, "data", "preparations");
-const champs = ["destination", "dates", "participants", "budget", "activites", "experience", "rythme", "contraintes"];
+const { problemesDates } = require("./dates");
+const champs = ["dateDepart", "dateRetour", "destination", "dates", "participants", "budget", "activites", "experience", "rythme", "contraintes"];
 const preparationsRouter = express.Router();
 const occupes = new Set();
 function fichier(id) { return path.join(dossier, id + ".json"); }
@@ -42,13 +43,25 @@ preparationsRouter.post("/", (req, res) => {
   res.set("Cache-Control", "no-store").status(201).json({ ...publique(p), jeton });
 });
 preparationsRouter.get("/:id", autoriser, (req, res) => res.json(publique(req.preparation)));
+// Preuve limitée à la demande autorisée : aucune coordonnée ni contenu privé retourné.
+preparationsRouter.get("/:id/confirmation-preferences", autoriser, (req, res, next) => {
+  try {
+    const d = require("./stockage-demandes").trouver(req.preparation.id);
+    if (!d || d.origineTransmission !== "preferences") return res.status(404).json({ error: { message: "Aucun envoi de préférences vérifiable / No verified preferences submission." } });
+    res.json({ reference: d.reference, transmisLe: d.creeLe, type: "preferences" });
+  } catch (e) { next(e); }
+});
 preparationsRouter.patch("/:id", autoriser, (req, res) => {
   const p = req.preparation;
   if (occupes.has(p.id)) return res.status(409).json({ error: { message: "Préparation occupée. Réessayez." } });
   const voyage = req.body?.voyage;
-  if (!voyage || typeof voyage !== "object" || Array.isArray(voyage) || Object.entries(voyage).some(([k,v]) => !champs.includes(k) || (k === "participants" ? !Number.isSafeInteger(v) || v < 1 : typeof v !== "string" || !v.trim() || v.trim().length > 2000))) {
+  if (!voyage || typeof voyage !== "object" || Array.isArray(voyage) || Object.entries(voyage).some(([k,v]) => !champs.includes(k) || (k === "participants" ? !Number.isSafeInteger(v) || v < 1 : typeof v !== "string" || (!v.trim() && !["dateDepart", "dateRetour"].includes(k)) || v.trim().length > 2000))) {
     return res.status(400).json({ error: { message: "Préférences invalides." } });
   }
+  const erreursDates = problemesDates(voyage);
+  if (erreursDates.length) return res.status(400).json({ error: { message: erreursDates.join(" ") } });
+  // Préserver le texte historique même si un ancien client ne le renvoie plus.
+  if (p.voyage.dates && voyage.dates === undefined) voyage.dates = p.voyage.dates;
   const changements = Object.entries(voyage).filter(([k,v]) => p.voyage[k] !== v);
   if (changements.length) {
     if (p.historique.length >= 200) return res.status(409).json({ error: { message: "Préparation complète." } });

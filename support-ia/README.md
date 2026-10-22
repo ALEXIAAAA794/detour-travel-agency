@@ -1,5 +1,15 @@
 # DÉTOUR — Assistant IA
 
+## Périmètre de livraison actualisé
+
+La décision utilisateur la plus récente prévaut sur les périmètres historiques décrits plus bas : intervenir uniquement sur l’assistant IA et son parcours client (widget, questionnaire, dates, récapitulatif, programme, erreurs, transmission des préférences ou du programme et confirmation de succès). Le backend nécessaire à l’enregistrement, à la validation et à la transmission de la préparation reste inclus. Les protections de préparation, les versions et l’idempotence sont préservées.
+
+**Hors périmètre, code existant conservé :** emails, SMTP, back-office gestionnaire et écrans de proposition commerciale. Aucune nouvelle adaptation des dates ou de la charte sur ces surfaces. Les modifications et observations antérieures restent conservées ; elles ne constituent ni une nouvelle intervention ni une validation de ces autres lots.
+
+**Dépendances des autres lots — non déclarées validées dans cette livraison :** création et acheminement de l’accusé, configuration/authentification SMTP, livraison et réception réelles, construction du lien email avec la bonne origine, ouverture vers le bon dossier, durée/expiration, renouvellement et contrôle d’accès du parcours email. Les essais locaux/simulés historiques sont conservés uniquement comme informations d’intégration, sans valoir recette des emails ou de leur accès. Leur réalisation et leur validation relèvent des lots responsables, sans action SMTP à mener ici.
+
+La confirmation client prouve l’enregistrement serveur autorisé de la transmission ; elle ne prouve ni la réception d’un email, ni la lecture par un gestionnaire, ni une validation commerciale, ni une réservation. La recette du parcours IA utilise des emails neutralisés. FR/EN conservé.
+
 ## État actuel
 
 - Serveur Express accessible localement sur le port 3001.
@@ -580,3 +590,38 @@ npm --prefix site run build -- --outDir ../support-ia/data/conformite-interface-
 Les données temporaires fictives et les résultats de tests restent hors Git.
 Aucune nouvelle preuve de comportement réel du fournisseur n’est revendiquée.
 Les essais réels précédents restent des observations historiques documentées.
+
+## Dates calendaires
+Le questionnaire et le récapitulatif utilisent `dateDepart` et `dateRetour`, dates civiles `YYYY-MM-DD` sans conversion de fuseau. Les deux sont requises pour toute nouvelle demande complète, génération ou validation. Un brouillon peut être incomplet ; chaque date fournie doit être réelle et le retour ne peut précéder le départ. Durée inclusive : même jour = 1 jour ; 31 décembre au 1er janvier = 2 jours. Les propositions ont exactement un jour d’itinéraire par jour de cette période, limitée à 30 jours. Toute réponse invalide est rejetée avant sauvegarde.
+Le texte historique `dates` est conservé et affiché sans interprétation ni migration. Deux dates précises sont demandées avant une nouvelle génération ; seules ces dates font foi pour l’IA. Elles sont conservées dans la demande et l’instantané accepté. Leur modification change l’empreinte du voyage et bloque une nouvelle transmission du programme obsolète. Un réessai idempotent d’une transmission déjà acceptée conserve son instantané.
+Vérifications : `npm test` dans `support-ia`, `npm run build` dans `site`. Tests IA et emails simulés ; aucune donnée existante modifiée.
+
+## Rebranding 2026 et confirmation des préférences
+
+Source officielle consultée avant intégration : [charte](https://github.com/PANDORMedia/detour/blob/rebrand-2026/brand-2026/charte/index.html), branche `rebrand-2026`, commit `ee06f7f2d6b95ca5fc23749d3a0ba64f1c54cb6e`. SVG copiés sans modification : logo mono Encre (160 px, donc >= 96 px) et monogramme officiel (32 px widget). Aucun fichier de marque requis manquant. Polices Bricolage Grotesque 600/800 et Instrument Sans 400/500/600 servies localement, licences OFL et provenance conservées dans `site/public/support-brand/`. Aucun logo animé ni animation de réservation à l’envoi des préférences.
+
+Périmètre CSS actuel : `.support-brand` pour assistant, questionnaire, programme, widget, erreurs et confirmation. Les adaptations locales du conseiller (dates, charte et ressources) sont hors index et ne font pas partie de cette livraison. En-tête/pied de page propres au support ; pages des autres lots et parcours de proposition commerciale conservés. Une seule apparence claire. Titres statiques en minuscules ; noms propres et titres produits par le client/IA non transformés automatiquement.
+
+Contrastes calculés : Encre/Craie 13,86:1 ; Encre/Ciel 10,13:1 ; Encre/Jaune 8,58:1. Écart volontaire au brief pour l’accessibilité : Ballast/Craie donne seulement 4,22:1, insuffisant pour le petit texte AA (4,5:1). Les petits textes secondaires utilisent Encre ; Ballast est réservé aux détails graphiques. Le jaune est limité à un accent par écran du support (repère assistant, monogramme widget ou action principale de confirmation), jamais du texte jaune sur fond clair. Focus visibles Encre ; alertes repérées par Brique avec texte Encre.
+
+### Parcours et preuve serveur
+
+Après une réponse positive de `POST /api/support/demandes`, l’envoi des seules préférences ouvre `/assistant/confirmation`. Cette route React FR/EN ne contient ni référence ni jeton ni coordonnées dans son adresse. Elle vérifie toujours `GET /api/support/preparations/:id/confirmation-preferences` avec le jeton courant (session navigateur existante), y compris après rechargement. Le serveur utilise uniquement la demande liée à la préparation et retourne `reference`, `transmisLe`, `type: preferences` sous `Cache-Control: no-store`, sans coordonnées ni contenu du dossier.
+
+Les nouvelles demandes de préférences portent `origineTransmission: preferences`. Absence de preuve, autre préparation, lien expiré ou panne : aucun titre de succès ; erreur et retour à la préparation proposés. Les demandes historiques non marquées restent lisibles, mais la nouvelle confirmation ne leur invente pas de preuve. Aucune migration ni donnée existante modifiée. Sans session autorisée conservée (autre navigateur, stockage effacé), revenir par le lien email expirant existant, puis consulter la préparation ; la confirmation publique seule ne donne aucun accès.
+
+Un envoi refusé reste sur le formulaire, avec erreur et focus ; un réessai réussi navigue aussi vers la confirmation. Le verrou client empêche les doubles clics ; les protections serveur par préparation/référence et la file email idempotente restent inchangées. La confirmation ne prouve pas la réception d’un email. Aucun délai métier n’est annoncé. La validation/transmission d’une version de programme conserve son action et son résultat distincts ; elle n’ouvre pas cette confirmation de préférences. Les dates précises, versions et instantanés sont conservés.
+
+### Vérifications réalisées (22 octobre 2026)
+
+- `npm test --prefix support-ia` : 49 tests automatisés, incluant preuve persistante, absence de preuve, isolation, refus, doublon, restauration des dates et route de confirmation sous lien expiré. IA/emails simulés ; aucune preuve supplémentaire de disponibilité du fournisseur.
+- Les essais Python historiques du back-office et des emails restent des informations d’intégration hors périmètre ; leurs compléments locaux ne sont pas sélectionnés dans ce commit préparé et ne constituent pas une validation des autres lots.
+- `npm --prefix site run build -- --emptyOutDir false` : build React réussi, anciens artefacts conservés.
+- Navigateur sur serveur temporaire isolé : questionnaire complet, dates 2027-12-31 / 2028-01-01 conservées ; double clic -> une demande ; confirmation après rechargement ; FR/EN ; accès direct sans session -> aucun succès ; retour à la préparation ; refus 409 -> formulaire intact ; panne 503 simulée puis bouton Réessayer -> même référence et confirmation. Focus vérifié sur titre de confirmation, zone d’erreur et actions clavier.
+- Rendu desktop (1280 x 900) et mobile (390 x 844), carte, questionnaire, programme fictif explicitement identifié et widget, sans débordement horizontal observé. Le programme de vérification visuelle n’est pas une génération IA réelle.
+
+Aucune IA/SMTP réelle, aucun secret chargé, aucun commit/push. Pour une recette finale éventuelle : un seul envoi de préférences fictives, vérifier la carte FR/EN puis recharger et revenir à la préparation ; l’accusé SMTP et l’accès depuis son lien sont des dépendances non validées des autres lots, sans recette supplémentaire demandée ici.
+
+## Identité de l’assistant : Nicia
+Le nom public est **Nicia** : « Nicia, votre assistant IA » / « Nicia, your AI assistant ». Titres, widget, accueil, auteurs des messages et noms accessibles utilisent ce nom ; la majuscule du nom propre est conservée selon la charte. L’accueil synthétique suit le choix FR/EN ; les conversations déjà enregistrées restent intactes. Les instructions système partagées par Gemini et OpenRouter donnent ce nom sans changer les garde-fous, le format JSON ou les contrats API. Aucun identifiant technique, route, email ni écran gestionnaire renommé.
+Contrôles sans fournisseur réel : tests d’identité FR/EN et instructions serveur via `npm test`, puis build React.
