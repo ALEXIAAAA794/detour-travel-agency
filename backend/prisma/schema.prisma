@@ -62,6 +62,41 @@ model Booking {
   @@index([tripId])
 }
 
+model TravelRequest {
+  id          String              @id @default(uuid())
+  accessToken String              @unique @default(uuid())
+  name        String
+  email       String
+  destination String
+  departure   DateTime?
+  returnDate  DateTime?
+  travelers   Int
+  budget      String?
+  travelType  String?
+  preferences String?
+  itinerary   Json?
+  paymentUrl  String?
+  status      TravelRequestStatus @default(PENDING_REVIEW)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([email])
+  @@index([status])
+}
+
+enum TravelRequestStatus {
+  PENDING_REVIEW
+  PREPARATION_AVAILABLE
+  PREPARATION_IN_PROGRESS
+  SUBMITTED
+  FEASIBILITY_REVIEW
+  CHANGES_REQUESTED
+  CONFIRMED_AWAITING_PAYMENT
+  PAID
+  REFUSED
+  EXPIRED
+}
+
 enum BookingStatus {
   PENDING
   CONFIRMED

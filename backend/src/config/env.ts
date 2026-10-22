@@ -7,6 +7,9 @@ const schema = z.object({
   DATABASE_URL: z.string().min(1),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
   JWT_SECRET: z.string().min(16).optional(),
+  MANAGER_API_KEY: z.string().min(24).optional(),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(3).optional(),
 });
 
 const parsed = schema.safeParse(process.env);
