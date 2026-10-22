@@ -7,6 +7,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import http.cookies
+import auth
 
 API_URL = os.environ.get("DETOUR_API_URL", "http://127.0.0.1:8765").rstrip("/")
 API_KEY = os.environ.get("DETOUR_API_KEY", "")
@@ -268,11 +270,51 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+
+    def send_json(self, data, status=200, extra_headers=None):
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        if extra_headers:
+            for name, value in extra_headers.items():
+                self.send_header(name, value)
+        self.end_headers()
+        self.wfile.write(body)
+
+    def read_json(self):
+        length = int(self.headers.get("Content-Length", "0") or 0)
+        try:
+            return json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return {}
+
+    def auth_token(self):
+        cookies = http.cookies.SimpleCookie()
+        try:
+            cookies.load(self.headers.get("Cookie", ""))
+        except http.cookies.CookieError:
+            return None
+        c = cookies.get("detour_session")
+        return c.value if c else None
+
     def do_GET(self):
         url = urllib.parse.urlparse(self.path)
         q = urllib.parse.parse_qs(url.query)
+
+        if url.path == "/auth/me":
+            auth.init_auth_db()
+            manager = auth.get_session(self.auth_token())
+            if not manager:
+                return self.send_json(
+                    {"error": "Session absente ou expir?e."}, 401
+                )
+            return self.send_json({"manager": manager})
+
         msg = q.get("msg", [""])[0]
         err = q.get("err", [""])[0]
+
         if url.path.startswith("/static/"):
             return self.send_static(url.path[len("/static/"):])
         if url.path == "/":
@@ -285,37 +327,121 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_html(options(msg, err))
         if url.path == "/reservations":
             return self.send_html(reservations(msg, err))
-        return self.send_html(page("Introuvable", "<p>Page introuvable.</p>"), 404)
+
+        return self.send_html(
+            page("Introuvable", "<p>Page introuvable.</p>"), 404
+        )
 
     def do_POST(self):
-        length = int(self.headers.get("Content-Length", "0") or 0)
-        form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
-        f = lambda k: form.get(k, [""])[0]
         path = urllib.parse.urlparse(self.path).path
+
+        # Connexion : lire le JSON avant tout autre traitement du corps.
+        if path == "/auth/login":
+            data = self.read_json()
+            email = data.get("email", "")
+            password = data.get("password", "")
+
+            if not isinstance(email, str) or not isinstance(password, str):
+                return self.send_json({"error": "Identifiants invalides."}, 400)
+
+            if not email.strip() or not password:
+                return self.send_json(
+                    {"error": "E-mail et mot de passe obligatoires."}, 400
+                )
+
+            auth.init_auth_db()
+            manager = auth.authenticate(email, password)
+            if not manager:
+                return self.send_json(
+                    {"error": "Adresse e-mail ou mot de passe incorrect."}, 401
+                )
+
+            token = auth.create_session(manager["id"])
+            cookie = http.cookies.SimpleCookie()
+            cookie["detour_session"] = token
+            cookie["detour_session"]["httponly"] = True
+            cookie["detour_session"]["samesite"] = "Lax"
+            cookie["detour_session"]["path"] = "/"
+            cookie["detour_session"]["max-age"] = auth.SESSION_DURATION
+
+            return self.send_json(
+                {"manager": manager},
+                extra_headers={"Set-Cookie": cookie.output(header="").strip()},
+            )
+
+        if path == "/auth/logout":
+            auth.delete_session(self.auth_token())
+            cookie = http.cookies.SimpleCookie()
+            cookie["detour_session"] = ""
+            cookie["detour_session"]["path"] = "/"
+            cookie["detour_session"]["max-age"] = 0
+
+            return self.send_json(
+                {"message": "Déconnexion réussie."},
+                extra_headers={"Set-Cookie": cookie.output(header="").strip()},
+            )
+
+        # Les autres routes utilisent les formulaires HTML.
+        length = int(self.headers.get("Content-Length", "0") or 0)
+        raw_body = self.rfile.read(length).decode("utf-8")
+        form = urllib.parse.parse_qs(raw_body)
+        f = lambda k: form.get(k, [""])[0]
+
         if path == "/options":
             try:
                 participants = int(f("participants"))
             except ValueError:
                 participants = 0
-            res, err = api("POST", "/api/v1/options",
-                           body={"prestation_id": f("prestation_id"), "date": f("date"), "participants": participants})
+
+            res, err = api(
+                "POST",
+                "/api/v1/options",
+                body={
+                    "prestation_id": f("prestation_id"),
+                    "date": f("date"),
+                    "participants": participants,
+                },
+            )
             if err:
                 return self.redirect("/options", err=err)
-            return self.redirect("/options", msg="Option %s posée." % res["option"]["id"])
+            return self.redirect(
+                "/options", msg="Option %s posée." % res["option"]["id"]
+            )
+
         if path == "/confirmer":
-            res, err = api("POST", "/api/v1/reservations",
-                           body={"option_id": f("option_id"), "approuve_par": f("approuve_par")}, approval=f("approval"))
+            res, err = api(
+                "POST",
+                "/api/v1/reservations",
+                body={
+                    "option_id": f("option_id"),
+                    "approuve_par": f("approuve_par"),
+                },
+                approval=f("approval"),
+            )
             if err:
                 return self.redirect("/options", err=err)
-            return self.redirect("/reservations", msg="Réservation %s confirmée." % res["reservation"]["id"])
+            return self.redirect(
+                "/reservations",
+                msg="Réservation %s confirmée." % res["reservation"]["id"],
+            )
+
         if path == "/annuler":
-            res, err = api("POST", "/api/v1/reservations/%s/annuler" % urllib.parse.quote(f("reservation_id")),
-                           approval=f("approval"))
+            res, err = api(
+                "POST",
+                "/api/v1/reservations/%s/annuler"
+                % urllib.parse.quote(f("reservation_id")),
+                approval=f("approval"),
+            )
             if err:
                 return self.redirect("/reservations", err=err)
-            return self.redirect("/reservations", msg="Réservation %s annulée." % res["reservation"]["id"])
-        return self.send_html(page("Introuvable", "<p>Page introuvable.</p>"), 404)
+            return self.redirect(
+                "/reservations",
+                msg="Réservation %s annulée." % res["reservation"]["id"],
+            )
 
+        return self.send_html(
+            page("Introuvable", "<p>Page introuvable.</p>"), 404
+        )
     def redirect(self, location, **params):
         self.send_response(303)
         self.send_header("Location", location + ("?" + urllib.parse.urlencode(params) if params else ""))

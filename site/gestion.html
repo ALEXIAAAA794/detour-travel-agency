@@ -1,0 +1,845 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DETOUR | Espace gestionnaire</title>
+  <style>
+    :root {
+      --green: #254d18;
+      --green-light: #e2ead8;
+      --gold: #d5a16a;
+      --bg: #f6f2e9;
+      --white: #fff;
+      --text: #343630;
+      --muted: #77776f;
+      --border: #eee9df;
+      --red: #a83c2b;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app { display: flex; min-height: 100vh; }
+
+    aside {
+      width: 245px;
+      flex-shrink: 0;
+      padding: 25px 16px;
+      background: var(--green);
+      color: white;
+    }
+
+    .brand {
+      font-family: Georgia, serif;
+      font-size: 30px;
+      font-weight: bold;
+      padding: 5px 12px 30px;
+    }
+
+    .brand span { color: var(--gold); }
+
+    nav { display: grid; gap: 7px; }
+
+    .nav-btn {
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: white;
+      padding: 13px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .nav-btn:hover, .nav-btn.active {
+      background: rgba(255,255,255,.16);
+    }
+
+    .profile {
+      margin-top: 50px;
+      border-top: 1px solid #ffffff40;
+      padding: 18px 10px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .profile small { color: #d7dfd0; }
+
+    main {
+      min-width: 0;
+      flex: 1;
+      padding: 32px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 28px;
+    }
+
+    h1, h2 { color: var(--green); }
+    h1 { font-family: Georgia, serif; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 0; }
+
+    .subtitle { color: var(--muted); font-size: 14px; }
+
+    .primary, .secondary {
+      border: 0;
+      border-radius: 9px;
+      padding: 12px 16px;
+      font-weight: bold;
+    }
+
+    .primary { background: var(--green); color: white; }
+    .primary:hover { background: #356825; }
+    .secondary { background: white; border: 1px solid var(--border); }
+
+    .search {
+      width: 230px;
+      max-width: 100%;
+      padding: 12px;
+      border: 1px solid #d9b184;
+      border-radius: 9px;
+      background: white;
+    }
+
+    .top-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .stat, .panel {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: 0 8px 25px #272d1d08;
+    }
+
+    .stat-label { color: var(--muted); font-size: 13px; }
+    .stat-value {
+      color: var(--green);
+      font: bold 30px Georgia, serif;
+      margin: 12px 0 7px;
+    }
+    .stat-note { font-size: 12px; color: var(--muted); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr);
+      gap: 18px;
+    }
+
+    .panel-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+      font-size: 13px;
+    }
+
+    thead { background: var(--green); color: white; }
+    th, td { padding: 14px 12px; text-align: left; }
+    td { border-bottom: 1px solid var(--border); color: var(--muted); }
+    tbody tr:hover { background: #fbf9f4; }
+    td:first-child { color: var(--text); font-weight: bold; }
+
+    .status {
+      display: inline-block;
+      border-radius: 30px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .confirmed { background: var(--green-light); color: #315b21; }
+    .pending { background: #f5e5c5; color: #81551e; }
+    .cancelled { background: #f4dcd5; color: var(--red); }
+
+    .departure { margin: 22px 0; }
+    .departure-info {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .departure-info strong { color: var(--green); }
+
+    .progress {
+      height: 8px;
+      border-radius: 20px;
+      background: #eee9df;
+      overflow: hidden;
+    }
+
+    .progress div { height: 100%; background: var(--gold); }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .filter {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .notice {
+      margin: 0 0 20px;
+      padding: 12px 15px;
+      border-radius: 10px;
+      background: #f5e5c5;
+      color: #69491c;
+      font-size: 13px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+    }
+
+    .field { display: grid; gap: 7px; }
+    .field label { font-size: 13px; color: var(--muted); font-weight: bold; }
+    .field input, .field select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+    .form-actions { margin-top: 20px; }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #17201488;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 10;
+    }
+
+    .modal.open { display: flex; }
+    .modal-content {
+      width: min(560px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 25px;
+      border-radius: 16px;
+      background: white;
+    }
+
+    .modal-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+
+    .close {
+      border: 0;
+      background: transparent;
+      font-size: 25px;
+    }
+
+    #toast {
+      display: none;
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: var(--green);
+      color: white;
+      padding: 14px 18px;
+      border-radius: 10px;
+      z-index: 20;
+    }
+
+    #toast.show { display: block; }
+
+    @media (max-width: 1050px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+      main { padding: 24px; }
+    }
+
+    @media (max-width: 700px) {
+      .app { display: block; }
+      aside { width: 100%; padding: 15px; }
+      .brand { padding-bottom: 15px; }
+      nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .nav-btn { padding: 10px; }
+      .profile { display: none; }
+      main { padding: 20px 14px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .stats { gap: 10px; }
+      .stat { padding: 15px; }
+      .stat-value { font-size: 24px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><span>⌁</span> DETOUR</div>
+    <nav aria-label="Navigation gestionnaire">
+      <button class="nav-btn active" data-page="dashboard">▦ Tableau de bord</button>
+      <button class="nav-btn" data-page="reservations">▣ Réservations</button>
+      <button class="nav-btn" data-page="voyages">◎ Voyages</button>
+      <button class="nav-btn" data-page="clients">♙ Clients</button>
+      <button class="nav-btn" data-page="destinations">♧ Destinations</button>
+      <button class="nav-btn" data-page="paiements">▤ Paiements</button>
+      <button class="nav-btn" data-page="parametres">⚙ Paramètres</button>
+    </nav>
+    <div class="profile">
+      <strong>Gestionnaire</strong><br>
+      <small>Agence DETOUR</small>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">Tableau de bord</h1>
+        <div class="subtitle" id="pageSubtitle">Vue d’ensemble de l’activité DETOUR</div>
+      </div>
+      <div class="top-actions">
+        <input class="search" id="search" type="search" placeholder="Rechercher..." aria-label="Rechercher">
+        <button class="primary" id="openTrip">＋ Nouveau voyage</button>
+      </div>
+    </header>
+
+    <div class="notice">
+      Mode démonstration : les informations affichées sont des exemples et ne proviennent pas encore d’une base de données.
+    </div>
+
+    <section class="page active" id="page-dashboard">
+      <div class="stats">
+        <article class="stat">
+          <div class="stat-label">Réservations</div>
+          <div class="stat-value" id="statReservations">5</div>
+          <div class="stat-note">Demandes enregistrées dans la démo</div>
+        </article>
+        <article class="stat">
+          <div class="stat-label">Chiffre d’affaires potentiel</div>
+          <div class="stat-value" id="statRevenue">5 510 €</div>
+          <div class="stat-note">Montant des réservations d’exemple</div>
+        </article>
+        <article class="stat">
+          <div class="stat-label">Voyages au catalogue</div>
+          <div class="stat-value" id="statTrips">5</div>
+          <div class="stat-note">Voyages de démonstration</div>
+        </article>
+        <article class="stat">
+          <div class="stat-label">Annulations</div>
+          <div class="stat-value" id="statCancelled">1</div>
+          <div class="stat-note">Réservations annulées</div>
+        </article>
+      </div>
+
+      <div class="grid">
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Dernières réservations</h2>
+            <button class="secondary" data-goto="reservations">Tout voir</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Référence</th><th>Client</th><th>Destination</th><th>Montant</th><th>Statut</th></tr></thead>
+              <tbody id="recentReservations"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading"><h2>Départs à venir</h2></div>
+          <div id="departures"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="page" id="page-reservations">
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Toutes les réservations</h2>
+          <select class="filter" id="statusFilter" aria-label="Filtrer les réservations">
+            <option value="all">Tous les statuts</option>
+            <option value="En attente">En attente</option>
+            <option value="Confirmée">Confirmée</option>
+            <option value="Annulée">Annulée</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Référence</th><th>Client</th><th>Destination</th><th>Départ</th><th>Montant</th><th>Statut</th><th>Modifier</th></tr></thead>
+            <tbody id="allReservations"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="page" id="page-voyages">
+      <div class="toolbar">
+        <h2>Catalogue des voyages</h2>
+        <button class="primary" id="openTrip2">＋ Ajouter un voyage</button>
+      </div>
+      <section class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Voyage</th><th>Destination</th><th>Départ</th><th>Prix</th><th>Places réservées</th><th>Statut</th></tr></thead>
+            <tbody id="tripsTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="page" id="page-clients">
+      <section class="panel">
+        <div class="panel-heading"><h2>Liste des clients</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Client</th><th>Destination</th><th>Nombre de réservations</th><th>Départ</th></tr></thead>
+            <tbody id="clientsTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="page" id="page-destinations">
+      <div class="toolbar">
+        <h2>Destinations proposées</h2>
+        <button class="secondary" id="addDestination">＋ Ajouter une destination</button>
+      </div>
+      <section class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Destination</th><th>Pays</th><th>Voyages</th><th>Prix de départ</th><th>Visibilité</th></tr></thead>
+            <tbody id="destinationsTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="page" id="page-paiements">
+      <section class="panel">
+        <div class="panel-heading"><h2>Suivi des paiements</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Référence</th><th>Client</th><th>Montant</th><th>Date</th><th>État</th></tr></thead>
+            <tbody id="paymentsTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="page" id="page-parametres">
+      <section class="panel">
+        <div class="panel-heading"><h2>Paramètres de l’agence</h2></div>
+        <form id="settingsForm">
+          <div class="form-grid">
+            <div class="field"><label for="agencyName">Nom de l’agence</label><input id="agencyName" value="DETOUR" required></div>
+            <div class="field"><label for="agencyEmail">E-mail de contact</label><input id="agencyEmail" type="email" value="contact@detour.example" required></div>
+            <div class="field"><label for="agencyPhone">Téléphone</label><input id="agencyPhone" value="+33 1 00 00 00 00"></div>
+            <div class="field"><label for="currency">Devise</label><select id="currency"><option>EUR (€)</option><option>XAF (FCFA)</option><option>USD ($)</option></select></div>
+          </div>
+          <div class="form-actions"><button class="primary" type="submit">Enregistrer</button></div>
+        </form>
+      </section>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="tripModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-content">
+    <div class="modal-heading">
+      <h2 id="modalTitle">Ajouter un voyage</h2>
+      <button class="close" id="closeModal" aria-label="Fermer">×</button>
+    </div>
+    <form id="tripForm">
+      <div class="form-grid">
+        <div class="field full"><label for="tripName">Nom du voyage</label><input id="tripName" required placeholder="Ex. Escapade à Lisbonne"></div>
+        <div class="field"><label for="tripDestination">Destination</label><input id="tripDestination" required></div>
+        <div class="field"><label for="tripCountry">Pays</label><input id="tripCountry" required></div>
+        <div class="field"><label for="tripDate">Date de départ</label><input id="tripDate" type="date" required></div>
+        <div class="field"><label for="tripPrice">Prix par personne (€)</label><input id="tripPrice" type="number" min="1" required></div>
+        <div class="field"><label for="tripPlaces">Nombre de places</label><input id="tripPlaces" type="number" min="1" required></div>
+        <div class="field"><label for="tripStatus">Statut</label><select id="tripStatus"><option>Publié</option><option>Brouillon</option></select></div>
+      </div>
+      <div class="form-actions top-actions">
+        <button class="secondary" type="button" id="cancelModal">Annuler</button>
+        <button class="primary" type="submit">Enregistrer le voyage</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  // Données fictives : à remplacer par l'API du projet.
+  const reservations = [
+    {ref:'D-1042', client:'Client A', destination:'Lisbonne', date:'12 nov.', amount:890, status:'Confirmée'},
+    {ref:'D-1041', client:'Client B', destination:'Marrakech', date:'20 nov.', amount:1240, status:'En attente'},
+    {ref:'D-1040', client:'Client C', destination:'Douala', date:'5 déc.', amount:1760, status:'Confirmée'},
+    {ref:'D-1039', client:'Client D', destination:'Rome', date:'28 nov.', amount:640, status:'Annulée'},
+    {ref:'D-1038', client:'Client E', destination:'Istanbul', date:'2 déc.', amount:980, status:'En attente'}
+  ];
+
+  const trips = [
+    {name:'Escapade à Lisbonne', destination:'Lisbonne', country:'Portugal', date:'12 nov.', price:890, places:24, booked:18, status:'Publié'},
+    {name:'Couleurs de Marrakech', destination:'Marrakech', country:'Maroc', date:'20 nov.', price:1240, places:20, booked:9, status:'Publié'},
+    {name:'Découverte d’Istanbul', destination:'Istanbul', country:'Turquie', date:'2 déc.', price:980, places:16, booked:14, status:'Publié'},
+    {name:'Séjour à Rome', destination:'Rome', country:'Italie', date:'28 nov.', price:640, places:18, booked:7, status:'Publié'},
+    {name:'Retour aux sources', destination:'Douala', country:'Cameroun', date:'5 déc.', price:1760, places:22, booked:12, status:'Brouillon'}
+  ];
+
+  const destinations = [
+    {name:'Lisbonne', country:'Portugal', trips:2, price:890, visible:'Visible'},
+    {name:'Marrakech', country:'Maroc', trips:3, price:1240, visible:'Visible'},
+    {name:'Douala', country:'Cameroun', trips:1, price:1760, visible:'Visible'},
+    {name:'Rome', country:'Italie', trips:2, price:640, visible:'Visible'},
+    {name:'Istanbul', country:'Turquie', trips:1, price:980, visible:'Visible'}
+  ];
+
+  const payments = [
+    {ref:'P-2042', client:'Client A', amount:890, date:'12 oct.', status:'Payé'},
+    {ref:'P-2041', client:'Client B', amount:620, date:'11 oct.', status:'Acompte reçu'},
+    {ref:'P-2040', client:'Client C', amount:1760, date:'10 oct.', status:'Payé'},
+    {ref:'P-2039', client:'Client D', amount:640, date:'9 oct.', status:'Remboursement'},
+    {ref:'P-2038', client:'Client E', amount:980, date:'8 oct.', status:'En attente'}
+  ];
+
+  const pageMeta = {
+    dashboard:['Tableau de bord','Vue d’ensemble de l’activité DETOUR'],
+    reservations:['Réservations','Consultez et gérez les demandes de voyage'],
+    voyages:['Voyages','Gérez le catalogue des séjours'],
+    clients:['Clients','Consultez les voyageurs'],
+    destinations:['Destinations','Gérez le catalogue des destinations'],
+    paiements:['Paiements','Suivez les transactions et remboursements'],
+    parametres:['Paramètres','Configurez les informations de votre agence']
+  };
+
+  const money = n => new Intl.NumberFormat('fr-FR', {
+    style:'currency', currency:'EUR', maximumFractionDigits:0
+  }).format(n);
+
+  const statusClass = s => ({
+    'Confirmée':'confirmed',
+    'En attente':'pending',
+    'Annulée':'cancelled',
+    'Payé':'confirmed',
+    'Acompte reçu':'pending',
+    'Remboursement':'cancelled'
+  })[s] || 'pending';
+
+  const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[char]);
+
+  function statusBadge(status) {
+    return `<span class="status ${statusClass(status)}">${escapeHTML(status)}</span>`;
+  }
+
+  function renderStats() {
+    document.getElementById('statReservations').textContent = reservations.length;
+    document.getElementById('statRevenue').textContent = money(
+      reservations.filter(r => r.status !== 'Annulée').reduce((sum, r) => sum + r.amount, 0)
+    );
+    document.getElementById('statTrips').textContent = trips.length;
+    document.getElementById('statCancelled').textContent =
+      reservations.filter(r => r.status === 'Annulée').length;
+  }
+
+  function renderRecent() {
+    document.getElementById('recentReservations').innerHTML =
+      reservations.slice(0, 5).map(r => `
+        <tr>
+          <td>#${escapeHTML(r.ref)}</td>
+          <td>${escapeHTML(r.client)}</td>
+          <td>${escapeHTML(r.destination)}</td>
+          <td>${money(r.amount)}</td>
+          <td>${statusBadge(r.status)}</td>
+        </tr>`).join('');
+  }
+
+  function renderDepartures() {
+    document.getElementById('departures').innerHTML = trips.slice(0, 4).map(t => `
+      <div class="departure">
+        <div class="departure-info">
+          <strong>${escapeHTML(t.destination)} · ${escapeHTML(t.date)}</strong>
+          <span>${t.booked}/${t.places}</span>
+        </div>
+        <div class="progress"><div style="width:${Math.min(100, Math.round(t.booked / t.places * 100))}%"></div></div>
+      </div>`).join('');
+  }
+
+  function renderReservations() {
+    const filter = document.getElementById('statusFilter').value;
+    const search = document.getElementById('search').value.trim().toLowerCase();
+
+    const filtered = reservations.filter(r =>
+      (filter === 'all' || r.status === filter) &&
+      [r.ref, r.client, r.destination, r.date, r.status].join(' ').toLowerCase().includes(search)
+    );
+
+    document.getElementById('allReservations').innerHTML = filtered.length
+      ? filtered.map(r => `
+        <tr>
+          <td>#${escapeHTML(r.ref)}</td>
+          <td>${escapeHTML(r.client)}</td>
+          <td>${escapeHTML(r.destination)}</td>
+          <td>${escapeHTML(r.date)}</td>
+          <td>${money(r.amount)}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td>
+            <select class="filter status-change" data-ref="${escapeHTML(r.ref)}" aria-label="Modifier le statut">
+              ${['En attente','Confirmée','Annulée'].map(s =>
+                `<option ${s === r.status ? 'selected' : ''}>${s}</option>`
+              ).join('')}
+            </select>
+          </td>
+        </tr>`).join('')
+      : '<tr><td colspan="7">Aucune réservation trouvée.</td></tr>';
+  }
+
+  function renderTrips() {
+    document.getElementById('tripsTable').innerHTML = trips.map(t => `
+      <tr>
+        <td>${escapeHTML(t.name)}</td>
+        <td>${escapeHTML(t.destination)}, ${escapeHTML(t.country)}</td>
+        <td>${escapeHTML(t.date)}</td>
+        <td>${money(t.price)}</td>
+        <td>${t.booked} / ${t.places}</td>
+        <td>${statusBadge(t.status)}</td>
+      </tr>`).join('');
+  }
+
+  function renderClients() {
+    const clients = new Map();
+
+    reservations.forEach(r => {
+      if (!clients.has(r.client)) {
+        clients.set(r.client, {client:r.client, destination:r.destination, date:r.date, count:0});
+      }
+      const client = clients.get(r.client);
+      client.count++;
+      client.destination = r.destination;
+      client.date = r.date;
+    });
+
+    document.getElementById('clientsTable').innerHTML = [...clients.values()].map(c => `
+      <tr>
+        <td>${escapeHTML(c.client)}</td>
+        <td>${escapeHTML(c.destination)}</td>
+        <td>${c.count}</td>
+        <td>${escapeHTML(c.date)}</td>
+      </tr>`).join('');
+  }
+
+  function renderDestinations() {
+    document.getElementById('destinationsTable').innerHTML = destinations.map(d => `
+      <tr>
+        <td>${escapeHTML(d.name)}</td>
+        <td>${escapeHTML(d.country)}</td>
+        <td>${d.trips}</td>
+        <td>${money(d.price)}</td>
+        <td>${statusBadge(d.visible)}</td>
+      </tr>`).join('');
+  }
+
+  function renderPayments() {
+    document.getElementById('paymentsTable').innerHTML = payments.map(p => `
+      <tr>
+        <td>#${escapeHTML(p.ref)}</td>
+        <td>${escapeHTML(p.client)}</td>
+        <td>${money(p.amount)}</td>
+        <td>${escapeHTML(p.date)}</td>
+        <td>${statusBadge(p.status)}</td>
+      </tr>`).join('');
+  }
+
+  function renderAll() {
+    renderStats();
+    renderRecent();
+    renderDepartures();
+    renderReservations();
+    renderTrips();
+    renderClients();
+    renderDestinations();
+    renderPayments();
+  }
+
+  function goTo(page) {
+    document.querySelectorAll('.nav-btn').forEach(button => {
+      button.classList.toggle('active', button.dataset.page === page);
+    });
+
+    document.querySelectorAll('.page').forEach(section => {
+      section.classList.toggle('active', section.id === `page-${page}`);
+    });
+
+    document.getElementById('pageTitle').textContent = pageMeta[page][0];
+    document.getElementById('pageSubtitle').textContent = pageMeta[page][1];
+    document.getElementById('openTrip').style.display =
+      ['dashboard','voyages'].includes(page) ? 'inline-block' : 'none';
+
+    if (page === 'reservations') renderReservations();
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(button => {
+    button.addEventListener('click', () => goTo(button.dataset.page));
+  });
+
+  document.querySelectorAll('[data-goto]').forEach(button => {
+    button.addEventListener('click', () => goTo(button.dataset.goto));
+  });
+
+  document.getElementById('statusFilter').addEventListener('change', renderReservations);
+
+  document.getElementById('search').addEventListener('input', () => {
+    if (document.getElementById('page-reservations').classList.contains('active')) {
+      renderReservations();
+    } else {
+      goTo('reservations');
+    }
+  });
+
+  document.getElementById('allReservations').addEventListener('change', event => {
+    if (!event.target.matches('.status-change')) return;
+    const reservation = reservations.find(r => r.ref === event.target.dataset.ref);
+    if (!reservation) return;
+    reservation.status = event.target.value;
+    renderAll();
+    showToast('Statut de la réservation mis à jour.');
+  });
+
+  const modal = document.getElementById('tripModal');
+
+  function openModal() {
+    modal.classList.add('open');
+    document.getElementById('tripName').focus();
+  }
+
+  function closeModal() {
+    modal.classList.remove('open');
+    document.getElementById('tripForm').reset();
+  }
+
+  document.getElementById('openTrip').addEventListener('click', openModal);
+  document.getElementById('openTrip2').addEventListener('click', openModal);
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  document.getElementById('cancelModal').addEventListener('click', closeModal);
+
+  modal.addEventListener('click', event => {
+    if (event.target === modal) closeModal();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeModal();
+  });
+
+  document.getElementById('tripForm').addEventListener('submit', event => {
+    event.preventDefault();
+
+    const name = document.getElementById('tripName').value.trim();
+    const destination = document.getElementById('tripDestination').value.trim();
+    const country = document.getElementById('tripCountry').value.trim();
+    const dateValue = document.getElementById('tripDate').value;
+    const date = new Date(dateValue + 'T12:00:00').toLocaleDateString('fr-FR', {
+      day:'numeric', month:'short'
+    }).replace('.', '');
+    const price = Number(document.getElementById('tripPrice').value);
+    const places = Number(document.getElementById('tripPlaces').value);
+    const status = document.getElementById('tripStatus').value;
+
+    trips.unshift({name, destination, country, date, price, places, booked:0, status});
+
+    if (!destinations.some(d => d.name.toLowerCase() === destination.toLowerCase())) {
+      destinations.unshift({
+        name:destination, country, trips:1, price,
+        visible:status === 'Publié' ? 'Visible' : 'Masquée'
+      });
+    }
+
+    renderAll();
+    closeModal();
+    goTo('voyages');
+    showToast('Voyage ajouté à la démonstration.');
+  });
+
+  document.getElementById('addDestination').addEventListener('click', () => {
+    const name = prompt('Nom de la destination :');
+    if (!name || !name.trim()) return;
+
+    const country = prompt('Pays :');
+    if (!country || !country.trim()) return;
+
+    destinations.unshift({
+      name:name.trim(), country:country.trim(), trips:0, price:0, visible:'Visible'
+    });
+
+    renderDestinations();
+    showToast('Destination ajoutée à la démonstration.');
+  });
+
+  document.getElementById('settingsForm').addEventListener('submit', event => {
+    event.preventDefault();
+    showToast('Paramètres enregistrés pour cette démonstration.');
+  });
+
+  let toastTimeout;
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toast.classList.remove('show'), 2800);
+  }
+
+  renderAll();
+</script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-
 const API_URL = "/auth";
 
 async function request(endpoint, options = {}) {
@@ -14,9 +13,11 @@ async function request(endpoint, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       data.error || data.message || "Une erreur est survenue."
     );
+    error.status = response.status;
+    throw error;
   }
 
   return data;
@@ -30,9 +31,13 @@ export async function login(email, password) {
 }
 
 export async function getSession() {
-  return request("/me", {
-    method: "GET",
-  });
+  try {
+    return await request("/me", { method: "GET" });
+  } catch (error) {
+    // 401 = personne n'est connecté : cas normal, pas une erreur
+    if (error.status === 401) return null;
+    throw error;
+  }
 }
 
 export async function logout() {

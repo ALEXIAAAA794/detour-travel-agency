@@ -19,15 +19,16 @@ model Client {
 }
 
 model Destination {
-  id          String   @id @default(uuid())
-  name        String
-  country     String
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(120)
+  country     String   @db.VarChar(120)
   description String?
   trips       Trip[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([name, country])
+  @@unique([name, country], map: "destinations_name_country_unique")
+  @@map("destinations")
 }
 
 model Trip {
@@ -38,7 +39,7 @@ model Trip {
   endDate       DateTime
   capacity      Int
   destination   Destination @relation(fields: [destinationId], references: [id])
-  destinationId String
+  destinationId String   @db.Uuid
   bookings      Booking[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

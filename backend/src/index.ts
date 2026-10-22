@@ -1,15 +1,18 @@
-import { app } from "./app.js";
+﻿import { app } from "./app.js";
 import { env } from "./config/env.js";
-import { prisma } from "./config/prisma.js";
+import { pool } from "./config/database.js";
 
 const server = app.listen(env.PORT, () => {
-  console.log(`API prête sur http://localhost:${env.PORT}`);
+  console.log(`API prete sur http://localhost:${env.PORT}`);
 });
 
-async function shutdown() {
-  server.close();
-  await prisma.$disconnect();
-  process.exit(0);
+function shutdown() {
+  server.close(() => {
+    void pool.end().finally(() => {
+      process.exit(0);
+    });
+  });
 }
+
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
