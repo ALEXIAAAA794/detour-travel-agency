@@ -1,32 +1,17 @@
-
-import { useEffect, useState } from "react";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import ProtectedRoute from "./components/ProtectedRoute";
-import { getSession } from "./services/auth";
+﻿import Dashboard from "./pages/Dashboard";
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getSession()
-      .then((data) => setUser(data.user || null))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return <p className="loading-message">Chargement…</p>;
-  }
-
-  if (!user) {
-    return <Login onLogin={(data) => setUser(data.user || data)} />;
-  }
+  const user = {
+    firstName: "Gestionnaire",
+    name: "Gestionnaire",
+  };
 
   return (
-    <ProtectedRoute user={user} loading={loading}>
-      <Dashboard user={user} onLogout={() => setUser(null)} />
-    </ProtectedRoute>
+    <Dashboard
+      user={user}
+      onLogout={() => {
+        window.alert("La connexion sera réactivée ultérieurement.");
+      }}
+    />
   );
 }

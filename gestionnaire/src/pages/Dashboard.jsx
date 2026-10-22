@@ -1,4 +1,4 @@
-
+import Reservations from "./Reservations.jsx";
 import { useState } from "react";
 
 const sections = [
@@ -82,7 +82,7 @@ export default function Dashboard({ user, onLogout }) {
 
         <div className="sidebar-bottom">
           <span className="status-dot" />
-          Espace conseiller
+          Espace gestionnaire
           <button
             type="button"
             className="logout-button"
@@ -109,7 +109,7 @@ export default function Dashboard({ user, onLogout }) {
             </span>
             <span>
               <strong>{firstName}</strong>
-              <small>Conseiller voyage</small>
+              <small>Gestionnaire</small>
             </span>
           </div>
         </header>
@@ -170,23 +170,29 @@ export default function Dashboard({ user, onLogout }) {
             </>
           )}
 
-          {activeSection !== "overview" && (
-            <section className="empty-section">
-              <span className="empty-number">{activeItem?.number}</span>
-              <h3>{activeItem?.title}</h3>
-              <p>
-                Cette rubrique est prête à accueillir ses fonctionnalités.
-                La prochaine étape consiste à la connecter aux données
-                de votre application.
-              </p>
-              <button
-                className="secondary-button"
-                onClick={() => setActiveSection("overview")}
-              >
-                ← Retour à la vue d’ensemble
-              </button>
-            </section>
-          )}
+          {activeSection === "reservations" && <Reservations />}
+
+{activeSection !== "overview" && activeSection !== "reservations" && (
+  <section className="empty-section">
+    <span className="empty-number">{activeItem?.number}</span>
+    <h3>{activeItem?.title}</h3>
+    <p>
+      {activeSection === "clients" &&
+        "Retrouvez les informations des voyageurs et leurs coordonnées."}
+      {activeSection === "quotes" &&
+        "Consultez les demandes reçues et préparez vos propositions de voyage."}
+      {activeSection === "trips" &&
+        "Consultez les destinations et les informations sur les séjours proposés."}
+    </p>
+    <button
+      type="button"
+      className="secondary-button"
+      onClick={() => setActiveSection("overview")}
+    >
+      Retour au tableau de bord
+    </button>
+  </section>
+)}
         </div>
 
         <footer className="dashboard-footer">

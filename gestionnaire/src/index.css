@@ -793,3 +793,147 @@ form button:disabled {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Rubriques de gestion */
+.management-section {
+  background: #fffdfa;
+  border: 1px solid #eee6de;
+  border-radius: 18px;
+  padding: 26px;
+  margin-top: 24px;
+}
+
+.management-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.management-toolbar h3,
+.management-section > h3 {
+  margin: 0 0 8px;
+  color: #332720;
+}
+
+.management-toolbar p,
+.management-intro {
+  margin: 0;
+  color: #82766d;
+  font-size: 14px;
+}
+
+.management-search {
+  min-width: 240px;
+  padding: 12px 14px;
+  border: 1px solid #e6dcd2;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  outline-color: #d69a7a;
+}
+
+.management-table-wrap {
+  overflow-x: auto;
+}
+
+.management-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.management-table th {
+  color: #8a796c;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  background: #faf5ef;
+}
+
+.management-table th,
+.management-table td {
+  padding: 15px 12px;
+  border-bottom: 1px solid #f0e9e2;
+  white-space: nowrap;
+}
+
+.management-table td {
+  color: #5d5047;
+}
+
+.management-table td strong {
+  color: #332720;
+}
+
+.status-pill {
+  display: inline-flex;
+  border-radius: 20px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-confirmed {
+  background: #e8f2e9;
+  color: #376b45;
+}
+
+.status-pending {
+  background: #fff0df;
+  color: #95602e;
+}
+
+.demo-note {
+  margin: 18px 0 0;
+  color: #8b7d72;
+  font-size: 12px;
+}
+
+.trip-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.trip-card {
+  padding: 22px;
+  border: 1px solid #eee2d7;
+  border-radius: 14px;
+  background: #fff8f1;
+}
+
+.trip-card span {
+  color: #bd7957;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+
+.trip-card h4 {
+  color: #332720;
+  margin: 12px 0 8px;
+  font-size: 20px;
+}
+
+.trip-card p {
+  color: #78695e;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .management-section {
+    padding: 16px;
+  }
+
+  .management-search {
+    width: 100%;
+    min-width: 0;
+  }
+}
