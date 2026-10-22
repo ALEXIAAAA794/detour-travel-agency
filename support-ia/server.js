@@ -3,13 +3,15 @@ const express = require("express");
 const app = express();
 
 const path = require("node:path");
-const siteDist = path.join(__dirname, "../site/dist");
 
 const { demandesRouter } = require("./demandes");
 
 app.use(express.json({ limit: "16kb" }));
 
-app.use(express.static(siteDist));
+app.use(express.static(path.join(__dirname, "../site")));
+
+const { preparationsRouter, autoriser, sauver, occupes } = require("./preparations");
+app.use("/api/support/preparations", preparationsRouter);
 
 const { interrogerIA } = require("./gemini");
 
@@ -20,7 +22,13 @@ app.get("/api/support/health", (req, res) => {
   });
 });
 
-app.post("/api/support/messages", async (req, res) => {
+app.post("/api/support/messages", async (req, res, next) => {
+  if (req.body?.preparationId) {
+    req.params.id = req.body.preparationId;
+    return autoriser(req, res, next);
+  }
+  next();
+}, async (req, res) => {
   const donnees = req.body;
 
   if (
@@ -48,8 +56,16 @@ app.post("/api/support/messages", async (req, res) => {
     });
   }
 
+    const p = req.preparation;
+    if (p && occupes.has(p.id)) return res.status(409).json({ error: { message: "Préparation occupée. Réessayez." } });
+    if (p && p.historique.length >= 200) return res.status(409).json({ error: { message: "Préparation complète. Commencez une nouvelle préparation." } });
+    if (p) occupes.add(p.id);
     try {
-    const texte = await interrogerIA(message);
+    const texte = await interrogerIA(message, p);
+    if (p) {
+      p.historique.push({ role: "user", content: message }, { role: "model", content: texte });
+      sauver(p);
+    }
 
     return res.status(200).json({
       reply: {
@@ -58,10 +74,7 @@ app.post("/api/support/messages", async (req, res) => {
       }
     });
   } catch (erreur) {
-    console.error(
-      "Échec de l’appel Gemini :",
-      erreur instanceof Error ? erreur.message : erreur
-    );
+    console.error("Échec de l’appel Gemini.");
 
     return res.status(503).json({
       error: {
@@ -69,20 +82,12 @@ app.post("/api/support/messages", async (req, res) => {
         message: "L’assistant est temporairement indisponible."
       }
     });
+  } finally {
+    if (p) occupes.delete(p.id);
   }
 });
 
 app.use("/api/support/demandes", demandesRouter);
-
-app.use((req, res, next) => {
-  if (req.method !== "GET" || req.path.startsWith("/api/")) {
-    return next();
-  }
-
-  res.sendFile(path.join(siteDist, "index.html"), (erreur) => {
-    if (erreur) next(erreur);
-  });
-});
 
 app.use((erreur, req, res, next) => {
   if (res.headersSent) {
@@ -117,8 +122,8 @@ app.use((erreur, req, res, next) => {
   });
 });
 
-const port = Number(process.env.PORT || 3001);
-
-app.listen(port, "127.0.0.1", () => {
-  console.log(`Support IA démarré sur http://127.0.0.1:${port}`);
+if (require.main === module) app.listen(3001, "127.0.0.1", () => {
+  console.log("Support IA démarré sur http://127.0.0.1:3001");
 });
+
+module.exports = { app };

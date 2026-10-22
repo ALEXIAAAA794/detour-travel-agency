@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node --env-file=.env server.js",
-    "test:gemini": "node --env-file=.env test-gemini.js"
+    "test:gemini": "node --env-file=.env test-gemini.js",
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",

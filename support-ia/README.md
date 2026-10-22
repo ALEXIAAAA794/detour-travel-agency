@@ -9,39 +9,10 @@
 
 ## Démarrage
 
-Depuis la racine du projet, construire l’interface React :
-
-    cd site
-    npm ci
-    npm run build
-
-Dans un second terminal, depuis le dossier `support-ia` :
+Depuis le dossier support-ia :
 
     npm ci
-    Copy-Item .env.example .env
-
-Ajouter une clé Gemini valide dans `.env`, puis lancer :
-
-    npm start
-
-Le fichier `.env` est ignoré par Git. Ne pas partager ni committer la clé.
-Le serveur sert alors l’interface React construite dans `site/dist`.
-
-Pour développer React avec rechargement automatique, lancer `npm run dev`
-dans `site` et `npm start` dans `support-ia`. Le proxy Vite transmet les
-requêtes `/api` au serveur local du support IA.
-
-## Test indépendant de Gemini
-
-Avant d’utiliser Gemini depuis l’interface, vérifier l’appel direct depuis
-le dossier support-ia :
-
-    npm run test:gemini
-
-Ce test envoie une courte requête au modèle `gemini-3.8-flash` et affiche la
-réponse reçue. Il n’utilise pas l’interface de chat. Une erreur HTTP inclut
-le diagnostic renvoyé par Google pour faciliter la correction de la clé,
-du modèle ou des limites de l’API.
+    node server.js
 
 ## Vérification
 
@@ -51,12 +22,12 @@ Réponse attendue :
 
     {"status":"ok","service":"detour-support-ia"}
 
-## Évolutions possibles
+## Fonctionnalités à développer
 
 - Réponses multilingues fondées sur la FAQ et le catalogue.
 - Recueil des souhaits de voyage et validation du récapitulatif.
 - Enregistrement et transmission des demandes au conseiller.
-- Amélioration de l’orientation vers le contact humain.
+- Interface de chat et orientation vers le contact humain.
 
 ## Réception des messages
 
@@ -71,8 +42,8 @@ Tests manuels réalisés :
 - Message numérique : refusé avec HTTP 400 et INVALID_MESSAGE.
 - Texte de 2 001 lettres ASCII : refusé avec HTTP 400 et INVALID_MESSAGE.
 
-Cette route appelle Gemini après validation du message. Le test indépendant
-ci-dessus permet de vérifier l’appel séparément de l’interface.
+La route interroge Gemini après validation du message. Une préparation protégée
+permet de conserver les échanges et leurs préférences (voir étape 1 ci-dessous).
 
 ## Gestion des erreurs de réception
 
@@ -85,27 +56,28 @@ Les erreurs de réception sont renvoyées au format JSON.
 
 ## Interface de chat
 
-Le bouton « Besoin d’aide ? » apparaît sur les pages du site React. Il envoie
-les messages à `POST /api/support/messages` via le proxy Vite en développement
-ou directement au backend en production.
+Page accessible sur /assistant.html depuis le serveur Express.
 
 - Interface conforme à la palette DÉTOUR.
 - Messages affichés comme du texte.
 - Bouton désactivé pendant la requête et réactivé ensuite.
 - Message d’indisponibilité et lien de contact en cas d’échec.
 
-Quand l’API Gemini renvoie une erreur, le chat affiche un message d’indisponibilité
-et propose de contacter un conseiller.
+Un appel direct à Gemini a réussi. Le parcours depuis le navigateur
+a été testé en situation d’échec ; sa réponse IA réussie reste à vérifier.
+
+Démarrage avec la configuration locale, depuis support-ia :
+
+    node --env-file=.env server.js
 
     ## Questionnaire de voyage
 
-- Six questions : destination, dates et durée, participants,
-  budget, activités et expérience recherchée.
+- Huit questions : destination, dates et durée, participants,
+  budget, activités, expérience recherchée, rythme et contraintes particulières.
 - Questionnaire guidé fonctionnant sans appel à Gemini.
 - Récapitulatif affiché à la fin du parcours.
 - Possibilité de recommencer en conservant les messages précédents.
-- Brouillon conservé uniquement en mémoire dans la page :
-  un rechargement l’efface.
+- Brouillon conservé côté serveur et restauré après rechargement dans la même session.
 - Aucune demande transmise ni réservation effectuée à ce stade.
 
 ## Vérification des envois
@@ -149,3 +121,261 @@ dossier de données. Le traitement par le conseiller reste à développer.
 - Test manuel du parcours complet réussi.
 - Aucun email automatique, paiement ou réservation prestataire déclenché.
 - Accès par lien secret dans cette version locale, sans compte client.
+
+## Support IA — étape 1
+
+Le questionnaire recueille huit préférences, dont `rythme` et `contraintes`.
+« Aucune » est une réponse valide. Les nouvelles demandes exigent ces champs
+(texte non vide, au plus 2 000 caractères). Les anciennes demandes restent lisibles
+sans réécriture ; le back-office affiche « Non renseigné » pour les champs absents.
+
+Les préparations et leurs discussions sont conservées en JSON dans
+`support-ia/data/preparations`, hors des fichiers servis au navigateur et exclus de Git.
+Les demandes transmises portent leur `preparationId`. Les emails et le traitement
+conseiller continuent à utiliser les fichiers de demandes existants.
+
+API : `POST /api/support/preparations` crée une préparation et retourne son `id`
+et un `jeton` confidentiel ; `GET /api/support/preparations/:id` restaure son état ;
+`PATCH /api/support/preparations/:id` enregistre `{ voyage: {...} }` (préférences
+partielles autorisées). Les lectures et modifications nécessitent
+`Authorization: Bearer <jeton>`. Un identifiant seul ou le jeton d’un autre client
+renvoient 404. Le jeton est stocké sous forme d’empreinte SHA-256 côté serveur,
+et dans `sessionStorage` côté navigateur, jamais dans les URL ni les demandes.
+`POST /api/support/messages` accepte `preparationId` et ce même en-tête ;
+les anciens appels sans préparation restent utilisables sans mémoire.
+La transmission d’une demande avec `preparationId` vérifie également le jeton.
+
+Le navigateur restaure les échanges et reprend le questionnaire après rechargement.
+Recommencer crée une nouvelle préparation et conserve les anciennes données serveur.
+Les corrections du récapitulatif sont sauvegardées à la validation du champ,
+puis à nouveau avant tout appel IA ou transmission de la demande.
+Les réponses IA réussies et les changements de préférences alimentent l’historique ;
+un échec IA ne crée pas de réponse fictive. Gemini reçoit les préférences actuelles
+et les 40 derniers messages. L’historique est limité à 200 messages par préparation.
+
+Configurer `GEMINI_MODEL` dans l’environnement du serveur ; sans configuration,
+le modèle reste `gemini-3.8-flash`. Aucun changement du fichier `.env` n’est nécessaire.
+
+Vérifications sans service payant : `npm test` depuis `support-ia`, puis
+`python backoffice_test.py`. Gemini et la planification des emails sont simulés,
+les fichiers de test sont créés dans des dossiers temporaires distincts ; aucune
+demande réelle ni configuration privée n’est lue par ces tests.
+
+Limites : accès client par possession du jeton, sans compte ni récupération après
+fermeture de la session du navigateur. Toute personne possédant le jeton peut lire
+la préparation ; ne pas le partager. Déploiement distant : HTTPS et contrôle d’accès
+infrastructure requis. Le back-office conserve son accès local existant et ne reçoit
+pas de nouvelle route de lecture des discussions. Le stockage et le verrouillage
+sont prévus pour un seul processus Express ; une politique de conservation, des
+quotas et une coordination multiprocessus restent à prévoir avant ouverture publique.
+La limite HTTP existante de 16 Kio continue à s’appliquer à l’ensemble du JSON.
+Les dossiers de test peuvent être redirigés via `SUPPORT_PREPARATIONS_DIR` et
+`SUPPORT_DEMANDES_DIR` (en production conserver le dossier partagé avec Python).
+
+
+### Démarrage du questionnaire et restauration
+
+Le clic sur « Personnaliser mon voyage » affiche immédiatement la première question,
+sans attendre la création serveur. Sans accès mémorisé, aucune requête de restauration
+n’est lancée au chargement. Une restauration en cours ne bloque pas ce bouton ;
+sa réponse tardive ne peut pas remplacer un nouveau questionnaire. Les opérations de
+préparation ont un délai de huit secondes. Si la sauvegarde échoue, le questionnaire
+continue dans la page avec un avertissement ; garder la page ouverte jusqu’à la reprise
+de la sauvegarde. L’envoi de la demande nécessite toujours la sauvegarde serveur.
+Aucune ancienne préparation n’est supprimée en cas d’échec ou de redémarrage.
+
+Si `/api/support/preparations` renvoie 404 alors que `/assistant.html` fonctionne,
+relancer le serveur Express depuis `support-ia` : un processus lancé avant la mise
+à jour sert le nouveau JavaScript statique mais ne charge pas les nouvelles routes.
+Le serveur HTML statique sur le port 8000 ne fournit pas ces routes : ouvrir la page
+via Express sur le port 3001. Recharger ensuite la page du navigateur.
+
+Tests du démarrage et de la restauration sans réseau ni IA :
+`node --test assistant.test.js` depuis `support-ia`.
+
+
+## Support IA — étape 2 : programme indicatif
+
+Dans le récapitulatif, « Générer mon programme » sauvegarde les corrections puis
+appelle `POST /api/support/preparations/:id/programme` avec
+`Authorization: Bearer <jeton>` et `{ "versionAttendue": 0 }` pour le premier
+programme (ensuite le numéro actuellement affiché). Le backend relit exclusivement
+les préférences enregistrées : aucune préférence fournie à cette route ne sert
+à générer le programme. Aucun email ni demande conseiller n’est créé par cette action.
+
+Structure `programme.contenu` : `statut` (`proposition` ou `precisions`), `titre`,
+`resume`, `itineraire` (jours numérotés, titres, étapes avec lieu et activités),
+`transports`, `hebergements`, `budget` (`minimum`, `maximum`, `devise`, `hypotheses`),
+`informationsManquantes` et `pointsAVerifier`. Validation effective des types,
+longueurs, nombres, bornes budgétaires, ordre des jours et tailles de listes ;
+les champs supplémentaires sont exclus par liste blanche. Maximum 30 jours,
+10 étapes/jour, 10 activités/étape, 30 entrées pour les autres listes. Titres/lieux
+limités à 200 caractères, résumé à 3 000 et autres textes à 1 000. Budget total
+indicatif entre 0 et 100 000 000, minimum <= maximum et devise de trois lettres.
+Une réponse demandant des précisions doit contenir au moins une question ;
+une proposition doit comporter au moins un jour. Hypothèses budgétaires obligatoires.
+
+Les préférences indispensables absentes, les dates numériques impossibles ou
+inversées (`AAAA-MM-JJ`, `JJ/MM/AAAA`, `JJ.MM.AAAA`) produisent un HTTP 422 avec
+les précisions demandées. Les formulations naturelles restent confiées à Gemini,
+qui reçoit la consigne de demander des précisions en cas d’ambiguïté, de respecter
+la langue du client et de ne pas inventer de dates exactes. Le backend rejette aussi
+les dates numériques précises inventées à partir d’une période approximative.
+
+Le programme sauvegardé comprend `version`, `genereLe`, `empreinteVoyage` et
+`contenu`. Le GET protégé restaure cette version. Le champ `programmeObsolete`
+signale un changement ultérieur des préférences. Une génération réussie remplace
+la version courante et incrémente son numéro ; les versions antérieures ne sont
+pas archivées dans cette étape. Les anciennes préparations sans programme restent
+compatibles. Une erreur IA (503), une réponse invalide (502) ou un conflit (409)
+ne remplace jamais un programme sauvegardé. Après un conflit de version, recharger
+la page avant de réessayer. Les informations sensibles ne sont pas journalisées.
+
+Les boutons et champs concernés sont bloqués durant la génération. Le verrou
+serveur commun aux opérations de préparation évite les générations simultanées
+et les modifications pendant le calcul. La version attendue et la comparaison
+finale des préférences/version empêchent l’enregistrement d’un résultat devenu
+obsolète. Cette garantie reste prévue pour un seul processus Express : un déploiement
+multiprocessus nécessitera une coordination partagée. Après une interruption réseau,
+recharger pour récupérer une éventuelle génération terminée côté serveur.
+
+Gemini utilise toujours `GEMINI_MODEL` (défaut inchangé), avec un délai de 90 s,
+16 000 jetons de sortie maximum, une enveloppe de réponse limitée à 512 000 octets
+et un JSON de programme limité à 100 000 octets. Le navigateur attend au plus 100 s.
+Les suggestions, estimations et données à vérifier sont affichées exclusivement
+comme du texte. Aucun catalogue, disponibilité, prix ferme ni réservation n’est
+vérifié par cette étape ; la fiabilité factuelle exige un contrôle conseiller.
+Les libellés de l’interface restent en français ; la langue du contenu généré est
+demandée au modèle à partir des réponses et de l’historique client.
+
+Tests : `npm test` et `python backoffice_test.py` depuis `support-ia`.
+La suite `programmes.test.js` simule Gemini et utilise un stockage temporaire isolé :
+JSON valide/invalide, structure invalide, dates inventées, panne, contrôle du jeton,
+source serveur, persistance, versions, concurrence et réponses obsolètes.
+`assistant.test.js` vérifie aussi la restauration du programme, l’affichage texte,
+le verrou de double clic et la conservation du résultat en cas d’échec.
+La modification conversationnelle et la transmission du programme sont décrites dans l’étape 3 ci-dessous.
+
+
+### Diagnostic d’une génération en échec
+
+Les journaux standard du processus Express contiennent désormais une référence
+aléatoire propre à l’opération, sa durée, l’étape (`appel_gemini`, `http_gemini`,
+`enveloppe_json`, `extraction`, `programme_json`, `schema`, `dates`, `taille` ou
+`sauvegarde`), le statut HTTP Gemini lorsqu’il existe et certains motifs de fin
+comme `MAX_TOKENS`. Aucune clé, URL, jeton, identité, préférence, conversation,
+réponse brute ni message d’erreur fournisseur n’est journalisé. La référence
+retournée au navigateur permet de retrouver l’échec dans la console serveur.
+Les journaux ne sont pas écrits dans les dossiers de données.
+
+Un 400/404 fournisseur invite à contrôler la configuration et le nom du modèle ;
+un 429 peut indiquer un quota ou une limitation ; un 5xx peut indiquer une panne
+fournisseur. Un délai dépassé est distingué d’une erreur réseau. Un statut 200 ne
+suffit pas : vérifier ensuite la fin de génération, l’extraction, le JSON et le schéma.
+Le mode de réponse JSON est explicitement demandé à Gemini ; un encadrement
+Markdown complet éventuel est retiré avant parsing, sans accepter de texte arbitraire
+et sans assouplir la validation. Aucun nouvel appel automatique ni repli simulé.
+Référence API : https://ai.google.dev/api/generate-content
+
+Le bouton « Envoyer mes préférences au conseiller » conserve le parcours existant
+`POST /api/support/demandes` (coordonnées + préférences), même sans programme ou
+après un échec IA. Il peut planifier l’accusé de réception existant. Il n’envoie pas
+le contenu du programme et ne constitue pas une validation de celui-ci. La génération
+appelle uniquement la route de préparation ; la validation/transmission du programme
+utilise désormais l’action dédiée décrite dans l’étape 3. Une demande déjà transmise n’est ni supprimée ni réécrite.
+
+Pour diagnostiquer un essai réel : relancer Express avec sa configuration habituelle,
+recharger la page et cliquer une seule fois sur « Générer mon programme ». Relever
+le message et les lignes de console portant la référence diagnostic, sans partager
+la configuration, les en-têtes ou le contenu client. Ne pas cliquer sur l’envoi des
+préférences pendant cet essai.
+
+
+## Support IA — étape 3 : modifier, accepter et transmettre
+
+Le formulaire de discussion pose une question et conserve l’historique ; il ne
+modifie pas le programme. Une action distincte « Demander cette modification du
+programme » accepte un changement en langage naturel (1 à 2 000 caractères).
+Le serveur fournit à Gemini les préférences, le programme courant et l’historique
+protégé, puis réutilise la validation JSON et les diagnostics de l’étape 2.
+Seule une réponse valide incrémente la version et enregistre l’échange de
+modification. Les erreurs, dont HTTP 503 fournisseur, conservent la version
+précédente et permettent un nouvel essai manuel, sans repli simulé en production.
+Une préférence modifiée rend le programme obsolète ; il faut le régénérer avant
+modification ou acceptation. Aucun envoi au conseiller lors d’une modification.
+
+Routes protégées par `Authorization: Bearer <jeton>` :
+
+- `POST /api/support/preparations/:id/programme/modifications` :
+  `{ "versionAttendue": 1, "modification": "Alléger le deuxième jour" }`.
+- `POST /api/support/preparations/:id/programme/transmission` :
+  `{ "versionAcceptee": 2, "accord": true, "client": { "nom": "...", "email": "..." } }`.
+  Aucun programme fourni par le navigateur n’est utilisé : le serveur copie
+  lui-même son programme sauvegardé et le revalide. La case d’accord est décochée
+  quand le programme affiché ou son état d’obsolescence change.
+
+L’acceptation exige une proposition valide (pas un statut `precisions`), des
+préférences complètes, une version à jour, des coordonnées valides et l’accord
+explicite. La demande contient `programmeAccepte` : contenu, préférences au moment
+de l’accord, version, `valideLe`, `accord`, `preparationId`, `demandeReference`.
+Cet instantané est indépendant de la version courante de préparation. Le
+back-office affiche son itinéraire, ses suggestions, son estimation, ses hypothèses,
+les informations manquantes et avertissements, ainsi que la version acceptée et
+la date d’accord. Tout le contenu est échappé ; aucun jeton client n’est ajouté.
+Les anciennes demandes sans programme conservent leur affichage.
+
+Pour une préparation sans demande, la transmission crée une seule demande `RECUE`.
+Si des préférences ont déjà été envoyées, le programme est ajouté à cette demande
+uniquement lorsqu’elle est `RECUE` ou `EN_ETUDE` avec, éventuellement, une proposition
+`BROUILLON`. Les champs existants, statuts et travaux du conseiller ne sont pas
+écrasés. Les coordonnées doivent correspondre à celles de la demande existante ;
+sinon HTTP 409 et contact conseiller. Plusieurs demandes déjà liées à une même
+préparation produisent également un conflit, sans suppression ni fusion automatique.
+Un état commercial validé/accepté refuse tout nouveau rattachement.
+
+Un réessai de la même version acceptée retourne le même rattachement, même si
+le conseiller a ensuite avancé le dossier : aucun nouvel instantané ni nouvelle
+demande. La file de notifications existante, unique par demande/type `reception`,
+assure l’absence de deuxième email. Après une coupure survenue après la sauvegarde,
+réessayer avec la même version permet aussi de planifier l’accusé manquant.
+L’écran distingue l’enregistrement de la transmission du statut réel de cet accusé.
+La transmission d’une autre version après un premier accord est refusée (409) :
+il faut contacter le conseiller ; aucun remplacement silencieux de l’instantané.
+L’ancien envoi de préférences réutilise également une demande liée identique et
+refuse de créer une autre demande si ses coordonnées/préférences diffèrent.
+
+La validation client ne change pas le statut commercial existant et ne confirme
+aucune réservation. La validation commerciale du conseiller et l’acceptation de
+sa proposition restent les parcours existants, distincts de l’accord sur un
+programme IA indicatif. Aucun paiement ni nouvelle authentification.
+
+Écritures : le fichier `.ecriture.lock` dans le dossier des demandes est partagé
+par Node et Python pour empêcher l’écrasement d’un travail conseiller concurrent.
+Le remplacement des JSON est atomique. Node renvoie un conflit ou une erreur
+réessayable si le dossier est occupé ; Python attend au plus huit secondes.
+Relancer les DEUX serveurs après mise à jour pour activer ce verrou partout.
+`SUPPORT_DEMANDES_DIR`, si utilisé, doit désigner le même dossier dans Node et
+Python ; sans cette variable, les chemins par défaut restent inchangés. Les
+notifications conservent leur chemin habituel : en production garder le dossier
+de données par défaut pour cette file existante.
+
+Limites réelles : un seul processus Express pour la coordination des programmes,
+stockage partagé local, accès client par possession du jeton, pas de vérification
+email/identité supplémentaire. Un arrêt brutal peut laisser un verrou : faire
+vérifier l’arrêt des écrivains et traiter ce verrou manuellement, sans l’effacer
+automatiquement. Les versions courantes précédentes ne sont pas archivées ; seul
+l’instantané accepté reste figé. La reprise client après changement ultérieur de
+version nécessite de contacter le conseiller pour tout nouvel accord. La précision
+factuelle et les disponibilités nécessitent toujours une vérification humaine.
+L’indisponibilité réelle HTTP 503 du dernier essai Gemini n’est pas résolue ni
+masquée par ces tests ; aucun appel réel n’est nécessaire pour la suite simulée.
+
+Vérifications : depuis `support-ia`, `npm test` (Gemini et notifications simulés,
+JSON temporaires isolés), puis `python backoffice_test.py` (anciennes/nouvelles
+demandes synthétiques, programme échappé, verrou Python reconnu par Node).
+La suite `etape3.test.js` couvre modifications valides/invalides, panne, version
+périmée, accès interdit, question sans mutation, consentement et coordonnées,
+concurrence, transmission répétée, programme navigateur ignoré, rattachement à
+une demande en étude, conservation du brouillon, état commercial fermé et
+immutabilité de l’instantané après modification. Les tests d’interface utilisent
+un DOM simulé ; la présentation visuelle reste à vérifier dans le navigateur.
