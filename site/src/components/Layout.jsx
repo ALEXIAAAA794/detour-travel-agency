@@ -2,18 +2,22 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import SupportChat from "./SupportChat.jsx";
 import { useSupport } from "../support/SupportContext.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
 
 const NAV = [
   ["/", "Accueil"],
   ["/destinations", "Nos destinations"],
+  ["/avis", "Avis voyageurs"],
   ["/agence", "L'agence"],
   ["/contact", "Contact"],
   ["/espace", "Mon espace"],
+  ["/mentions-legales", "Mentions légales"],
 ];
 
 function Header() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const { user } = useAuth();
   const onAccountPage = pathname.startsWith("/espace");
   useEffect(() => setOpen(false), [pathname]); // ferme le menu mobile après navigation
 
@@ -29,6 +33,9 @@ function Header() {
               {label}
             </NavLink>
           ))}
+          <NavLink to={user ? "/profile" : "/login"}>
+            {user ? "Mon profil" : "Connexion"}
+          </NavLink>
           {onAccountPage && <Link className="mobile-nav-action" to="/pre-reservation">Nouvelle demande</Link>}
         </nav>
         <Link className="pill" to={onAccountPage ? "/pre-reservation" : "/contact"}>
@@ -56,7 +63,7 @@ function Footer() {
             <h3>Liens utiles</h3>
             <ul>
               {NAV.map(([to, label]) => <li key={to}><Link to={to}>{label}</Link></li>)}
-              <li><a href="#">Mentions légales</a></li>
+              <li><Link to="/mentions-legales">Mentions légales</Link></li>
               <li><a href="#">CGV</a></li>
             </ul>
           </div>

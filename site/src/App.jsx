@@ -8,15 +8,26 @@ import Assistant from "./pages/Assistant.jsx";
 import PreferencesConfirmation from "./pages/PreferencesConfirmation.jsx";
 import Contact from "./pages/Contact.jsx";
 import ClientJourney from "./pages/ClientJourney.jsx";
+import Reviews from "./pages/Reviews.jsx";
+import MentionsLegales from "./pages/MentionsLegales.jsx";
+import Login from "./pages/Login.jsx";
+import Register from "./pages/Register.jsx";
+import Profile from "./pages/Profile.jsx";
+import { AuthProvider } from "./auth/AuthContext.jsx";
 
 
 export default function App() {
   return (
-    <SupportProvider><Routes>
+    <AuthProvider><SupportProvider><Routes>
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="destinations" element={<Destinations />} />
+        <Route path="avis" element={<Reviews />} />
         <Route path="agence" element={<Agency />} />
+        <Route path="mentions-legales" element={<MentionsLegales />} />
+        <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="assistant/confirmation" element={<PreferencesConfirmation />} />
         <Route path="assistant" element={<Assistant />} />
         <Route path="assistant.html" element={<Assistant />} />
@@ -25,6 +36,6 @@ export default function App() {
         <Route path="espace/:section?" element={<ClientJourney />} />
         <Route path="*" element={<Home />} />
       </Route>
-    </Routes></SupportProvider>
+    </Routes></SupportProvider></AuthProvider>
   );
 }
