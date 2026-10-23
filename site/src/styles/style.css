@@ -217,10 +217,7 @@ h3 {
   transform: translateY(-0.34em);
 }
 
-/* Footer : le O monte mais reste craie (un seul accent jaune par écran) */
-.wordmark.mono .wm-o {
-  color: inherit;
-}
+
 
 .site-footer .wordmark {
   font-size: 30px;

@@ -57,7 +57,6 @@ export default function Home() {
     <>
       <section className="hero">
         <div className="wrap">
-          <span className="eyebrow">Votre agence de voyages insolites</span>
           <h1>
             Des week-ends sur mesure,{" "}
             <em>sans prise de tête</em>
