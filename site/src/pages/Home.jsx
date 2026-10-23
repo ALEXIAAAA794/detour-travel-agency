@@ -16,13 +16,10 @@ const HALF = [...REVIEWS, ...REVIEWS, ...REVIEWS];
 const ALL = [...HALF, ...HALF];
 
 function DestCard({ d }) {
-  // Same order as the original static site:
-  // 1. real photo (--img)
-  // 2. SVG illustration (--scene) if no photo
-  // 3. gradient (--g) as last fallback
+
   const style = {
     "--g": d.g,
-    "--img": `url(/img/${d.id}.jpg)`,          // ← files must be in public/img/
+    "--img": `url(/img/${d.id}.jpg)`,          
   };
   if (d.scene) {
     style["--scene"] = d.scene;
@@ -66,7 +63,7 @@ export default function Home() {
     (d) =>
       d.name.toLowerCase().includes(term) ||
       d.short.toLowerCase().includes(term)
-  );
+  ).slice(0, 3);
 
   const onSearch = (e) => {
     e.preventDefault();
@@ -86,31 +83,11 @@ export default function Home() {
             Découvrez la France autrement avec DÉTOUR : des séjours en train, sans voiture, préparés par nos conseillers pour créer des expériences uniques et inoubliables.
           </p>
           <div className="hero-cta">
-            <Link className="pill" to="/contact">Demander un devis gratuit</Link>
+            <Link className="pill" to="/contact">Button</Link>
             <Link className="pill ghost" to="/destinations">Voir nos destinations</Link>
           </div>
 
-          <form className="search-card" role="search" onSubmit={onSearch}>
-            <label className="field">
-              Destination
-              <input
-                type="search"
-                placeholder="Où aller ?"
-                autoComplete="off"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-            </label>
-            <label className="field">
-              Dates
-              <input type="text" placeholder="Quand ?" />
-            </label>
-            <label className="field">
-              Voyageurs
-              <input type="text" placeholder="1 voyageur" />
-            </label>
-            <button className="pill" type="submit">Rechercher</button>
-          </form>
+
         </div>
       </section>
 
@@ -135,87 +112,12 @@ export default function Home() {
               <p className="empty">Aucune destination ne correspond à « {q} ».</p>
             )}
             <p className="note">
-              * Prix indicatif par personne, base 2 personnes, 1 nuit + 1 activité. Nantes, Lyon, Lille et Barcelone : train A/R depuis Paris. Grèce et Pérou : vol A/R depuis Paris, nuits et durée indiquées sur le devis. Sous réserve de disponibilité au moment de la réservation.
+              * Prix indicatif par personne, base 2 personnes, 1 nuit + 1 activité. Train A/R depuis Paris. Sous réserve de disponibilité au moment de la réservation.
             </p>
           </section>
         </div>
 
-        <section className="assist">
-          <div className="wrap">
-            <div>
-              <span className="eyebrow">Votre conseiller voyage</span>
-              <h2>Dites-nous vos envies, nous créons votre prochaine escapade</h2>
-              <p className="txt">
-                Dites-nous simplement ce que vous aimez : une ville, une ambiance, une activité. Nos conseillers composent un itinéraire sur mesure, avec hébergements, activités et conseils pratiques.
-              </p>
-              <div className="actions">
-                <Link className="pill" to="/contact">Écrire à un conseiller</Link>
-                <a className="pill ghost" href="tel:+33240000000">02 40 00 00 00</a>
-              </div>
-              <div className="chips">
-                <span>Idées de week-end</span>
-                <span>Itinéraires sur mesure</span>
-                <span>Conseils locaux</span>
-                <span>Budget optimisé</span>
-              </div>
-            </div>
-            <div className="chat" aria-hidden="true">
-              <div className="bubble">
-                Je cherche un week-end en train pour 2, entre enquête et gastronomie, avec un budget moyen.
-              </div>
-              <div className="reply">
-                Parfait ! Voici une suggestion qui pourrait vous plaire :
-                <div className="row">
-                  <div className="thumb"></div>
-                  <div>
-                    <h4>Lyon</h4>
-                    <ul>
-                      <li>2 jours · 1 nuit</li>
-                      <li>Enquête &amp; gastronomie</li>
-                      <li>À partir de 179 €</li>
-                    </ul>
-                    <Link className="pill" to="/destinations#lyon" tabIndex={-1}>
-                      Voir l'itinéraire
-                    </Link>
-                  </div>
-                </div>
-              </div>
-              <div className="msg">
-                Écrivez votre message… <i></i>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <div className="wrap">
-          <section className="reviews">
-            <span className="eyebrow">Ils nous ont fait confiance</span>
-            <h2 className="review-title">Ce que disent nos voyageurs</h2>
-            <div className="scroller">
-              <ul className="track">
-                {ALL.map((r, i) => (
-                  <li
-                    className="review"
-                    key={i}
-                    aria-hidden={i >= REVIEWS.length ? "true" : undefined}
-                  >
-                    <blockquote style={{ margin: 0 }}>
-                      <p>«&nbsp;{r.quote}&nbsp;»</p>
-                      <cite>
-                        {r.name} · {r.title}
-                      </cite>
-                    </blockquote>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-
-          <Cta
-            title="Prêt à partir autrement ?"
-            text="Racontez-nous votre week-end idéal, on s'occupe du reste."
-          />
-        </div>
       </main>
     </>
   );

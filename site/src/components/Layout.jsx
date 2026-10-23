@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
+import Home from "../pages/Home.jsx";
 
 const NAV = [
   ["/", "Accueil"],
   ["/destinations", "Nos destinations"],
+  ["/avis", "Avis"],
   ["/agence", "L'agence"],
-  ["/contact", "Devis gratuit"],
 ];
+
+const BARE = ["/login", "/register"];
 
 function Wordmark({ mono = false }) {
   return (
@@ -49,10 +52,27 @@ function Header() {
             </NavLink>
           ))}
         </nav>
-
         {user ? (
-          <Link className="pill" to="/profile">
-            Mon profil
+          <Link
+            className="pill profile-btn"
+            to="/profile"
+            aria-label="Mon profil"
+            title="Mon profil"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
           </Link>
         ) : (
           <Link className="pill" to="/login">
@@ -99,10 +119,7 @@ function Footer() {
                 </li>
               ))}
               <li>
-                <a href="#">Mentions légales</a>
-              </li>
-              <li>
-                <a href="#">CGV</a>
+                <Link to="/mentions-legales">Mentions légales</Link>
               </li>
             </ul>
           </div>
@@ -132,6 +149,7 @@ function Footer() {
 
 export default function Layout() {
   const { pathname, hash } = useLocation();
+  const bare = BARE.includes(pathname);
 
   useEffect(() => {
     if (hash) {
@@ -140,6 +158,24 @@ export default function Layout() {
       window.scrollTo(0, 0);
     }
   }, [pathname, hash]);
+
+  if (bare)
+    return (
+      <>
+        <div
+          className="auth-bg"
+          aria-hidden="true"
+          ref={(el) => {
+            if (el) el.inert = true;
+          }}
+        >
+          <div className="auth-bg-inner">
+            <Home />
+          </div>
+        </div>
+        <Outlet />
+      </>
+    );
 
   return (
     <>

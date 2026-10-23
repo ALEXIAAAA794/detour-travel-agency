@@ -29,7 +29,6 @@ export default function Agency() {
     <>
       <section className="page-head">
         <div className="wrap">
-          <p className="crumbs"><Link to="/">Accueil</Link> / L'agence</p>
           <h1>Qui sommes-nous ?</h1>
           <p>Une petite équipe nantaise qui compose des week-ends insolites, de A à Z.</p>
         </div>

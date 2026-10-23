@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { DESTINATIONS, FILTERS } from "../data.js";
 import { Cta, Steps, usePageMeta } from "../components/Common.jsx";
@@ -18,23 +18,25 @@ const STEPS = [
   ],
 ];
 
+const euro = (n) => n.toLocaleString("fr-FR") + " €";
+
 function DestinationCard({ d, reverse }) {
-  const vars = {
-    "--g": d.g,
-    "--img": `url(/img/${d.id}.jpg)`,
-  };
+  const vars = { "--g": d.g, "--img": `url(/img/${d.id}.jpg)` };
   if (d.scene) vars["--scene"] = d.scene;
 
   return (
     <article className={"d-card" + (reverse ? " reverse" : "")} id={d.id}>
       <div className="d-photo" role="img" aria-label={d.name} style={vars}>
         <span className="tag">{d.tag}</span>
+        <span className="d-place" aria-hidden="true">
+          {d.name}
+        </span>
       </div>
 
       <div className="d-body">
         <span className="eyebrow">{d.eyebrow}</span>
         <h2>{d.title}</h2>
-        <p>{d.desc}</p>
+        <p className="d-desc">{d.desc}</p>
 
         <dl className="program">
           {d.program.map(([label, value, note]) => (
@@ -51,8 +53,8 @@ function DestinationCard({ d, reverse }) {
         <div className="d-foot">
           <div className="price-box">
             <small>À partir de</small>
-            <b>{d.price.toLocaleString("fr-FR")} €</b>
-            <span>/ pers.</span>
+            <b>{euro(d.price)}</b>
+            <span>par personne</span>
           </div>
           <Link
             className="pill"
@@ -71,62 +73,113 @@ export default function Destinations() {
     "Nos destinations",
     "Nos idées de séjours insolites : week-ends en train à Nantes, Lyon, Lille et Barcelone, grands voyages en Grèce et au Pérou. Devis gratuit sous 48 h."
   );
+
   const [filter, setFilter] = useState("all");
+  const [touched, setTouched] = useState(false);
+
+  const counts = useMemo(
+    () =>
+      Object.fromEntries(
+        FILTERS.map(([key]) => [
+          key,
+          key === "all"
+            ? DESTINATIONS.length
+            : DESTINATIONS.filter((d) => d.filters.includes(key)).length,
+        ])
+      ),
+    []
+  );
 
   const list =
     filter === "all"
       ? DESTINATIONS
       : DESTINATIONS.filter((d) => d.filters.includes(filter));
 
+  const choose = (key) => {
+    setFilter(key);
+    setTouched(true);
+  };
+
   return (
     <>
       <section className="page-head">
         <div className="wrap">
-          <p className="crumbs">
-            <Link to="/">Accueil</Link> / Nos destinations
-          </p>
+
           <h1>
             Nos destinati<span className="o-jump">o</span>ns
           </h1>
           <p>
-            Découvrez nos idées de séjours, du week-end en train aux grands
-            voyages. Tous nos séjours sont <strong>personnalisables</strong> :
+            Du week-end en train aux grands voyages : des séjours pensés pour
+            sortir des sentiers battus. Tous sont <strong>personnalisables</strong>,
             dites-nous ce qui vous fait envie, on s’occupe du reste.
           </p>
+          <ul className="head-facts">
+            <li>Devis gratuit</li>
+            <li>Réponse sous 48 h ouvrées</li>
+            <li>Séjours sur mesure</li>
+          </ul>
         </div>
       </section>
 
-      <main id="contenu">
-        <div className="wrap">
-          <div className="filters" role="group" aria-label="Filtrer les destinations">
+      <div className="filter-bar">
+        <div className="wrap filter-inner">
+          <div
+            className="filters"
+            role="group"
+            aria-label="Filtrer les destinations"
+          >
             {FILTERS.map(([key, label]) => (
               <button
                 key={key}
                 type="button"
                 className={filter === key ? "is-active" : undefined}
                 aria-pressed={filter === key}
-                onClick={() => setFilter(key)}
+                onClick={() => choose(key)}
               >
                 {label}
+                <i>{counts[key]}</i>
               </button>
             ))}
           </div>
+          <p className="filter-count" aria-live="polite">
+            {list.length} séjour{list.length > 1 ? "s" : ""}
+          </p>
+        </div>
+      </div>
 
-          <div className="d-list">
+      <main id="contenu">
+        <div className="wrap">
+          <div
+            className={"d-list" + (touched ? " swap" : "")}
+            key={filter}
+          >
             {list.map((d, i) => (
               <DestinationCard key={d.id} d={d} reverse={i % 2 === 1} />
             ))}
           </div>
 
           {list.length === 0 && (
-            <p className="empty">Aucune destination pour ce filtre.</p>
+            <div className="empty">
+              <p>Aucun séjour ne correspond à ce filtre.</p>
+              <button
+                type="button"
+                className="pill ghost"
+                onClick={() => choose("all")}
+              >
+                Voir tous les séjours
+              </button>
+            </div>
           )}
 
-          <p className="note">
-            Prix indicatifs constatés, par personne, base 2 personnes. Nantes,
-            Lyon, Lille et Barcelone : train A/R depuis Paris. Grèce et Pérou :
-            vol A/R depuis Paris. Les tarifs sont confirmés par votre conseiller.
-          </p>
+          <aside className="d-note">
+            <strong>Bon à savoir</strong>
+            <p>
+              Prix indicatifs constatés, par personne, base 2 personnes.
+              Nantes, Lyon, Lille et Barcelone : train A/R depuis Paris.
+              Grèce et Pérou : vol A/R depuis Paris. Les tarifs sont confirmés
+              par votre conseiller.
+            </p>
+          </aside>
 
           <Steps title="Un voyage en trois étapes" items={STEPS} />
           <Cta
