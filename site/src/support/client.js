@@ -23,7 +23,10 @@ export function createSupportClient({ fetchImpl = fetch, storage, location, hist
       headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...(access ? { Authorization: "Bearer " + access.jeton } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(timeout) });
     const data = await r.json();
-    if (!r.ok) throw new Error((data.error?.message || "Service indisponible. Réessayez.") + (Array.isArray(data.error?.precisions) ? " " + data.error.precisions.join(" ") : ""));
+    if (!r.ok) {
+      const e = new Error((data.error?.message || "Service indisponible. Réessayez.") + (Array.isArray(data.error?.precisions) ? " " + data.error.precisions.join(" ") : ""));
+      e.code=data.error?.code; e.status=r.status; throw e;
+    }
     return data;
   }
   function remember(p, jeton = p.jeton) {

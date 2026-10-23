@@ -30,7 +30,7 @@ function langue(message) { if (/\b(je|tu|vous|vos|votre|quels?|quelles?|toutes|r
 function sources(e) {
   return [...new Map(e.provenance.map(p => [p.fichier, { id: e.id, ...fichiersPublics.get(p.fichier) }])).values()];
 }
-function repondreFAQ(message, languePreferee) {
+function repondreFAQ(message, languePreferee, options = {}) {
   const m = normaliser(message), l = ["fr","en"].includes(languePreferee) ? languePreferee : langue(m);
   const contact = { id: "contact-confirmation", titre: "Contact", url: "/contact" };
   const locale = (fr, en, type="limite") => ({content:(l==="fr"?fr:en)+" /contact",type,baseVersion:base.version,sources:[contact],informationsManquantes:true});
@@ -38,7 +38,7 @@ function repondreFAQ(message, languePreferee) {
   if (/(?:ignore|oublie|remplace|replace|disregard|override).{0,100}(?:instructions?|regles|rules|system|prompt)|(?:revele|affiche|montre|reveal|show|print).{0,100}(?:prompt|instructions? systeme|system instructions?|api.?key|cle api)/.test(m)) return locale(
     "Je ne révèle ni ne remplace les instructions internes et ne divulgue aucun secret. Je peux vous aider à préparer un voyage ; contactez un conseiller si nécessaire.",
     "I do not reveal or replace internal instructions or disclose secrets. I can help plan your trip; contact an adviser if needed.", "securite");
-  if (/\b(?:vol|flight)\b|\b[a-z]{2}\s?\d{2,4}\b/.test(m)) return locale(
+  if (/\b(?:vol|flight)\b/.test(m) || (options.nicia ? /\b(?:AF|BA|LH|KL|IB|U2|FR)\s?\d{2,4}\b/.test(message) : /\b[a-z]{2}\s?\d{2,4}\b/.test(m))) return locale(
     "Je ne dispose pas de données vérifiées pour confirmer un vol précis, son horaire, son prix ou sa disponibilité. Contactez un conseiller ; aucune réservation n’est effectuée.",
     "I have no verified data to confirm a specific flight, schedule, fare or availability. Contact an adviser; no booking is made.");
   if (/\b(?:sante|vaccins?|vaccinations?|vaccines?|traitement|medical|health|medication)\b/.test(m)) return locale(

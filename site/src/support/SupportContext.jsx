@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { problemesDates } from "./dates.js";
 import { createSupportClient } from "./client.js";
 const Context = createContext(null);
+import { niciaErrorMessage } from "./nicia-errors.js";
 import { welcomeMessage } from "./identity.js";
 const welcome = welcomeMessage("fr");
 export function SupportProvider({ children }) {
@@ -11,19 +12,20 @@ export function SupportProvider({ children }) {
   const [preparation, setPreparation] = useState(null), [draft, setDraft] = useState({});
   const [messages, setMessages] = useState([welcome]), [pending, setPending] = useState(false), [error, setError] = useState("");
   const lock = useRef(false), retryRef = useRef(null);
+  const [errorInfo,setErrorInfo]=useState(null);
   useEffect(() => {
     let active = true;
     lock.current = true; setPending(true);
     api.restore().then(p => { if (active && p) { setPreparation(p); setDraft(p.voyage); setMessages([welcome, ...p.historique]); } })
-      .catch(e => { if (active) { setError(e.message || "Préparation inaccessible. Les données existantes sont conservées."); retryRef.current = async () => { const p=await api.restore(); if(p){setPreparation(p);setDraft(p.voyage);setMessages([welcome,...p.historique]);} }; } })
+      .catch(e => { if (active) { setErrorInfo(e); setError(e.message || "Préparation inaccessible. Les données existantes sont conservées."); retryRef.current = async () => { const p=await api.restore(); if(p){setPreparation(p);setDraft(p.voyage);setMessages([welcome,...p.historique]);} }; } })
       .finally(() => { if (active) { lock.current = false; setPending(false); } });
     return () => { active = false; };
   }, [api]);
   async function execute(action) {
     if (lock.current) return null;
-    lock.current = true; setPending(true); setError(""); retryRef.current = action;
+    lock.current = true; setPending(true); setError(""); setErrorInfo(null); retryRef.current = action;
     try { const r = await action(); retryRef.current = null; return r; }
-    catch (e) { setError(e.message || "Opération non confirmée. Réessayez."); return null; }
+    catch (e) { setErrorInfo(e); setError(e.message || "Opération non confirmée. Réessayez."); return null; }
     finally { lock.current = false; setPending(false); }
   }
   async function save() { const errors = problemesDates(draft); if(errors.length) throw new Error(errors.join(" ")); const p = await api.save(draft); setPreparation(p); return p; }
@@ -38,7 +40,7 @@ export function SupportProvider({ children }) {
       const result=await api.converse(body);adopt(api.current);return result;
     });
   }
-  const value = { niciaConfig:()=>api.niciaConfig(), converse,
+  const value = { niciaError: niciaErrorMessage(errorInfo,language), niciaConfig:()=>api.niciaConfig(), converse,
     resumeNicia:()=>preparation?.nicia?.tourEnAttente?.requete ? converse(preparation.nicia.tourEnAttente.requete) : null,
     saveWishes:preferences=>execute(async()=>{const p=await api.saveWishes(preferences);adopt(p);return p;}),
     handoff:()=>execute(async()=>{const p=await api.saveWishes(draft);adopt(p);return api.handoff();}), language, setLanguage, verifyPreferencesTransmission: () => api.confirmationPreferences(), preparation, draft, setDraft, messages: messages.map((m,i) => i === 0 && m === welcome ? welcomeMessage(language) : m), pending, error,
@@ -61,7 +63,7 @@ export function SupportProvider({ children }) {
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export const useSupport = () => useContext(Context);
-export function Sources({ sources = [] }) {
+export function Sources({ sources = [], clean = false, language = "fr" }) {
   const allowed = ["/contact", "/destinations", "/assistant"];
-  return <small className="support-sources">{sources.map(s => s ? { ...s, url: s.url?.replace(/\.html$/, "") } : s).filter(s => s && allowed.includes(s.url)).map((s, i) => <a href={s.url} key={s.id + i}>{s.titre} [{s.id}] </a>)}</small>;
+  return <small className="support-sources">{sources.map(s => s ? { ...s, url: s.url?.replace(/\.html$/, "") } : s).filter(s => s && allowed.includes(s.url)).map((s, i) => <a href={s.url} key={s.id + i}>{clean ? s.url === "/contact" ? language === "en" ? "Contact an adviser" : "Contacter un conseiller" : s.titre : <>{s.titre} [{s.id}]</>} </a>)}</small>;
 }

@@ -9,7 +9,7 @@ function echec(code, etape, details = {}) {
 }
 function tracer(reference, debut, resultat, details = {}) {
   // Liste blanche stricte : jamais d’erreur brute, URL, corps, clé ou identifiant client.
-  const entree = { service: "programme", referenceDiagnostic: reference, resultat, dureeMs: Date.now() - debut };
+  const entree = { service: details.service === "nicia" ? "nicia" : "programme", referenceDiagnostic: reference, resultat, dureeMs: Date.now() - debut };
   if (["gemini", "openrouter", "inconnu"].includes(details.fournisseur)) entree.fournisseur = details.fournisseur;
   if (details.fournisseur === "openrouter") {
     if (typeof details.modele === "string" && details.modele.length <= 160 && /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*:free$/.test(details.modele)) entree.modele = details.modele;
@@ -17,7 +17,7 @@ function tracer(reference, debut, resultat, details = {}) {
     if (details.routageGratuit === true) entree.routageGratuit = true;
   }
   const etapes = ["configuration", "appel_gemini", "http_gemini", "appel_openrouter", "http_openrouter", "enveloppe_json", "extraction", "programme_json", "schema", "dates", "taille", "sauvegarde", "preferences", "conflit", "termine"];
-  if (["AI_CONFIGURATION", "AI_TIMEOUT", "AI_NETWORK", "AI_HTTP", "AI_INCOMPLETE", "AI_NO_CONTENT", "AI_EMPTY", "AI_RESPONSE_INVALID", "AI_RESPONSE_TOO_LARGE", "INVALID_PROGRAMME", "PROGRAMME_STORAGE"].includes(details.code)) entree.code = details.code;
+  if (["AI_CONFIGURATION", "AI_TIMEOUT", "AI_NETWORK", "AI_HTTP", "AI_INCOMPLETE", "AI_NO_CONTENT", "AI_EMPTY", "AI_RESPONSE_INVALID", "AI_RESPONSE_TOO_LARGE", "INVALID_PROGRAMME", "PROGRAMME_STORAGE", "INVALID_EXTRACTION", "UNSAFE_REPLY"].includes(details.code)) entree.code = details.code;
   if (etapes.includes(details.etape)) entree.etape = details.etape;
   if (Number.isInteger(details.codeFournisseur) && details.codeFournisseur >= 100 && details.codeFournisseur <= 599) entree.codeFournisseur = details.codeFournisseur;
   if (["INVALID_ARGUMENT", "UNAUTHENTICATED", "PERMISSION_DENIED", "NOT_FOUND", "RESOURCE_EXHAUSTED", "INTERNAL", "UNAVAILABLE", "DEADLINE_EXCEEDED", "FAILED_PRECONDITION"].includes(details.statutFournisseur)) entree.statutFournisseur = details.statutFournisseur;
