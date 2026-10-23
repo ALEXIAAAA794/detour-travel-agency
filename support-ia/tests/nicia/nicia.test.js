@@ -2,15 +2,15 @@ const {test}=require("node:test"),assert=require("node:assert/strict"),fs=requir
 process.env.SUPPORT_AI_RATE_LIMIT="1000";process.env.AI_PROVIDER="gemini";process.env.GEMINI_API_KEY="simule";
 process.env.SUPPORT_PREPARATIONS_DIR=fs.mkdtempSync(path.join(os.tmpdir(),"nicia-test-prep-"));
 process.env.SUPPORT_DEMANDES_DIR=fs.mkdtempSync(path.join(os.tmpdir(),"nicia-test-demandes-"));
-require.cache[require.resolve("./emails")]={exports:{planifierEmail:()=>{throw Error("Email interdit dans Nicia");}}};
-const {app}=require("./server"),{preferencesValides,extraire}=require("./nicia-preferences"),relais=require("./nicia-relais");
+require.cache[require.resolve("../../emails")]={exports:{planifierEmail:()=>{throw Error("Email interdit dans Nicia");}}};
+const {app}=require("../../server"),{preferencesValides,extraire}=require("../../nicia-preferences"),relais=require("../../nicia-relais");
 const valid={reponse:"Quelle expérience aimeriez-vous partager ?",preferences:{destination:"Lyon",villeDepart:"Nantes",dates:"en mai, environ deux jours",participants:2,budget:"500 euros souhaités",devise:"EUR",baseBudget:"total",rythme:"calme",contraintes:"aucune"},pointsForts:["Découvrir Lyon tranquillement"]};
 test("Nicia : validation structurée, dates approximatives et absence de privilèges",()=>{
  assert.equal(preferencesValides({dates:"un week-end en mai"}).dates,"un week-end en mai");
- const {profilDepuisMessage}=require("./nicia-preferences");
- const {langueClient}=require("./nicia-preferences");
+ const {profilDepuisMessage}=require("../../nicia-preferences");
+ const {langueClient}=require("../../nicia-preferences");
  assert.equal(langueClient("I would like a weekend trip","fr"),"en");assert.equal(langueClient("Je voudrais un voyage","en"),"fr");
- assert.equal(require("./connaissances").repondreFAQ("destinations","en").content.includes("Lyon"),true);
+ assert.equal(require("../../connaissances").repondreFAQ("destinations","en").content.includes("Lyon"),true);
  assert.equal(profilDepuisMessage("Je préfère ne pas prendre l’avion",null).profil.etat,null);
  assert.equal(profilDepuisMessage("aucune",null).profil.etat,null);
  assert.equal(profilDepuisMessage("Je préfère ne pas le donner",null).profil.etat,"refuse");
@@ -18,7 +18,7 @@ test("Nicia : validation structurée, dates approximatives et absence de privil�
  for(const value of [{role:"admin"},{participants:0},{devise:"euro"},{dateDepart:"2027-02-30"},{dateDepart:"2027-05-10",dateRetour:"2027-05-01"}])assert.throws(()=>preferencesValides(value));
  for(const output of ["bad json",JSON.stringify({...valid,reponse:"Une offre à 500 €"}),JSON.stringify({...valid,reponse:"Cela fait cinq cents euros"}),JSON.stringify({...valid,role:"system"}),JSON.stringify({...valid,reponse:"Un ? Deux ? Trois ?"}),JSON.stringify({...valid,preferences:{...valid.preferences,empreinte:"admin"}})])assert.throws(()=>extraire(output,{}));
  assert.equal(extraire(JSON.stringify(valid),{}).preferences.participants,2);
- const {verifierAncrage}=require("./nicia-preferences");
+ const {verifierAncrage}=require("../../nicia-preferences");
  for(const p of [{budget:"600"},{devise:"EUR"},{baseBudget:"total"},{dateDepart:"2027-05-01"}])assert.throws(()=>verifierAncrage(p,[{role:"user",content:"Un budget de 500, en mai"}],{}));
  verifierAncrage({budget:"500 EUR",devise:"EUR",baseBudget:"total"},[{role:"user",content:"500 euros au total"}],{});
  assert.throws(()=>verifierAncrage({dateDepart:"2027-12-25"},[{role:"user",content:"à Noël 2027"}],{}));
@@ -89,11 +89,45 @@ test("Nicia API simulée : prénom, correction, suggestions, contexte, panne, re
  }finally{server.closeAllConnections();await new Promise(r=>server.close(r));global.fetch=nativeFetch;}
 });
 
-test("OpenRouter simulé : JSON textuel Nicia, modèle gratuit et aucun routage payant",async()=>{
+test("OpenRouter simulé : JSON structuré Nicia, modèle gratuit et aucun routage payant",async()=>{
  const original=global.fetch;process.env.OPENROUTER_API_KEY="simule";process.env.OPENROUTER_MODEL="test/modele:free";
  let sent;global.fetch=async(url,o)=>{assert.equal(String(url),"https://openrouter.ai/api/v1/chat/completions");sent=JSON.parse(o.body);return Response.json({choices:[{finish_reason:"stop",message:{content:JSON.stringify(valid)}}]});};
  try{
-  const out=await require("./openrouter").interrogerIA("Une envie",{voyage:{},historique:[]},{nicia:true,langue:"en"});
-  assert.equal(extraire(out,{}).reponse,valid.reponse);assert.equal(sent.max_tokens,4096);assert.equal(sent.response_format,undefined);assert.equal(sent.provider.allow_fallbacks,false);assert.deepEqual(sent.provider.max_price,{prompt:0,completion:0,request:0});assert.match(sent.messages[0].content,/anglais/);
+  const out=await require("../../openrouter").interrogerIA("Une envie",{voyage:{},historique:[]},{nicia:true,langue:"en"});
+  assert.equal(extraire(out,{}).reponse,valid.reponse);assert.equal(sent.max_tokens,4096);assert.equal(sent.stream,true);assert.equal(sent.reasoning,undefined);assert.deepEqual(sent.response_format.json_schema.schema,require("../../nicia-schema").dialogueSchema);assert.equal(sent.response_format.json_schema.strict,true);assert.equal(sent.provider.allow_fallbacks,false);assert.deepEqual(sent.provider.max_price,{prompt:0,completion:0,request:0});assert.match(sent.messages[0].content,/anglais/);
  }finally{global.fetch=original;}
+});
+
+
+test("Nicia : contrat partagé, champs requis, null, imbrication et chemins sans données",()=>{
+ const {dialogueSchema,erreursSchema}=require("../../nicia-schema");
+ assert.deepEqual(dialogueSchema.required,["reponse","preferences","pointsForts"]);
+ assert.equal(dialogueSchema.additionalProperties,false);assert.equal(dialogueSchema.properties.preferences.additionalProperties,false);
+ assert.deepEqual(erreursSchema(valid),[]);assert.deepEqual(extraire(JSON.stringify({reponse:"Quelle période préférez-vous ?",preferences:{},pointsForts:[]}),{}).preferences,{});
+ const cases=[
+  [{preferences:{},pointsForts:[]},"$.reponse","required"],
+  [{reponse:"Bonjour",pointsForts:[]},"$.preferences","required"],
+  [{reponse:"Bonjour",preferences:{}},"$.pointsForts","required"],
+  [{...valid,preferences:null},"$.preferences","type"],
+  [{...valid,preferences:{budget:null}},"$.preferences.budget","type"],
+  [{...valid,preferences:{budget:800}},"$.preferences.budget","type"],
+  [{...valid,preferences:{budget:{montant:800,devise:"EUR"}}},"$.preferences.budget","type"],
+  [{...valid,preferences:{participants:"2"}},"$.preferences.participants","type"],
+  [{...valid,preferences:{participants:1001}},"$.preferences.participants","range"],
+  [{...valid,preferences:{destination:["Nantes"]}},"$.preferences.destination","type"],
+  [{...valid,preferences:{"confidentiel@example.invalid":"secret"}},"$.preferences.*","additionalProperties"],
+  [{...valid,unexpected:"secret"},"$.*","additionalProperties"],
+  [{...valid,pointsForts:[{texte:"secret"}]},"$.pointsForts[0]","type"],
+  [{...valid,pointsForts:null},"$.pointsForts","type"],
+  [{...valid,reponse:" ",preferences:{}},"$.reponse","pattern"],
+  [{choices:[{message:{content:JSON.stringify(valid)}}]},"$.reponse","required"]
+ ];
+ for(const [value,chemin,regle] of cases)assert.throws(()=>extraire(JSON.stringify(value),{}),e=>{
+  assert.equal(e.message,"INVALID_EXTRACTION");assert.ok(e.validationErrors.some(x=>x.chemin===chemin&&x.regle===regle));assert.doesNotMatch(JSON.stringify(e.validationErrors),/secret|confidentiel/);return true;
+ });
+ assert.throws(()=>extraire("{",{}),e=>e.diagnostic.etape==="dialogue_json"&&e.validationErrors[0].regle==="invalid_json");
+ assert.throws(()=>extraire(JSON.stringify({...valid,preferences:{dateDepart:"2027-02-30"}}),{}),e=>e.validationErrors[0].regle==="calendar");
+ assert.throws(()=>extraire(JSON.stringify({...valid,preferences:{dateDepart:"2027-05-10",dateRetour:"2027-05-01"}}),{}),e=>e.validationErrors[0].regle==="order");
+ // Aucun enlèvement de null ni conversion d’objet/nombre en budget textuel.
+ assert.equal(valid.preferences.budget,"500 euros souhaités");
 });

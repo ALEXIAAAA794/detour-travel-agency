@@ -44,7 +44,7 @@ Référence fonctionnelle : demande utilisateur dans le texte collé. Le PDF reb
 ## Vérifications exécutées
 
 - `npm test --prefix support-ia` : **54 tests réussis**, transport IA simulé. Les anciens cas restent inclus.
-- `node --test support-ia/nicia.test.js` : validation, profil, dix suggestions, extraction, panne/reprise, contexte, isolation, concurrence, compatibilité, relais et transport OpenRouter simulés.
+- `node --test support-ia/tests/nicia/nicia.test.js` : validation, profil, dix suggestions, extraction, panne/reprise, contexte, isolation, concurrence, compatibilité, relais et transport OpenRouter simulés.
 - `npm --prefix site run build -- --emptyOutDir false` : build réussi, aucun ancien artefact supprimé.
 - Navigateur sur un serveur temporaire dédié avec répertoires de données fictifs et fournisseur simulé : desktop 1536×1024 et mobile 390×844, zéro débordement horizontal observé ; FR/EN, pseudo/correction, contexte visible, période/dates, édition/restauration du budget, panne/rechargement/réessai sans doublon, point d’entrée et ancien parcours. Focus clavier et absence d’erreur au démarrage contrôlés.
 - Aucun appel IA réel, SMTP, email, achat, paiement, envoi conseiller ou réservation pendant ces tests. Les messages du fournisseur simulé sont explicitement identifiés comme tels dans la recette, jamais dans l’application normale.

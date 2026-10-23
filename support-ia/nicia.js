@@ -1,10 +1,11 @@
 const express=require("express"),crypto=require("node:crypto");
 const {autoriser,sauver,occupes,publique}=require("./preparations");
-const {interrogerIA}=require("./ai");
+const {interrogerIA,fournisseurConfigure}=require("./ai");
 const {tracer,referenceDiagnostic}=require("./diagnostic");
 const {reponseLocale}=require("./nicia-ton");
-const {preferencesValides,extraire,profilDepuisMessage,nomValide,suggestions,verifierAncrage,langueClient}=require("./nicia-preferences");
+const {pointsFortsCourants,preferencesValides,extraire,profilDepuisMessage,nomValide,suggestions,verifierAncrage,langueClient}=require("./nicia-preferences");
 const relais=require("./nicia-relais");
+const {creerMessage}=require("./nicia-historique");
 const router=express.Router();
 const erreur=(res,s,code,message)=>res.status(s).json({error:{code,message}});
 const uuid=x=>typeof x==="string"&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(x);
@@ -39,7 +40,7 @@ router.post("/:id/conversation",autoriser,require("./limitation").limiterPrepara
  if(ancien)return ancien.signature===signature?res.json({preparation:publique(p),reply:ancien.reply}):erreur(res,409,"TURN_CONFLICT","Ce message a changé / This turn has changed.");
  if(n.enAttente?.id===b.tourId&&n.enAttente.signature!==signature)return erreur(res,409,"TURN_CONFLICT","Ce message a changé / This turn has changed.");
  if(p.historique.length+(n.enAttente?.id===b.tourId?1:2)>200)return erreur(res,409,"HISTORY_FULL","Préparation complète / Preparation is full.");
- if(n.enAttente?.id!==b.tourId){p.historique.push({role:"user",content:message});n.enAttente={id:b.tourId,signature,message,langue:b.langue,requete:structuredClone(b)};}
+ if(n.enAttente?.id!==b.tourId){p.historique.push(creerMessage("user",message,{tourId:b.tourId}));n.enAttente={id:b.tourId,signature,message,langue:b.langue,requete:structuredClone(b)};}
  n.profil=profil;n.langue=langue;sauver(p); // Le message client survit à une panne ou un rechargement.
  const debut=Date.now();
  try{
@@ -47,20 +48,24 @@ router.post("/:id/conversation",autoriser,require("./limitation").limiterPrepara
   const faq=local?null:reponseLocale(message,langue);
   if(local)reply={role:"assistant",content:local,type:"local"};
   else if(faq){
-   reply={role:"assistant",content:faq.content,type:faq.type,sources:faq.sources};
+   reply={role:"assistant",content:faq.content,type:faq.type,sources:faq.sources,...(faq.baseVersion!==undefined?{baseVersion:faq.baseVersion}:{})};
   }else{
    const contexte={...p,historique:p.historique.slice(0,-1)};
    const d=extraire(await interrogerIA(message,contexte,{nicia:true,langue}),p.voyage);
    verifierAncrage(d.preferences,p.historique,p.voyage,[d.reponse,...d.pointsForts].join(" "));
-   p.voyage={...p.voyage,...d.preferences};n.pointsForts=d.pointsForts;
+   const voyageSuivant={...p.voyage,...d.preferences};
+   n.pointsForts=pointsFortsCourants(d.pointsForts,p.voyage,voyageSuivant);p.voyage=voyageSuivant;
    reply={role:"assistant",content:d.reponse,type:"conversation"};
   }
-  p.historique.push({role:"model",content:reply.content,...(reply.sources?{sources:reply.sources}:{})});
-  if(JSON.stringify({voyage:p.voyage,profil:n.profil,pointsForts:n.pointsForts})!==avant)n.revision++;n.tours=[...n.tours,{id:b.tourId,signature,reply}].slice(-10);delete n.enAttente;sauver(p);
+  p.historique.push(creerMessage("model",reply.content,{tourId:b.tourId,sources:reply.sources,baseVersion:reply.baseVersion}));
+  if(JSON.stringify({voyage:p.voyage,profil:n.profil,pointsForts:n.pointsForts})!==avant)n.revision++;n.tours=[...n.tours,{id:b.tourId,signature,reply}].slice(-100);delete n.enAttente;sauver(p);
   return res.json({preparation:publique(p),reply});
  }catch(e){
   // Réutiliser le journal privé et sa liste blanche, sans corps ni données client.
-  tracer(referenceDiagnostic(),debut,"echec",{...e.diagnostic,code:e.code||(["INVALID_EXTRACTION","UNSAFE_REPLY"].includes(e.message)?e.message:"AI_NETWORK"),etape:e.diagnostic?.etape||"schema",service:"nicia"});
+  let fournisseur=e.diagnostic?.fournisseur;
+  if(!fournisseur)try{fournisseur=fournisseurConfigure();}catch{fournisseur="inconnu";}
+  tracer(referenceDiagnostic(),debut,"echec",{...e.diagnostic,fournisseur,code:e.code||(["INVALID_EXTRACTION","UNSAFE_REPLY"].includes(e.message)?e.message:"AI_NETWORK"),etape:e.diagnostic?.etape||"schema",service:"nicia"});
+  if(e.code==="AI_CONTEXT_LIMIT")return erreur(res,422,"AI_CONTEXT_LIMIT",en?"This preparation is too detailed for the current AI limit. Your saved wishes are kept. Contact an adviser.":"Cette préparation dépasse la limite actuelle de l’IA. Vos envies enregistrées sont conservées. Contactez un conseiller.");
   const invalid=["INVALID_EXTRACTION","UNSAFE_REPLY"].includes(e.message);
   return erreur(res,invalid?502:503,invalid?"INVALID_EXTRACTION":"AI_UNAVAILABLE",invalid?(en?"Nicia’s reply could not be validated. Your message and previous preferences are kept. Please retry.":"La réponse de Nicia n’a pas pu être validée. Votre message et vos préférences précédentes sont conservés. Réessayez."):(en?"Nicia cannot reply just now. Your message and preferences are kept. You can try again.":"Nicia ne peut pas répondre pour le moment. Votre message et vos envies sont conservés. Vous pouvez réessayer."));
  }

@@ -36,11 +36,12 @@ export function SupportProvider({ children }) {
     const body={...payload,tourId:payload.tourId||crypto.randomUUID(),langue:payload.langue||language};
     return execute(async()=>{
       const text=displayText||body.message;
-      if(text)setMessages(m=>m.at(-1)?.role==="user"&&m.at(-1)?.content===text?m:[...m,{role:"user",content:text}]);
-      const result=await api.converse(body);adopt(api.current);return result;
+      if(text)setMessages(m=>m.at(-1)?.role==="user"&&m.at(-1)?.content===text?m:[...m,{role:"user",content:text,optimisticTurnId:body.tourId}]);
+      try {const result=await api.converse(body);adopt(api.current);return result;}
+      catch(e){if(e.preparationChecked)adopt(api.current);else setMessages(m=>m.at(-1)?.optimisticTurnId===body.tourId?m.slice(0,-1):m);throw e;}
     });
   }
-  const value = { niciaError: niciaErrorMessage(errorInfo,language), niciaConfig:()=>api.niciaConfig(), converse,
+  const value = { lastMessageRecorded:()=>api.lastMessageRecorded, niciaError: niciaErrorMessage(errorInfo,language), niciaConfig:()=>api.niciaConfig(), converse,
     resumeNicia:()=>preparation?.nicia?.tourEnAttente?.requete ? converse(preparation.nicia.tourEnAttente.requete) : null,
     saveWishes:preferences=>execute(async()=>{const p=await api.saveWishes(preferences);adopt(p);return p;}),
     handoff:()=>execute(async()=>{const p=await api.saveWishes(draft);adopt(p);return api.handoff();}), language, setLanguage, verifyPreferencesTransmission: () => api.confirmationPreferences(), preparation, draft, setDraft, messages: messages.map((m,i) => i === 0 && m === welcome ? welcomeMessage(language) : m), pending, error,

@@ -3,6 +3,7 @@ export function niciaErrorMessage(error,language="fr") {
  if(!error)return "";
  const en=language==="en";
  const code=error.code;
+ if(code==="AI_CONTEXT_LIMIT")return en?"Your preparation is too detailed for the current AI limit. Your saved wishes are kept. Contact an adviser.":"Votre préparation dépasse la limite actuelle de l’IA. Vos envies enregistrées sont conservées. Contactez un conseiller.";
  if(code==="EMAIL_LINK_EXPIRED"||error.status===410)return en?"This preparation link has expired. Contact an adviser for a new link.":"Ce lien de préparation a expiré. Contactez un conseiller pour en recevoir un nouveau.";
  if(error.status===404||error.status===401||error.status===403)return en?"This preparation cannot be opened. Please check your link or contact an adviser.":"Cette préparation ne peut pas être ouverte. Vérifiez votre lien ou contactez un conseiller.";
  if(code==="RATE_LIMITED"||error.status===429)return en?"Let’s pause for a moment. Your messages are kept. Please try again shortly.":"Faisons une courte pause. Vos messages sont conservés. Réessayez dans un instant.";

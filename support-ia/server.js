@@ -5,6 +5,7 @@ const app = express();
 const path = require("node:path");
 const siteDist = process.env.SUPPORT_SITE_DIST_DIR || path.join(__dirname, "../site/dist");
 
+const {creerMessage}=require("./nicia-historique");
 const { demandesRouter } = require("./demandes");
 
 app.use(express.json({ limit: "16kb" }));
@@ -30,6 +31,8 @@ app.post(["/api/support/preparations/:id/programme", "/api/support/preparations/
 
 const { preparationsRouter, autoriser, sauver, occupes } = require("./preparations");
 app.use("/api/support/preparations", preparationsRouter);
+// Fermée tant que l’authentification conseiller et la relation métier ne sont pas raccordées.
+app.use("/api/prereservations",require("./nicia-trace").creerTraceRouter());
 app.post("/api/support/nicia/:id/conversation", limiterIA);
 app.use("/api/support/nicia", require("./nicia").niciaRouter);
 const { interrogerIA, nomFournisseur } = require("./ai");
@@ -84,7 +87,7 @@ app.post("/api/support/messages", async (req, res, next) => {
     const faq = repondreFAQ(message);
     const texte = faq ? faq.content : await interrogerIA(message, p);
     if (p) {
-      p.historique.push({ role: "user", content: message }, { role: "model", content: texte, ...(faq ? { sources: faq.sources, type: "faq", baseVersion: faq.baseVersion } : {}) });
+      p.historique.push(creerMessage("user",message),creerMessage("model",texte,faq||{}));
       sauver(p);
     }
 

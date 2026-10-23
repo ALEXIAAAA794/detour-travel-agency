@@ -1,4 +1,5 @@
 const express = require("express");
+const {creerMessage}=require("./nicia-historique");
 const { fournisseurConfigure, nomFournisseur } = require("./ai");
 const { tracer, referenceDiagnostic } = require("./diagnostic");
 const fs = require("node:fs");
@@ -11,6 +12,10 @@ const champs = ["villeDepart", "devise", "baseBudget", "dateDepart", "dateRetour
 const preparationsRouter = express.Router();
 const occupes = new Set();
 function fichier(id) { return path.join(dossier, id + ".json"); }
+function lirePreparation(id) {
+  if(typeof id!=="string"||!/^[a-f0-9-]{36}$/i.test(id))return null;
+  try {const p=JSON.parse(fs.readFileSync(fichier(id),"utf8"));return p.id===id?p:null;} catch{return null;}
+}
 function sauver(p) {
   fs.mkdirSync(dossier, { recursive: true });
   const temporaire = fichier(p.id) + "." + crypto.randomUUID() + ".tmp";
@@ -68,7 +73,7 @@ preparationsRouter.patch("/:id", autoriser, (req, res) => {
   if (changements.length) {
     if(p.nicia) p.nicia.revision=(p.nicia.revision||0)+1;
     if (p.historique.length >= 200) return res.status(409).json({ error: { message: "Préparation complète." } });
-    p.historique.push({ role: "user", content: changements.map(([k,v]) => k + " : " + v).join("\n") }, { role: "model", content: "Préférences de voyage enregistrées." });
+    p.historique.push(creerMessage("user",changements.map(([k,v]) => k + " : " + v).join("\n")),creerMessage("model","Préférences de voyage enregistrées."));
   }
   p.voyage = Object.fromEntries(Object.entries(voyage).map(([k,v]) => [k, typeof v === "string" ? v.trim() : v]));
   sauver(p);
@@ -105,7 +110,7 @@ preparationsRouter.post(["/:id/programme", "/:id/programme/modifications"], auto
     actuelle.programme = { version: version + 1, genereLe: new Date().toISOString(), empreinteVoyage: empreinte, contenu: resultat.programme };
     if (modification) {
       if (actuelle.historique.length >= 200) return erreur(409, "HISTORY_FULL", "Préparation complète.");
-      actuelle.historique.push({ role: "user", content: "Modification explicite du programme : " + req.body.modification.trim() }, { role: "model", content: "Programme modifié, version " + actuelle.programme.version });
+      actuelle.historique.push(creerMessage("user","Modification explicite du programme : " + req.body.modification.trim()),creerMessage("model","Programme modifié, version " + actuelle.programme.version));
     }
     sauver(actuelle);
     tracer(reference, debut, "succes", { etape: "termine", fournisseur });
@@ -135,4 +140,4 @@ preparationsRouter.post("/:id/programme/transmission", autoriser, async (req, re
   try { return await require("./transmissions").transmettre(req, res); }
   finally { occupes.delete(id); }
 });
-module.exports = { preparationsRouter, autoriser, sauver, occupes, publique };
+module.exports = { preparationsRouter, autoriser, sauver, occupes, publique, lirePreparation };

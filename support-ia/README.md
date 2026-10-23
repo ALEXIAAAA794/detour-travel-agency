@@ -1,5 +1,64 @@
 # DÉTOUR — Assistant IA
 
+## Guide de revue Nicia — état courant
+
+### Démarrer avec Groq
+
+Dans PowerShell, depuis `C:\Users\DELL1\detour-travel-agency-integration` :
+
+```powershell
+npm --prefix site run build -- --emptyOutDir false
+Set-Location support-ia
+npm start
+```
+
+La page est `http://127.0.0.1:3001/assistant` (port par défaut). `npm start` charge le `.env` **serveur** du dossier `support-ia` ; les variables déjà présentes dans l’environnement du processus ont priorité. Ne pas écraser un `.env` existant. Configuration attendue, à régler localement sans versionner de clé :
+
+```dotenv
+AI_PROVIDER=groq
+GROQ_API_KEY=cle_privee_a_renseigner_localement
+GROQ_MODEL=openai/gpt-oss-120b
+```
+
+Aucune bascule automatique vers un autre fournisseur. Pour développer le frontend dans un second terminal à la racine : `npm --prefix site run dev` ; ouvrir l’URL annoncée par Vite suivie de `/assistant`. Le proxy `/api` cible Express sur `127.0.0.1:3001`.
+
+### Fichiers principaux
+
+| Fichier | Rôle |
+|---|---|
+| `site/src/pages/Assistant.jsx`, `site/src/styles/nicia.css` | Chat FR/EN, récapitulatif, Contact et volet Confidentialité ; collecte prénom/dates par conversation. |
+| `site/src/support/SupportContext.jsx`, `client.js`, `nicia-errors.js` | État client, restauration autorisée, même tour au réessai, messages d’erreur utilisateur. |
+| `support-ia/server.js`, `nicia.js`, `preparations.js` | Routes, contrôle du jeton, verrou, persistance et idempotence. |
+| `support-ia/ai.js`, `ai-context.js` | Sélection explicite du fournisseur et instructions DÉTOUR. |
+| `support-ia/groq.js`, `groq-schema.js` | Transport Groq et adaptation strict/nullable vers les préférences métier. |
+| `support-ia/nicia-schema.js`, `nicia-preferences.js`, `dates.js`, `nicia-ton.js` | Validation stricte, ancrage, dates réelles, réponses locales et garde-fous. |
+| `support-ia/nicia-historique.js`, `nicia-trace.js` | Échanges persistants et contrat de consultation protégée US8. |
+| `support-ia/nicia-relais.js` | Adaptateur explicite de pré-réservation, fermé tant que non raccordé. |
+| `support-ia/tests/nicia/` | Tests du dialogue, du ton, de la trace et de Groq, avec fournisseurs simulés. |
+
+Les lecteurs HTTP de `gemini-http.js` et `openrouter-response.js` sont partagés, notamment avec Groq : leurs noms ne signifient pas qu’ils sont inutilisés. Les trois fournisseurs configurables, leurs outils de diagnostic et les routes classiques `/assistant/classique`, `/assistant/confirmation`, `/assistant.html` sont conservés. Aucune fonction partagée ne nécessitait d’extraction pour le retrait des seuls styles morts.
+
+### Vérifier sans appel réel
+
+```powershell
+npm --prefix support-ia run test:nicia
+npm --prefix support-ia test
+npm --prefix site run build -- --emptyOutDir false
+```
+
+Les quatre tests propres à Nicia ont été déplacés sans retrait de cas : `nicia.test.js` (dialogue et intégrations), `nicia-ton.test.js` (ton FR/EN et erreurs), `nicia-trace.test.js` (trace et accès), `groq.test.js` (contrat fournisseur et régression française Nantes → Lille). Les tests partagés restent à la racine de `support-ia`. Les commandes `diagnostic:*` et `test:gemini` sont des outils manuels conservés, **pas** des contrôles à lancer dans cette revue : ils peuvent contacter un fournisseur. Les preuves historiques des lots sont conservées ci-dessous et dans `docs/` ; un test simulé ne prouve pas un comportement réel du modèle.
+
+### Raccordements restant à livrer
+
+- **Pré-réservation** : route réelle et adaptateur `nicia-preparation-v1` enregistré via `configurerRelais`, réception durable et idempotente. Bouton inactif sans ce raccordement ; aucun faux transfert humain.
+- **Authentification conseiller** : brancher `authentifierConseiller`, `resoudrePrereservation`, `peutConsulter` sur l’identité et les droits métier existants. Sans adaptateurs, `GET /api/prereservations/:id/trace` reste fermé (`503 TRACE_NOT_CONNECTED`). Le jeton client ne suffit jamais.
+- **Dashboard US8** : consommer le contrat et le lien métier vérifiable décrits dans `docs/nicia-trace.md`. Aucun écran gestionnaire modifié ; pas de lien de préréservation fabriqué.
+- **Conservation** : durée et politique à décider par la PO. Aucune durée approuvée inventée, aucune purge ; le volet Confidentialité indique que la durée reste à définir.
+
+### Nettoyage pour revue
+
+Seules les règles CSS `nicia-tools` et `nicia-calendar`, y compris leurs variantes mobiles, sont retirées : aucun composant ne les utilise après suppression des deux formulaires. Aucun fichier applicatif complet supprimé, aucun contrat/API retiré. Tests déplacés et chemins/scripts/documentation mis à jour ; données, secrets, diagnostics privés, emails, gestionnaire, `node_modules` et anciens artefacts `dist` préservés. Le build actualise les artefacts sans vider `dist`. L’index Git n’est pas modifié.
+
 ## Périmètre de livraison actualisé
 
 La décision utilisateur la plus récente prévaut sur les périmètres historiques décrits plus bas : intervenir uniquement sur l’assistant IA et son parcours client (widget, questionnaire, dates, récapitulatif, programme, erreurs, transmission des préférences ou du programme et confirmation de succès). Le backend nécessaire à l’enregistrement, à la validation et à la transmission de la préparation reste inclus. Les protections de préparation, les versions et l’idempotence sont préservées.
@@ -17,7 +76,7 @@ La confirmation client prouve l’enregistrement serveur autorisé de la transmi
 - Lecture des corps JSON configurée avec une limite de 16 Kio.
 - Dépendances et fichiers secrets exclus de Git.
 
-## Démarrage
+## Démarrage historique (Gemini — compatibilité conservée)
 
 Depuis la racine du projet, construire l’interface React :
 
@@ -28,7 +87,7 @@ Depuis la racine du projet, construire l’interface React :
 Dans un second terminal, depuis le dossier `support-ia` :
 
     npm ci
-    Copy-Item .env.example .env
+    if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 
 Ajouter une clé Gemini valide dans `.env`, puis lancer :
 
@@ -643,7 +702,7 @@ L’ancien composant reste dans `site/src/pages/LegacyAssistant.jsx`, accessible
 
 Champs des envies : destination, villeDepart, dates (texte), dateDepart/dateRetour (YYYY-MM-DD facultatifs), participants, budget souhaité, devise ISO, baseBudget (total/personne/a_preciser), activites, experience, rythme, contraintes. Les listes/textes, dates et participants sont bornés. Le JSON du modèle doit contenir uniquement reponse, preferences et pointsForts ; il est validé avant sauvegarde. Les sorties chiffrées explicites sont refusées, les montants de budget extraits sont ancrés dans les messages client et une date complète absente des réponses ne peut être créée à partir d’un mois, d’une année ou d’une fête approximative. Ces contrôles ne prouvent pas une compréhension sémantique parfaite de toute réponse libre.
 
-Le message utilisateur est sauvegardé avant l’appel ; la panne laisse les préférences précédentes et le message en attente. Le rechargement permet de reprendre le même tour. Les dix derniers tours finalisés sont dédupliqués par UUID/signature, les appels concurrents utilisent le verrou existant et la limite par minute. La réponse publique omet signatures et empreintes. Les fichiers clients restent dans le stockage privé existant. Limites : 200 entrées d’historique, 2 000 caractères par message, un processus serveur ; pas de nouvelle base ni authentification. Une coupure pendant un appel IA peut nécessiter un réessai de l’utilisateur, jamais une boucle automatique.
+Le message utilisateur est sauvegardé avant l’appel ; la panne laisse les préférences précédentes et le message en attente. Le rechargement permet de reprendre le même tour. Les cent derniers tours finalisés sont dédupliqués par UUID/signature, les appels concurrents utilisent le verrou existant et la limite par minute. La réponse publique omet signatures et empreintes. Les fichiers clients restent dans le stockage privé existant. Limites : 200 entrées d’historique, 2 000 caractères par message, un processus serveur ; pas de nouvelle base ni authentification. Une coupure pendant un appel IA peut nécessiter un réessai de l’utilisateur, jamais une boucle automatique.
 
 Le mode Nicia garde le fournisseur et le modèle serveur actuels ; OpenRouter reste exclusivement `:free`, prix de routage nuls et sans fallback payant. JSON textuel avec validation backend, sans imposer un json_schema fournisseur sur cette nouvelle conversation ; 4 096 jetons maximum. Gemini reste disponible. Aucune clé consultée/copiée/modifiée pour cette implémentation. Les anciens modes programme restent séparés et disponibles uniquement dans leur parcours explicite.
 
@@ -651,7 +710,7 @@ Le mode Nicia garde le fournisseur et le modèle serveur actuels ; OpenRouter re
 
 1. **Navbar/footer** : `site/src/components/NiciaChrome.jsx` exporte `NiciaNavbar`, `NiciaFooter` et `NiciaShell({navbar, footer, children})`. Ces deux emplacements peuvent recevoir les vrais composants de l’accueil. Habillage temporaire Encre, logo négatif officiel inchangé, polices locales. Pas de refonte de l’accueil ni de liens fictifs Mon espace/Confidentialité sans route livrée.
 2. **Bouton d’accueil** : le collaborateur utilise un `Link to="/assistant"` pour « Parlez de votre projet ». La page d’accueil n’a pas été modifiée.
-3. **Pré-réservation** : aucune route/contrat existant trouvé dans ce checkout. Le bouton est désactivé avec une explication et Contact ; aucun faux succès ou lien mort. Point de configuration : `support-ia/nicia-relais.js`, fonction `configurerRelais({chemin, contrat:"nicia-preparation-v1", recevoir})`, à enregistrer après livraison effective de la route du collaborateur, avant les requêtes. `chemin` doit être relatif, sans requête, fragment, identifiant client ni jeton. `recevoir(snapshot)` reçoit exclusivement `{preparationId, revision, voyage, profil, pointsForts, idempotence}` côté serveur et retourne `{reference}` seulement après enregistrement réel. Il doit dédupliquer durablement sur `idempotence` (préparation + révision), y compris si la réponse est perdue ; le module Nicia déduplique également le réessai d’une même révision. La page cible peut lire `nicia.relais.reference` et sa révision depuis la préparation autorisée ; elle vérifie la cohérence de révision et récupère son dossier côté serveur via l’identifiant de relais et l’accès existant, jamais via des coordonnées ou jetons dans l’URL. Le module de pré-réservation fournit sa route React/serveur, son contrôle d’accès, sa réception idempotente et son accusé technique. Les emails, paiement et gestionnaire ne sont pas développés ici.
+3. **Pré-réservation** : aucune route/contrat existant trouvé dans ce checkout. Le bouton est désactivé avec un accès Contact ; aucun faux succès ou lien mort. Point de configuration : `support-ia/nicia-relais.js`, fonction `configurerRelais({chemin, contrat:"nicia-preparation-v1", recevoir})`, à enregistrer après livraison effective de la route du collaborateur, avant les requêtes. `chemin` doit être relatif, sans requête, fragment, identifiant client ni jeton. `recevoir(snapshot)` reçoit exclusivement `{preparationId, revision, voyage, profil, pointsForts, idempotence}` côté serveur et retourne `{reference}` seulement après enregistrement réel. Il doit dédupliquer durablement sur `idempotence` (préparation + révision), y compris si la réponse est perdue ; le module Nicia déduplique également le réessai d’une même révision. La page cible peut lire `nicia.relais.reference` et sa révision depuis la préparation autorisée ; elle vérifie la cohérence de révision et récupère son dossier côté serveur via l’identifiant de relais et l’accès existant, jamais via des coordonnées ou jetons dans l’URL. Le module de pré-réservation fournit sa route React/serveur, son contrôle d’accès, sa réception idempotente et son accusé technique. Les emails, paiement et gestionnaire ne sont pas développés ici.
 
 Suivi détaillé des preuves et dépendances : `docs/nicia-lot1.md`. Les tests simulés ne valident ni la disponibilité ni le comportement réel du modèle avec la nouvelle clé ; aucun diagnostic fournisseur relancé.
 
@@ -664,4 +723,76 @@ Un budget déclaré n’est pas une demande de tarif : l’exemple Ulrich / Nant
 
 Le rendu Nicia utilise un catalogue d’erreurs utilisateur FR/EN, jamais les textes arbitraires du réseau ; les autres parcours gardent leurs contrats. Les sources Contact restent cliquables sans afficher leur identifiant ou chemin technique. La panne conserve les envies et le message, avec réessai explicite du même tour. Le catch Nicia réutilise le journal privé expurgé existant, sans nouvel outil de diagnostic. Les anciennes traces programme ne permettent pas d’expliquer l’échec réel Monaco ; aucune cause fournisseur spécifique ne peut être affirmée. Aucun appel réel ni changement de fournisseur/modèle/configuration effectué pour ce lot.
 
-Preuves, dix conversations et grille exacte des critères/restants/dépendances : [docs/nicia-ton.md](../docs/nicia-ton.md). Commandes : `node --test support-ia/nicia-ton.test.js`, `npm --prefix support-ia test`, `npm --prefix site run build -- --emptyOutDir false`. Les réponses simulées contrôlent le code et ne prouvent pas le ton, l’extraction ou la disponibilité du modèle réel. La recette réelle du lot 1 est déjà en cours côté utilisateur ; aucune série supplémentaire de diagnostics n’est demandée. Offre commerciale, signature, confirmation de réservation et transfert humain effectif dépendent des autres lots ; emails et gestionnaire non modifiés.
+Preuves, dix conversations et grille exacte des critères/restants/dépendances : [docs/nicia-ton.md](../docs/nicia-ton.md). Commandes : `node --test support-ia/tests/nicia/nicia-ton.test.js`, `npm --prefix support-ia test`, `npm --prefix site run build -- --emptyOutDir false`. Les réponses simulées contrôlent le code et ne prouvent pas le ton, l’extraction ou la disponibilité du modèle réel. La recette réelle du lot 1 est déjà en cours côté utilisateur ; aucune série supplémentaire de diagnostics n’est demandée. Offre commerciale, signature, confirmation de réservation et transfert humain effectif dépendent des autres lots ; emails et gestionnaire non modifiés.
+
+
+### Correctif saisie / réponse réelle (23 octobre 2026)
+Composeur Nicia : hauteur adaptée 48–160 px, texte non coupé, focus sur le conteneur arrondi, poignée supprimée ; défilement uniquement pour les longs messages. Vérifié desktop/mobile sur fournisseur simulé. Après panne : un GET autorisé réconcilie l’historique ; message enregistré affiché une seule fois et champ vidé, texte conservé si sauvegarde non confirmée. Réessayer utilise le même tour sans génération automatique.
+
+Trace réelle existante `77a70b96-7954-4a24-a0fd-8cb8d1072e28` : timeout à la lecture du corps après HTTP 200, 60 s au total. La mesure transport est corrigée pour inclure la lecture du corps. Unique essai réel autorisé, isolé avec préférences fictives et email interdit : modèle configuré inchangé `liquid/lfm-2.5-2.6b:free`, JSON textuel, 4 096 jetons, routage gratuit sans fallback ; rejet `INVALID_EXTRACTION` / HTTP backend 502 après 32,6 s. Message conservé, aucune demande/email. Sortie non sauvegardée ; sous-motif JSON mal formé ou hors schéma non établi sur cette trace agrégée. La distinction de parsing `dialogue_json` réutilise désormais le journal expurgé existant. **IA réelle encore bloquée**, malgré la saisie corrigée. Détails et preuves dans [nicia-ton.md](../docs/nicia-ton.md). Aucun changement de modèle ou délais et aucun autre appel réel.
+
+
+### Contrat d’extraction Nicia partagé
+Le dialogue OpenRouter utilise désormais `response_format: json_schema` strict avec le contrat de `nicia-schema.js`, également utilisé dans les instructions et le contrôle backend. Les trois champs racine sont requis ; les préférences inconnues sont omises, jamais null, sans objets imbriqués ni propriétés supplémentaires. Règles métier, dates et ancrage restent stricts ; aucune conversion ou conversation prédéfinie en cas de rejet. Les autres modes et le modèle configuré ne changent pas.
+
+Unique essai réel après correction : encore bloqué **avant** le JSON du dialogue, `AI_RESPONSE_INVALID/enveloppe_json`, HTTP fournisseur 200, référence `19b63e80-6d32-409a-a170-ccf713156ec6`. Aucun résultat métier sauvegardé, message fictif conservé une fois, aucune demande/email. Aucun nouvel appel. Les anciens rejets ne permettent pas de reconstruire le champ qui posait problème. Détails, limites et tests dans [nicia-ton.md](../docs/nicia-ton.md).
+
+### État final avant lot 3
+Configuration du processus Express vérifiée : OpenRouter, liquid/lfm-2.5-2.6b:free, clé présente, URL officielle, bon dossier d’intégration. Deux appels : HTTP 200 puis 220 octets d’espaces et timeout 60 s ; ensuite HTTP 400, raisonnement obligatoire impossible à désactiver. Paramètre de désactivation retiré. Nicia utilise désormais un lecteur SSE borné côté serveur ; JSON final strict inchangé côté frontend. Autres modes conservés. 75 tests et build réussis, mais aucun succès réel récent : résultat B, dépendance fournisseur. Voir docs/nicia-ton.md pour preuves et limites. Aucun appel supplémentaire, changement de modèle ou achat.
+
+
+## Nicia lot 3 — US21 / #30, trace conseiller
+Les nouvelles écritures de l’historique portent UUID et horodatage serveur ; les anciennes gardent leurs dates inconnues et un ID de lecture déterministe. Sources publiques effectivement utilisées conservées ; aucune réponse échouée/partielle transformée en réponse complète.
+
+`GET /api/prereservations/:id/trace` est livré **fermé par défaut** (503) : aucune authentification conseiller avec rôle ni relation métier réelle de préréservation n’existe dans ce checkout. Le jeton client, X-Team-Key et X-Role n’ouvrent pas cette route. Un adaptateur serveur d’authentification, un contrôle d’accès dossier et un résolveur de relation autoritatif sont requis ; le lien retour du relais Nicia est aussi vérifié. Aucun changement du dashboard ou des emails.
+
+Contrat US8, exemple fictif, tests, dépendances et grille de tâches cochables : [docs/nicia-trace.md](../docs/nicia-trace.md). Pas de durée de conservation approuvée trouvée ; aucune donnée supprimée, décision PO requise et information client FR/EN correspondante. L’issue #30 reste ouverte jusqu’au raccordement réel et à l’UI de l’autre lot. Tests : `node --test support-ia/tests/nicia/nicia-trace.test.js`, `npm --prefix support-ia test`, build React habituel. Aucun appel IA réel nécessaire.
+
+
+## Fournisseur Groq — dialogue Nicia
+
+Configuration serveur (clé privée déjà configurée par l’utilisateur ; ne jamais la placer dans React) :
+
+```dotenv
+AI_PROVIDER=groq
+GROQ_API_KEY=gsk_CLE_FICTIVE_A_REMPLACER
+GROQ_MODEL=openai/gpt-oss-120b
+```
+
+Le backend doit être redémarré pour charger le nouveau code et les variables .env ; le fichier .env réel n’est pas modifié par cette intégration. Les variables héritées priment sur --env-file ; GROQ_API_KEY est prioritaire sur l’alias IA_API_KEY. URL fixe : `https://api.groq.com/openai/v1/chat/completions`. Aucun basculement vers Gemini/OpenRouter, changement automatique de modèle, retry, achat ou activation d’un autre palier de service. Le compte Groq de l’utilisateur doit conserver son offre/quota gratuit ; le code n’effectue aucune modification de facturation. Gemini et OpenRouter restent disponibles par choix explicite.
+
+### Schéma strict adapté, métier inchangé
+
+La [documentation Groq Structured Outputs](https://console.groq.com/docs/structured-outputs) annonce le mode strict pour GPT-OSS 120B et exige tous les champs requis et additionalProperties:false à chaque objet. Les inconnues utilisent une union avec null. Le streaming et les outils ne sont pas disponibles dans ce mode : le transport Groq envoie `stream:false`, aucun outil, `response_format.json_schema.strict:true`.
+
+`groq-schema.js` définit un schéma fournisseur distinct : trois champs racine requis, treize préférences requises dont les valeurs sont nullables. La normalisation vérifie toutes les propriétés AVANT de retirer uniquement les null documentés (signifiant « aucune modification extraite »). Les null n’effacent jamais une préférence existante ; un champ absent, une propriété supplémentaire ou un mauvais type n’est pas silencieusement corrigé. Les valeurs non nulles repassent dans le contrat Nicia et ses limites, dates calendaires, ancrage, budget souhaité, ton et interdictions commerciales. Les contraintes avancées de longueur/pattern restent imposées par le backend même si le schéma fournisseur ne porte que leurs descriptions. Aucun assouplissement de ces règles.
+
+Un faux positif réel a été corrigé : la réponse peut reformuler « budget total de 800 euros » fourni par le client, pas seulement « votre budget souhaité est de… ». Les espaces insécables et la reformulation FR/EN sont testés. Montant exact, devise et base doivent correspondre au souhait ; un prix produit ou une valeur inventée reste refusé. Les nombres sont comparés comme jetons numériques, plus comme sous-chaînes (800 ne valide pas 1800).
+
+### Quota, contexte et limites
+
+La [documentation des quotas](https://console.groq.com/docs/rate-limits) annonce pour le plan gratuit de ce modèle 30 RPM, 1 000 RPD, 8 000 TPM et 200 000 TPD ; les limites du compte font autorité. Le backend garde l’historique autorisé complet et toutes les préférences, sans tronquer silencieusement. Borne conservatrice : 18 000 octets pour la requête sérialisée, schéma et contexte inclus ; ce n’est pas un comptage exact des tokens. Au-delà, refus explicite `AI_CONTEXT_LIMIT` / HTTP 422, données conservées et message FR/EN avec accès Contact. La limite existante de messages reste active.
+
+Sortie : `max_completion_tokens:1536`, raisonnement low, délai 60 s et corps borné à 512 000 octets. Une sortie tronquée, refusée, mal formée ou hors métier n’est jamais sauvegardée. Les 401/429/délais ne déclenchent aucun retry ni fournisseur de secours. Les diagnostics restent privés et en liste blanche : fournisseur/modèle, statut, catégorie technique, Retry-After, compteurs de requêtes/tokens restants et délai de reset documenté. Aucun corps, clé, conversation ou raisonnement n’est journalisé.
+
+Ce fournisseur couvre le dialogue Nicia et les questions de l’ancien chat. La génération/modification commerciale de programme du parcours historique n’est pas portée à Groq dans cette intervention : refus explicite `AI_MODE_UNSUPPORTED` avant appel, programmes enregistrés conservés, sans bascule automatique. La trace du lot 3, le stockage et les accès restent inchangés.
+
+### Résultats réellement obtenus
+
+Tests simulés ciblés : réponse valide, schéma invalide, null/required/propriété supplémentaire, 401, 429 et Retry-After/reset, panne, délai, enveloppe invalide, fin tronquée, contexte trop volumineux sans effacement ; API Nicia FR/EN, budget, correction, préservation sur panne, reprise du même UUID, restauration et refus d’accès client non autorisé. Commande : `node --test support-ia/tests/nicia/groq.test.js`, intégrée à `npm --prefix support-ia test`. Build React exécuté après modification du message de limite.
+
+**Deux appels réels seulement**, via Express/Nicia dans une préparation fictive isolée, module email bloqué et aucune demande créée :
+
+| Appel | Résultat observé |
+|---|---|
+| 1 : présentation Camille + Nantes, départ Paris, deux voyageurs, budget total 800 euros | Groq HTTP 200 en 1,58 s ; 2 411 tokens d’entrée et 264 de sortie (2 675 au total). JSON strict conforme. Le backend a initialement refusé la reformulation du budget, faux positif corrigé. La réponse réelle capturée a ensuite été revalidée et enregistrée par le parcours de test **sans nouvel appel fournisseur**. Cette relecture n’est pas présentée comme un nouvel appel réel réussi. |
+| 2 : correction en anglais Nantes → Lille dans la même conversation | Groq et backend HTTP 200 en 1,01 s ; 2 540 tokens d’entrée et 214 de sortie (2 754 au total). Destination Lille, départ Paris, deux voyageurs et budget total 800 euros conservés. |
+
+La restauration par un nouveau client JS renvoie quatre messages avec IDs uniques et horodatages, les préférences corrigées et une seule copie du message de correction. Rejouer le tour accepté renvoie 200 sans appel fournisseur ; GET/restauration n’en déclenche aucun. Aucun secret affiché, aucun appel à un autre fournisseur ni email. Les captures portent exclusivement sur les données synthétiques et restent hors dépôt. Aucun test de disponibilité durable n’est déduit de ces deux appels.
+
+Résultat : **dialogue réel Groq fonctionnel sur la correction testée**, avec première réponse réelle revalidée après correction du filtre de budget. Pour une validation courte après redémarrage du backend : ouvrir /assistant, donner un prénom et un souhait avec budget, corriger la destination, puis recharger ; les souhaits et les messages doivent rester présents une seule fois.
+
+Vérification finale Groq : **85 tests réussis**, build React réussi, contrôle de diff ciblé sans erreur. Fichiers de cette intégration : groq.js, groq-schema.js, groq.test.js, ai.js, ai-context.js, diagnostic.js, nicia.js, nicia-preferences.js, package.json, .env.example, README.md ; site/src/support/nicia-errors.js ; docs/nicia-ton.md. Les modifications locales du lot 3 et l’index sont préservés. Aucun commit/push.
+
+
+Résultat du nettoyage de revue : `npm --prefix support-ia run test:nicia` **26/26**, suite complète **88/88**, build React réussi sans vidage de `dist`. Le contrôle ciblé des fichiers de ce nettoyage passe. Le contrôle global signale uniquement deux espaces finaux préexistants à la ligne 21 des licences `site/public/support-brand/OFL-Bricolage-Grotesque.txt` et `OFL-Instrument-Sans.txt` ; ces fichiers restent intacts. Aucun appel IA réel, aucune modification de l’index, des emails ou du gestionnaire.

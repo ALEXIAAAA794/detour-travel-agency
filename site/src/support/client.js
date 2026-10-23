@@ -3,7 +3,7 @@
 // Retenir le fragment retiré uniquement en mémoire pour la même fenêtre, jamais dans l'URL réseau.
 const accesParHistorique = new WeakMap();
 export function createSupportClient({ fetchImpl = fetch, storage, location, history } = {}) {
-  let current = null, creating = null, accesEmail = null, lienInvalide = false;
+  let current = null, creating = null, accesEmail = null, lienInvalide = false, lastMessageRecorded = false;
   const precedent = history && accesParHistorique.get(history);
   if (precedent) ({accesEmail, lienInvalide} = precedent);
   if (location && ["/assistant", "/assistant.html"].includes(location.pathname) && location.hash) {
@@ -46,14 +46,28 @@ export function createSupportClient({ fetchImpl = fetch, storage, location, hist
   }
   return {
     get current() { return current; },
+    get lastMessageRecorded() { return lastMessageRecorded; },
     async restore() { return lienInvalide || accesEmail || readAccess() ? ensure() : null; },
     async start() { accesEmail = null; lienInvalide = false; if(history) accesParHistorique.delete(history); return remember(await request("preparations", null, null, 8000)); },
     async save(voyage) { const p = await ensure(); return remember(await request("preparations/" + p.id, { voyage }, p, 8000, "PATCH"), p.jeton); },
     async ask(message) { const p = await ensure(); return request("messages", { message, preparationId: p.id }, p, 70000); },
     async niciaConfig() { return request("nicia/config", null, null, 8000, "GET"); },
     async converse(body) {
-      const p = await ensure(); const data = await request("nicia/" + p.id + "/conversation", body, p, 70000);
-      remember(data.preparation, p.jeton); return data;
+      lastMessageRecorded=false;
+      let p, count=0;
+      try {
+        p=await ensure(); count=p.historique.length; lastMessageRecorded=p.nicia?.tourEnAttente?.id===body.tourId;
+        const data=await request("nicia/"+p.id+"/conversation",body,p,70000);
+        remember(data.preparation,p.jeton); lastMessageRecorded=true; return data;
+      } catch(e) {
+        // Un seul GET de réconciliation, jamais une nouvelle génération automatique.
+        if(p)try {
+          const saved=await request("preparations/"+p.id,null,p,8000,"GET");
+          remember(saved,p.jeton); e.preparationChecked=true;
+          lastMessageRecorded=saved.nicia?.tourEnAttente?.id===body.tourId || Boolean(body.message && saved.historique.slice(count).some(m=>m.role==="user"&&m.content===body.message.trim()));
+        }catch { /* Une coupure ne prouve pas la sauvegarde : conserver le texte à saisir. */ }
+        throw e;
+      }
     },
     async saveWishes(preferences) { const p=await ensure(); return remember(await request("nicia/"+p.id+"/envies", {preferences}, p, 8000, "PATCH"), p.jeton); },
     async handoff() { const p=await ensure(); return request("nicia/"+p.id+"/relais", {revisionAttendue:p.nicia?.revision||0}, p); },

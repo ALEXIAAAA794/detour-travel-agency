@@ -35,23 +35,16 @@
 .nicia-message.user {align-self:flex-end;}
 .nicia-message.user>div {background:var(--nicia-ink);color:var(--nicia-chalk);}
 .nicia-composer {display:flex;align-items:end;border:1px solid var(--nicia-ink);border-radius:18px;padding:5px;gap:12px;margin-top:12px;}
-.nicia-composer textarea {background:transparent;border:0;resize:vertical;min-height:44px;max-height:140px;width:100%;padding:10px 14px;color:var(--nicia-ink);}
+.nicia-shell .nicia-composer textarea {display:block;flex:1;min-width:0;width:100%;height:48px;min-height:48px;max-height:160px;margin:0;padding:12px 14px;border:0;border-radius:12px;box-shadow:none;background:transparent;color:var(--nicia-ink);font-size:16px;line-height:24px;resize:none;overflow-x:hidden;overflow-y:hidden;}
+.nicia-composer:focus-within {outline:3px solid var(--nicia-ink);outline-offset:3px;}
+.nicia-shell .nicia-composer textarea:focus-visible {outline:none;}
 .nicia-composer textarea::placeholder {color:var(--nicia-ink);opacity:1;}
-.nicia-composer button,.nicia-handoff button,.nicia-edit button,.nicia-calendar button {background:var(--nicia-ink);color:var(--nicia-chalk);border:1px solid var(--nicia-ink);border-radius:14px;padding:10px 24px;font-weight:600;white-space:nowrap;}
+.nicia-composer button,.nicia-handoff button,.nicia-edit button {background:var(--nicia-ink);color:var(--nicia-chalk);border:1px solid var(--nicia-ink);border-radius:14px;padding:10px 24px;font-weight:600;white-space:nowrap;}
 .nicia-composer button span {margin-left:14px;font-size:1.3rem;}
 .nicia-disclaimer {font-size:.8rem;margin:10px 0 0;}
-.nicia-tools {display:flex;gap:16px;flex-wrap:wrap;align-items:start;margin-top:16px;font-size:.85rem;}
-.nicia-tools>button {border:0;background:transparent;color:var(--nicia-ink);text-decoration:underline;padding:0;min-height:30px;}
 .nicia-shell summary {cursor:pointer;text-decoration:underline;text-underline-offset:3px;min-height:32px;}
-.nicia-tools details {flex:1;}
-.nicia-tools form {display:flex;flex-wrap:wrap;gap:12px;}
-.nicia-tools button {border:1px solid var(--nicia-ink);border-radius:10px;background:transparent;color:var(--nicia-ink);padding:8px;}
 .nicia-shell input,.nicia-shell select {display:block;background:var(--nicia-chalk);border:1px solid #6B7385;border-radius:8px;padding:10px;color:var(--nicia-ink);max-width:100%;width:100%;}
 .nicia-shell fieldset {border:0;padding:0;min-width:0;}
-.nicia-calendar {margin-top:22px;border-top:1px solid #6B7385;padding-top:20px;}
-.nicia-calendar fieldset {display:flex;flex-wrap:wrap;align-items:end;gap:16px;}
-.nicia-calendar legend {font-size:1.2rem;margin-bottom:12px;}
-.nicia-calendar p {font-size:.85rem;}
 .nicia-summary,.nicia-handoff,.nicia-notice,.nicia-legacy {max-width:1028px;margin:28px auto 0;}
 .nicia-summary {background:var(--nicia-sky);border-radius:22px;padding:28px;}
 .nicia-summary h2,.nicia-handoff h2 {font-size:1.7rem;margin:0 0 20px;}
@@ -68,4 +61,8 @@
 .nicia-footer {background:var(--nicia-ink);color:var(--nicia-chalk);padding:26px 0;}
 .nicia-footer .nicia-chrome-wrap>p {font:800 clamp(1.6rem,2.5vw,2.2rem)/1.2 "Bricolage Grotesque",sans-serif;letter-spacing:-.025em;margin:0;}
 .nicia-footer nav {font-size:.85rem;}
-@media(max-width:760px){.nicia-chrome-wrap{width:calc(100% - 32px);flex-wrap:wrap;}.nicia-navbar img{width:150px;}.nicia-menu{display:block;}.nicia-navbar nav{display:none;width:100%;flex-wrap:wrap;gap:20px;}.nicia-navbar nav.is-open{display:flex;}.nicia-main{padding:28px 16px;}.nicia-intro{margin-bottom:28px;}.nicia-conversation{padding:22px 16px;border-radius:20px;}.nicia-start h2{font-size:1.5rem;}.nicia-start>p{font-size:1rem;}.nicia-suggestions{gap:8px;}.nicia-suggestions button{min-width:0;flex:1 1 45%;padding:10px 12px;font-size:.87rem;}.nicia-message{max-width:95%;}.nicia-message>div{padding:12px;}.nicia-composer{gap:4px;}.nicia-composer button{padding:10px 12px;}.nicia-composer button span{display:none;}.nicia-composer textarea{padding:10px;font-size:.95rem;}.nicia-summary{padding:20px;}.nicia-summary dl,.nicia-edit fieldset{grid-template-columns:1fr;}.nicia-footer nav{gap:18px;flex-wrap:wrap;}.nicia-tools{gap:8px;}.nicia-calendar label{flex:1 1 100%;}}
+@media(max-width:760px){.nicia-chrome-wrap{width:calc(100% - 32px);flex-wrap:wrap;}.nicia-navbar img{width:150px;}.nicia-menu{display:block;}.nicia-navbar nav{display:none;width:100%;flex-wrap:wrap;gap:20px;}.nicia-navbar nav.is-open{display:flex;}.nicia-main{padding:28px 16px;}.nicia-intro{margin-bottom:28px;}.nicia-conversation{padding:22px 16px;border-radius:20px;}.nicia-start h2{font-size:1.5rem;}.nicia-start>p{font-size:1rem;}.nicia-suggestions{gap:8px;}.nicia-suggestions button{min-width:0;flex:1 1 45%;padding:10px 12px;font-size:.87rem;}.nicia-message{max-width:95%;}.nicia-message>div{padding:12px;}.nicia-composer{gap:4px;}.nicia-composer button{padding:10px 12px;}.nicia-composer button span{display:none;}.nicia-shell .nicia-composer textarea{padding:12px 10px;font-size:16px;}.nicia-summary{padding:20px;}.nicia-summary dl,.nicia-edit fieldset{grid-template-columns:1fr;}.nicia-footer nav{gap:18px;flex-wrap:wrap;}}
+
+.nicia-privacy {font-size:.8rem;margin-top:8px;}
+.nicia-privacy summary {min-height:0;padding:4px 0;}
+.nicia-privacy p {margin:6px 0 0;}
