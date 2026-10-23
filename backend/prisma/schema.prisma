@@ -39,7 +39,7 @@ model Trip {
   endDate       DateTime
   capacity      Int
   destination   Destination @relation(fields: [destinationId], references: [id])
-  destinationId String   @db.Uuid
+  destinationId String      @db.Uuid
   bookings      Booking[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -102,4 +102,105 @@ enum BookingStatus {
   PENDING
   CONFIRMED
   CANCELLED
+}
+
+enum TravelRequestStatus {
+  PENDING
+  NEEDS_INFO
+  IN_REVIEW
+  PROPOSAL_SENT
+  ACCEPTED
+  PAYMENT_PENDING
+  PAID
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  NOT_REQUIRED
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model TravelRequest {
+  id                String              @id @default(uuid())
+  clientName        String
+  clientEmail       String
+  clientPhone       String?
+  destination       String
+  startDate         DateTime?
+  endDate           DateTime?
+  travelers         Int                 @default(1)
+  budget            Decimal?            @db.Decimal(10, 2)
+  preferences       String?
+  status            TravelRequestStatus @default(PENDING)
+  internalNotes     String?
+  proposal          TravelProposal?
+  paymentStatus     PaymentStatus       @default(NOT_REQUIRED)
+  paymentUrl        String?
+  paymentProviderId String?
+  emails            RequestEmail[]
+  history           RequestHistory[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([clientEmail])
+}
+
+model TravelProposal {
+  id            String        @id @default(uuid())
+  requestId     String        @unique
+  request       TravelRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  title         String?
+  itinerary     Json
+  accommodation String?
+  transport     String?
+  activities    String?
+  totalPrice    Decimal       @db.Decimal(10, 2)
+  currency      String        @default("EUR")
+  conditions    String?
+  version       Int           @default(1)
+  sentAt        DateTime?
+  acceptedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model RequestEmail {
+  id           String        @id @default(uuid())
+  requestId    String
+  request      TravelRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  recipient    String
+  subject      String
+  template     String
+  status       EmailStatus   @default(PENDING)
+  providerId   String?
+  errorMessage String?
+  sentAt       DateTime?
+  createdAt    DateTime      @default(now())
+
+  @@index([requestId, createdAt])
+}
+
+model RequestHistory {
+  id        String        @id @default(uuid())
+  requestId String
+  request   TravelRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  actor     String
+  action    String
+  details   Json?
+  createdAt DateTime      @default(now())
+
+  @@index([requestId, createdAt])
 }

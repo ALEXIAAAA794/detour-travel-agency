@@ -2,12 +2,22 @@ __pycache__/
 .DS_Store
 .env
 
-# Ajouts Support IA : ne jamais ajouter les données ou variantes de secrets.
+# Environment variables and secrets
 .env.*
 !.env.example
+
+# Dependencies and build output
 node_modules/
 dist/
-/support-ia/data/
 
-# Journaux techniques privés et bornés Support IA
+# Private Support AI data
+/support-ia/data/
 /support-ia/private-diagnostics/
+/conseillers/data/gestion.db
+
+# Logs and temporary files
+*.log
+*.bak
+*.backup
+*.before-migration
+*.before_auth
