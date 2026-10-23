@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ICONS } from "../data.js";
 
-const SUFFIX = " | DÉTOUR Voyages — Prenez le pas de côté";
+const SUFFIX = " | DÉTOUR - Voyages insolites et week-ends sur mesure";
 
 export function usePageMeta(title, description) {
   useEffect(() => {
@@ -45,12 +45,12 @@ export function Steps({ title, items }) {
   );
 }
 
-export function Cta({ title, text, label = "Je demande mon devis »" }) {
+export function Cta({ title, text, label = "Demander une pré-réservation" }) {
   return (
     <section className="cta">
       <h2>{title}</h2>
       <p>{text}</p>
-      <Link className="pill" to="/contact">{label}</Link>
+      <Link className="pill" to="/pre-reservation">{label}</Link>
     </section>
   );
 }
