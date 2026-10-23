@@ -5,11 +5,15 @@ import jwt from "jsonwebtoken";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import "dotenv/config";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = 4000;
 const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error("JWT_SECRET must be set to a random value of at least 32 characters.");
+}
 const DB_FILE = path.join(__dirname, "users.json");
 
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
