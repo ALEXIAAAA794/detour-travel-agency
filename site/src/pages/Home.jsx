@@ -19,7 +19,7 @@ function DestCard({ d }) {
 
   const style = {
     "--g": d.g,
-    "--img": `url(/img/${d.id}.jpg)`,          
+    "--img": `url(/img/${d.id}.jpg)`,
   };
   if (d.scene) {
     style["--scene"] = d.scene;
@@ -74,7 +74,6 @@ export default function Home() {
     <>
       <section className="hero">
         <div className="wrap">
-          <span className="eyebrow">Votre agence de voyages insolites</span>
           <h1>
             Des week-ends sur mesure,{" "}
             <em>sans prise de tête</em>

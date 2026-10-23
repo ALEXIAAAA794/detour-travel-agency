@@ -19,6 +19,11 @@ const REVIEWS = [
     place: "Barcelone",
   },
   {
+    text: "Premier voyage organisé avec Detour et on ne reviendra plus en arrière. Itinéraire sur-mesure au Portugal, adresses insolites et un suivi impeccable. On a vraiment eu l’impression d’avoir un ami sur place.",
+    author: "Léa et Antoine",
+    place: "Lisbonne",
+  },
+  {
     text: "Nous avons passé un excellent séjour à Barcelone grâce à Detour. L’organisation était parfaite, les activités proposées étaient originales et adaptées à nos envies. Nous recommandons vivement cette agence !",
     author: "Sophie et Thomas",
     place: "Barcelone",
@@ -35,16 +40,18 @@ const PLACES = new Set(REVIEWS.map((r) => r.place));
 
 const COLUMNS = [
   [
-    { r: 1, tone: "sky", size: "lg" },
-    { r: 2, tone: "ink", size: "sm" },
+    { r: 1, tone: "sky", size: "lg" }, 
+    { r: 2, tone: "ink", size: "sm" },   
   ],
-  [{ r: 0, tone: "paper", size: "tall" }],
   [
-    { r: 4, tone: "ink", size: "sm" },
-    { r: 3, tone: "sky", size: "lg" },
+    { r: 0, tone: "paper", size: "sm" }, 
+    { r: 5, tone: "ink", size: "lg" },  
+  ],
+  [
+    { r: 4, tone: "ink", size: "sm" },   
+    { r: 3, tone: "sky", size: "lg" },  
   ],
 ];
-
 
 function Reveal({ i = 0, className = "", children }) {
   const ref = useRef(null);
@@ -102,9 +109,7 @@ function Card({ review, tone, size, i }) {
   return (
     <Reveal i={i} className={`${tone} ${size}`}>
       {tone === "sky" && <span className="bn-grid" aria-hidden="true" />}
-
       <blockquote>« {review.text} »</blockquote>
-
       <div className="bn-foot">
         <div className="bn-who">
           <b>{review.author}</b>
@@ -114,7 +119,6 @@ function Card({ review, tone, size, i }) {
           {review.author.charAt(0)}
         </span>
       </div>
-
       <Link
         className="bn-go"
         to={`/contact?destination=${encodeURIComponent(review.place)}`}
@@ -135,11 +139,8 @@ export default function Reviews() {
 
   return (
     <main id="contenu">
-      {/* ---------- Bandeau ---------- */}
       <section className="rv-hero">
         <div className="wrap">
-
-          <span className="eyebrow">Avis voyageurs</span>
           <h1>
             Ils nous ont fait c<span className="o-jump">o</span>nfiance
           </h1>
@@ -147,12 +148,9 @@ export default function Reviews() {
             Des week-ends, des détours et des adresses qu’un moteur ne trouve
             pas.
           </p>
-          <p className="rv-meta">
-          </p>
         </div>
       </section>
 
-      {/* ---------- Mosaïque d'avis ---------- */}
       <section className="wrap bn" aria-label="Avis des voyageurs">
         {COLUMNS.map((col, c) => (
           <div className="bn-col" key={c}>
@@ -169,7 +167,6 @@ export default function Reviews() {
         ))}
       </section>
 
-      {/* ---------- Appel à l'action ---------- */}
       <section className="wrap">
         <div className="rv-cta">
           <h2>À votre tour de prendre le pas de côté.</h2>
