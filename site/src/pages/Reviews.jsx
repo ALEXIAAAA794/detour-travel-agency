@@ -140,6 +140,9 @@ export default function Reviews() {
             Des week-ends, des détours et des adresses qu’un moteur ne trouve
             pas.
           </p>
+          <div className="rv-hero-actions">
+            <a className="pill" href="#laisser-un-avis">Donner mon avis</a>
+          </div>
         </div>
       </section>
 
@@ -162,7 +165,7 @@ export default function Reviews() {
         ) : !reviewError ? <p className="published-reviews-empty">Les avis de nos voyageurs apparaîtront ici après leur publication.</p> : null}
       </section>
 
-      <section className="wrap client-card request-card">
+      <section className="wrap client-card request-card" id="laisser-un-avis">
         <h2>Partagez votre expérience</h2>
         {user ? <form className="client-form" onSubmit={submitReview}>
           <div className="client-fields">
@@ -174,7 +177,27 @@ export default function Reviews() {
           {reviewNotice && <p role="status" className="client-notice">{reviewNotice}</p>}
           <button className="pill" type="submit" disabled={submitting}>{submitting ? "Envoi…" : "Envoyer mon avis"}</button>
           <p className="client-small">Les avis envoyés sont relus par notre équipe avant publication.</p>
-        </form> : <p><Link to="/login">Connectez-vous</Link> pour partager votre expérience.</p>}
+        </form> : (
+          <div className="review-sign-in">
+            <p>Connectez-vous ou créez un compte pour partager votre expérience de voyage.</p>
+            <div className="review-sign-in-actions">
+              <Link
+                className="pill"
+                to="/login"
+                state={{ from: { pathname: "/avis", hash: "#laisser-un-avis" } }}
+              >
+                Se connecter
+              </Link>
+              <Link
+                className="pill ghost"
+                to="/register"
+                state={{ from: { pathname: "/avis", hash: "#laisser-un-avis" } }}
+              >
+                Créer un compte
+              </Link>
+            </div>
+          </div>
+        )}
         {reviewError && !user && <p role="alert" className="client-notice">{reviewError}</p>}
       </section>
 

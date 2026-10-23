@@ -2653,6 +2653,27 @@ h3 {
   font-size: 1.05rem;
 }
 
+.rv-hero-actions {
+  margin-top: 1.25rem;
+}
+
+.rv-hero-actions .pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  background: var(--jaune);
+  color: var(--encre);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.rv-hero-actions .pill:hover {
+  filter: brightness(0.95);
+}
+
 /* ---------- Mosaïque ---------- */
 .bn {
   display: grid;
@@ -3638,6 +3659,9 @@ h3 {
 .client-form > .pill { border: 0; cursor: pointer; }
 .client-notice { color: var(--ballast); margin-top: .8rem; }
 .client-small { font-size: .82rem; color: var(--ballast); margin-top: 1rem; }
+.review-sign-in-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+.review-sign-in-actions .pill { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; text-decoration: none; }
+.review-sign-in-actions .pill.ghost { border: 1px solid var(--encre); background: transparent; color: var(--encre); }
 .empty-state { margin: 1.5rem 0; }
 .empty-state h2 { font: 600 1.6rem "Bricolage Grotesque", system-ui, sans-serif; margin-bottom: .5rem; }
 .empty-state p { margin-bottom: 1rem; color: var(--ballast); }
