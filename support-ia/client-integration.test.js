@@ -133,14 +133,147 @@ test("Nicia client : texte non confirmé conservable après refus ou coupure",as
  }
 });
 
-test("Nicia écran : présentation courte et relais fermé sans message permanent FR/EN",()=>{
+test("Nicia écran : présentation courte et accès au formulaire de pré-réservation FR/EN",()=>{
  const source=require("node:fs").readFileSync(require("node:path").join(__dirname,"../site/src/pages/Assistant.jsx"),"utf8");
  assert.doesNotMatch(source,/Nicia collects your wishes and prepares a recap\.|Nicia recueille vos envies et prépare un récapitulatif\.|Pre-booking is not available here yet\.|La pré-réservation n’est pas encore disponible ici\./);
- assert.match(source,/disabled=\{s.pending\|\|!config\?\.prereservation\?\.disponible\|\|!ready\}/);
+ assert.match(source,/disabled=\{s.pending\|\|!ready\}/);
+ assert.match(source,/navigate\("\/espace\/prereservation"/);
  assert.match(source,/assistantTitle\(s.language\)/);assert.match(source,/to="\/contact"/);
  assert.match(source,/La durée de conservation reste à définir/);
 });
 
+test("les boutons d’accueil et de Nicia ouvrent le même chat ; la pré-réservation reprend les envies",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const read=file=>fs.readFileSync(path.join(__dirname,"../site/src",file),"utf8");
+ assert.match(read("pages/Home.jsx"),/to="\/assistant">Parlons de votre projet/);
+ assert.match(read("components/SupportChat.jsx"),/to="\/assistant"/);
+ assert.match(read("App.jsx"),/path="assistant" element=\{<RequireClient><Assistant \/><\/RequireClient>\}/);
+ assert.equal(fs.existsSync(path.join(__dirname,"../site/assistant.html")),false);
+ assert.equal(fs.existsSync(path.join(__dirname,"../site/assistant-classique.html")),false);
+ const form=read("pages/ClientJourney.jsx");
+ assert.match(form,/location\.pathname === "\/espace\/prereservation"/);
+ assert.match(form,/defaultValue=\{initialDraft\.destination/);
+ assert.match(form,/defaultValue=\{initialDraft\.preferences/);
+});
+
+test("les parcours privés requièrent un compte et les demandes arrivent dans les onglets gestionnaire",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const read=file=>fs.readFileSync(path.join(__dirname,"../site/src",file),"utf8");
+ const app=read("App.jsx");
+ for(const route of ["assistant","pre-reservation","espace/:section?","rendez-vous"])
+  assert.match(app,new RegExp(`path="${route.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}" element=\\{<RequireClient>`));
+ assert.match(read("pages/Destinations.jsx"),/to="\/espace\/prereservation"/);
+ assert.match(read("pages/Reviews.jsx"),/to="\/assistant">\s*Demander un devis/);
+ assert.match(read("pages/Agency.jsx"),/to="\/rendez-vous"/);
+ assert.match(read("pages/AppointmentRequest.jsx"),/\/appointments/);
+ assert.match(read("pages/ClientJourney.jsx"),/Authorization:\s*`Bearer \$\{localStorage\.getItem\("detour_token"\)\}`/);
+ const dashboard=fs.readFileSync(path.join(__dirname,"../gestionnaire/src/pages/Dashboard.jsx"),"utf8");
+ assert.match(dashboard,/activeSection === "appointments" && <Appointments \/>/);
+ assert.match(dashboard,/title: "Rendez-vous"/);
+ assert.match(fs.readFileSync(path.join(__dirname,"../gestionnaire/src/pages/Appointments.jsx"),"utf8"),/Demandes de rendez-vous/);
+ assert.match(fs.readFileSync(path.join(__dirname,"../gestionnaire/src/pages/Requests.jsx"),"utf8"),/\/manager-api\/requests/);
+ const clients=fs.readFileSync(path.join(__dirname,"../gestionnaire/src/pages/Clients.jsx"),"utf8");
+ assert.match(clients,/fetch\("\/manager-api\/clients"/);
+ assert.match(clients,/fetch\("\/manager-api\/requests"/);
+ assert.doesNotMatch(clients,/fetch\("\/api\/clients"/);
+ assert.match(fs.readFileSync(path.join(__dirname,"../conseillers/app.py"),"utf8"),/\/manager-api\/clients[\s\S]*?\/api\/clients/);
+});
+
+test("le passage à Mon espace ne transmet que les champs du formulaire de pré-réservation",async()=>{
+ const {prebookingDraft}=await import("../site/src/support/prebooking.js");
+ const result=prebookingDraft({
+  destination:"Lyon",villeDepart:"Nantes",dates:"un week-end en mai",participants:2,
+  budget:"500",devise:"EUR",experience:"Culture",rythme:"calme",
+  dateDepart:"2027-05-10",dateRetour:"2027-05-12",jeton:"secret",historique:["privé"]
+ });
+ assert.deepEqual(result,{
+  destination:"Lyon",departure:"2027-05-10",returnDate:"2027-05-12",datePreference:"",travelers:2,
+  budget:"500 EUR",travelType:"Culture",
+  preferences:"Ville de départ : Nantes\nExpérience recherchée : Culture\nRythme : calme"
+ });
+ const approximate=prebookingDraft({destination:"Lyon",dates:"en mai",participants:1});
+ assert.equal(approximate.departure,"");
+ assert.equal(approximate.datePreference,"en mai");
+ assert.equal(approximate.preferences,"");
+ assert.equal(JSON.stringify(result).includes("secret"),false);
+});
+
+test("avis réels, accès Mon espace et contact email sont reliés au parcours client",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const read=file=>fs.readFileSync(path.join(__dirname,"../site/src",file),"utf8");
+ const reviews=read("pages/Reviews.jsx");
+ assert.match(reviews,/published-review-card/);
+ assert.match(reviews,/fetch\(`\$\{API\}\/reviews`\)/);
+ assert.match(reviews,/\/assistant/);
+ assert.match(reviews,/Alice et Maxime/);
+ assert.match(reviews,/Julie et Marc/);
+ assert.match(reviews,/Léa et Antoine/);
+ assert.match(reviews,/isExample: true/);
+ const layout=read("components/Layout.jsx");
+ assert.match(layout,/\{user && <NavLink to="\/espace"/);
+ assert.match(layout,/to=\{user \? "\/profile" : "\/login"\}/);
+ assert.match(layout,/aria-label=\{user \? "Mon profil" : "Connexion"\}/);
+ assert.match(layout,/mailto:contact@detour-voyages\.fr/);
+ const assistant=read("pages/Assistant.jsx");
+ assert.match(assistant,/mailto:contact@detour-voyages\.fr\?subject=/);
+ assert.match(assistant,/user\?\.email/);
+ assert.match(read("pages/ClientJourney.jsx"),/Coucou \{user\?\.name/);
+ assert.match(read("auth/RequireClient.jsx"),/if \(!user\) return <Navigate to="\/login"/);
+});
+
+test("l’assistant IA est routé vers son service et son accès reste visible sous la navigation",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const siteRoot=path.join(__dirname,"../site/src");
+ const proxy=fs.readFileSync(path.join(__dirname,"../site/vite.config.js"),"utf8");
+ const launcher=fs.readFileSync(path.join(siteRoot,"components/SupportChat.jsx"),"utf8");
+ const styles=fs.readFileSync(path.join(siteRoot,"styles/support-brand.css"),"utf8");
+ assert.match(proxy,/["']\/api\/support["']\s*:\s*\{[\s\S]*?DETOUR_SUPPORT_API_PROXY[\s\S]*?127\.0\.0\.1:3001/);
+ assert.match(launcher,/to="\/assistant"/);
+ assert.match(launcher,/<strong>Nicia<\/strong>/);
+ assert.doesNotMatch(launcher,/<small>/);
+ assert.match(styles,/support-chat\.support-brand\s*\{\s*position:fixed;\s*top:calc\(4\.25rem \+ 1rem\)/);
+ assert.match(styles,/nicia-status-pulse/);
+ assert.match(styles,/prefers-reduced-motion:reduce/);
+});
+
+test("le consentement cookies est global, mémorise acceptation ou refus et renvoie à l’accueil après acceptation",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const root=path.join(__dirname,"../site/src");
+ const consent=fs.readFileSync(path.join(root,"components/CookieConsent.jsx"),"utf8");
+ const layout=fs.readFileSync(path.join(root,"components/Layout.jsx"),"utf8");
+ assert.match(consent,/choice === "accepted" \|\| choice === "rejected"/);
+ assert.doesNotMatch(consent,/choice === "1"/);
+ assert.match(consent,/navigate\("\/", \{ replace: true \}\)/);
+ assert.match(consent,/>Accepter</);
+ assert.match(consent,/>Refuser</);
+ assert.match(layout,/<CookieConsent \/>/);
+});
+
+test("le gestionnaire récupère les comptes client avec les demandes via son relais authentifié",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const service=fs.readFileSync(path.join(__dirname,"../backend/src/services/client.service.ts"),"utf8");
+ const route=fs.readFileSync(path.join(__dirname,"../backend/src/routes/client.routes.ts"),"utf8");
+ const manager=fs.readFileSync(path.join(__dirname,"../conseillers/app.py"),"utf8");
+ assert.match(service,/prisma\.clientAccount\.findMany/);
+ assert.match(service,/select:\s*\{\s*id:\s*true,\s*name:\s*true,\s*email:\s*true,\s*createdAt:\s*true/s);
+ assert.match(route,/clientRoutes\.use/);
+ assert.match(route,/requireManager\(req\)/);
+ assert.match(manager,/\/manager-api\/clients[\s\S]*?\/api\/clients/);
+});
+
+test("le rendez-vous convertit sa date civile au format DateTime attendu par Prisma",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const route=fs.readFileSync(path.join(__dirname,"../backend/src/routes/appointment.routes.ts"),"utf8");
+ assert.match(route,/preferredDate:\s*new Date\(`\$\{data\.preferredDate\}T00:00:00\.000Z`\)/);
+});
+
+test("Nicia : recommande des destinations selon l’expérience saisie",async()=>{
+ const { recommendDestinations }=await import("../site/src/support/destination-recommendations.js");
+ assert.deepEqual(recommendDestinations("expérience créative").map(({name})=>name),["Nantes"]);
+ assert.deepEqual(recommendDestinations("partir en randonnée").map(({name})=>name),["Lyon","Pérou"]);
+ assert.deepEqual(recommendDestinations("", "cuisine gourmande").map(({name})=>name),["Lille","Barcelone","Grèce"]);
+ assert.deepEqual(recommendDestinations("xyz sans thème connu"),[]);
+});
 
 test("Nicia : collecte conversationnelle et confidentialité discrète FR/EN",()=>{
  const source=require("node:fs").readFileSync(require("node:path").join(__dirname,"../site/src/pages/Assistant.jsx"),"utf8");

@@ -1,5 +1,24 @@
 # React + Vite
 
+## Démarrage local
+
+L'interface de gestionnaire utilise PostgreSQL et le service `conseillers` sur le port `8081`. Configurez `DATABASE_URL` dans `backend/.env`, installez les dépendances Python depuis le dossier `conseillers`, puis démarrez ces deux processus dans des terminaux séparés :
+
+```powershell
+cd .\conseillers
+py -3 -m pip install -r requirements.txt
+py -3 app.py
+```
+
+```powershell
+cd .\gestionnaire
+npm run dev
+```
+
+Ouvrez ensuite `http://localhost:5174`. Connectez-vous avec l'identifiant du compte gestionnaire (pas son adresse e-mail). Au démarrage, les comptes et sessions de l'ancienne base SQLite sont importés dans PostgreSQL s'ils n'y figurent pas déjà. Si aucun compte n'existe, lancez `py -3 auth.py` depuis `conseillers` pour en créer un. Le backend doit également être démarré sur le port `3000` pour accéder aux dossiers, rendez-vous et avis.
+
+Pour lancer l'ensemble des services avec Docker, suivez les instructions de la section « Environnement Docker local » dans le [README backend](../backend/README.md).
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:

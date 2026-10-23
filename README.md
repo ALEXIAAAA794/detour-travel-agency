@@ -1,46 +1,92 @@
-# DÉTOUR
+# DÉTOUR Voyages
 
-Outils web de l'agence DÉTOUR Voyages.
+Application de voyage composée d'un site client React, d'une interface de gestion, d'une API, d'un service d'authentification client, d'un back-office conseillers, d'un assistant IA et d'une base PostgreSQL.
 
-## site/
+## Installation locale avec Docker Desktop (Windows)
 
-Site vitrine public (www.detour-voyages.fr). HTML statique, jQuery 1.8.
+### Prérequis
 
-```bash
-cd site
-python3 -m http.server 8000
+- Windows 10/11 avec Docker Desktop installé et démarré (Docker Engine en mode Linux).
+- Git, pour récupérer le dépôt.
+- Une clé API Gemini si l'assistant IA doit répondre. Sans clé valide, les autres services peuvent démarrer, mais les réponses IA ne fonctionneront pas.
+
+### 1. Récupérer le projet
+
+Dans PowerShell :
+
+```powershell
+git clone https://github.com/ALEXIAAAA794/detour-travel-agency.git
+Set-Location detour-travel-agency
 ```
 
-Puis http://127.0.0.1:8000
+Si le dépôt est déjà présent, ouvre PowerShell dans son dossier racine.
 
-Le formulaire de devis ouvre la messagerie du visiteur (mailto). Les demandes arrivent sur contact@detour-voyages.fr.
+### 2. Créer les fichiers de configuration locaux
 
-## conseillers/
+À la racine du dépôt, crée puis édite la configuration Docker :
 
-Back-office des conseillers. Consultation du catalogue prestataires, vérification des disponibilités, pose d'options, confirmation et annulation des réservations via l'API prestataires.
-
-Python 3.9+, aucune dépendance.
-
-```bash
-cd conseillers
-DETOUR_API_URL=http://127.0.0.1:8765 DETOUR_API_KEY=xxxx python3 app.py
+```powershell
+Copy-Item .env.docker.example .env.docker
+notepad .env.docker
 ```
 
-Puis http://127.0.0.1:8080
+Remplace `POSTGRES_PASSWORD`, `MANAGER_API_KEY` et `JWT_SECRET` par des valeurs aléatoires propres à ta machine. Pour `POSTGRES_PASSWORD`, utilise uniquement des lettres, chiffres et `_` afin que l'URL PostgreSQL soit valide. Garde ces secrets privés et ne les ajoute jamais à Git.
 
-| Variable | Défaut |
+Crée ensuite la configuration privée de l'assistant IA :
+
+```powershell
+Copy-Item support-ia\.env.example support-ia\.env
+notepad support-ia\.env
+```
+
+Remplace `GEMINI_API_KEY` par ta clé Gemini. Le fournisseur par défaut est `gemini` ; conserve `AI_PROVIDER=gemini` pour ce choix. Ce fichier contient des valeurs d'exemple : il faut les remplacer avant d'utiliser l'assistant. Ne partage pas et ne commite pas les clés réelles.
+
+### 3. Démarrer l'application
+
+Vérifie que Docker Desktop est démarré, puis lance à la racine :
+
+```powershell
+docker compose --env-file .env.docker up --build -d
+docker compose --env-file .env.docker ps
+```
+
+Le premier lancement construit les conteneurs et initialise la base PostgreSQL dédiée à Docker. Il peut prendre plusieurs minutes.
+
+| Service | Adresse locale |
 |---|---|
-| `DETOUR_API_URL` | `http://127.0.0.1:8765` |
-| `DETOUR_API_KEY` | aucune, obligatoire |
-| `PORT` | `8080` |
+| Site client | http://localhost:5173 |
+| Interface gestionnaire | http://localhost:5174 |
+| API backend | http://localhost:3000 |
+| Authentification client | http://localhost:4000 |
 
-La clé d'approbation est demandée au conseiller à chaque confirmation ou annulation. Elle n'est pas stockée.
+### 4. Créer un compte gestionnaire
 
-## brand/
+Dans un autre terminal PowerShell, depuis la racine du dépôt :
 
-Logo et visuels sources.
+```powershell
+docker compose --env-file .env.docker run --rm --no-deps conseillers python /app/conseillers/auth.py
+```
 
+Suis les invites du terminal pour créer le compte, puis connecte-toi sur http://localhost:5174.
 
-## Support IA intégré
+### Commandes pratiques
 
-La préparation persistante et les programmes sont accessibles sur `/assistant` dans le site React. Voir [le guide d’intégration](support-ia/INTEGRATION.md) pour la comparaison des branches, les tests et l’état de Gemini. Le backend TypeScript/Prisma et les pages publiques existantes sont conservés.
+Afficher les journaux des services :
+
+```powershell
+docker compose --env-file .env.docker logs -f
+```
+
+Arrêter les services sans supprimer les données :
+
+```powershell
+docker compose --env-file .env.docker down
+```
+
+Les données PostgreSQL sont conservées dans un volume Docker nommé. **N'utilise pas `docker compose down -v` si tu veux garder les données**, car cette commande supprime les volumes. PostgreSQL est exposé localement sur le port `5433` par défaut ; si ce port est déjà utilisé, modifie `POSTGRES_HOST_PORT` dans `.env.docker`.
+
+Cette installation est réservée au développement local. Ne réutilise pas ces commandes ou ces identifiants pour une base de production.
+
+## Support IA
+
+L'assistant et les préparations de voyage sont accessibles sur `/assistant`. La clé du fournisseur IA reste côté serveur dans `support-ia/.env`. Pour les tests, les diagnostics et les détails de l'intégration, consulte le [guide Support IA](support-ia/INTEGRATION.md).

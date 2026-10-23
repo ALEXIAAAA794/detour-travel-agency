@@ -66,3 +66,72 @@
 .nicia-privacy {font-size:.8rem;margin-top:8px;}
 .nicia-privacy summary {min-height:0;padding:4px 0;}
 .nicia-privacy p {margin:6px 0 0;}
+
+.nicia-shell {background:radial-gradient(ellipse at 50% 0,#BCD3EA55,transparent 34rem),var(--nicia-chalk);}
+.nicia-main {max-width:1440px;margin:0 auto;padding-top:clamp(44px,7vw,88px);}
+.nicia-intro {max-width:820px;margin-bottom:clamp(30px,5vw,56px);}
+.nicia-intro-kicker {display:inline-flex;align-items:center;gap:10px;padding:6px 14px 6px 7px;border:1px solid #6B738540;border-radius:999px;background:#F6F1E7cc;font-size:.82rem!important;letter-spacing:.04em;}
+.nicia-intro-mark,.nicia-conversation-avatar {display:grid;place-items:center;flex:0 0 auto;border-radius:50%;background:var(--nicia-ink);color:var(--nicia-chalk);font-family:"Bricolage Grotesque",Arial,sans-serif;font-weight:800;}
+.nicia-intro-mark {width:28px;height:28px;font-size:.85rem;}
+.nicia-intro h1 {max-width:none;text-transform:none;}
+.nicia-intro>p:last-child {max-width:620px;margin:0 auto;color:#424d64;}
+.nicia-conversation {max-width:980px;padding:clamp(22px,4vw,42px);border:1px solid #16233f20;border-radius:28px;background:#fffdf9;box-shadow:0 22px 70px #16233f12;}
+.nicia-conversation-head {display:flex;align-items:center;gap:16px;margin-bottom:26px;}
+.nicia-conversation-avatar {width:52px;height:52px;box-shadow:0 0 0 7px #BCD3EA55;}
+.nicia-conversation-avatar img {width:32px;height:32px;object-fit:contain;}
+.nicia-overline {display:block;margin:0 0 7px;color:#52617b;font-size:.7rem;font-weight:700;letter-spacing:.12em;}
+.nicia-conversation-head h2 {margin:0 0 4px;font-size:clamp(1.4rem,2.3vw,1.8rem);}
+.nicia-conversation-head p {margin:0;color:#52617b;}
+.nicia-experience-field {display:grid;gap:8px;padding:18px 20px;border:1px solid #16233f1c;border-radius:18px;background:#F6F1E7;}
+.nicia-experience-field label {font-weight:700;}
+.nicia-shell .nicia-experience-field input {width:100%;min-height:48px;border:1px solid #6B738580;border-radius:12px;background:#fffdf9;padding:11px 14px;}
+.nicia-experience-field input:focus-visible {outline:3px solid var(--nicia-ink);outline-offset:2px;}
+.nicia-experience-field p {margin:0;color:#52617b;font-size:.84rem;}
+.nicia-suggestions {justify-content:flex-start;margin:18px 0 22px;}
+.nicia-suggestions button {display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;min-height:48px;padding:11px 16px;border:1px solid #16233f20;border-radius:13px;background:#fffdf9;text-align:left;transition:background .18s,transform .18s,border-color .18s;}
+.nicia-suggestions button:hover:not(:disabled) {transform:translateY(-2px);border-color:var(--nicia-ink);background:#BCD3EA55;box-shadow:none;}
+.nicia-suggestions button span {font-size:1.15rem;}
+.nicia-messages {min-height:100px;max-height:460px;padding:18px 2px;border-top:1px solid #16233f18;}
+.nicia-message {max-width:min(80%,680px);}
+.nicia-message .nicia-author {color:#52617b;letter-spacing:.02em;}
+.nicia-message>div {border:1px solid #16233f12;border-radius:6px 18px 18px 18px;background:#F6F1E7;padding:14px 18px;}
+.nicia-message.user>div {border-color:var(--nicia-ink);border-radius:18px 6px 18px 18px;background:var(--nicia-ink);}
+.nicia-composer {border:1px solid #16233f40;border-radius:16px;background:#fffdf9;}
+.nicia-composer:focus-within {outline-color:#BCD3EA;border-color:var(--nicia-ink);}
+.nicia-composer button,.nicia-handoff button,.nicia-edit button {transition:background .18s,transform .18s;}
+.nicia-composer button:hover:not(:disabled),.nicia-handoff button:hover:not(:disabled),.nicia-edit button:hover:not(:disabled) {transform:translateY(-1px);background:#2a3c60;}
+.nicia-disclaimer {color:#52617b;line-height:1.6;}
+.nicia-disclaimer a {font-weight:700;text-underline-offset:3px;}
+.nicia-recommendations,.nicia-summary,.nicia-handoff {max-width:980px;}
+.nicia-recommendations {margin:30px auto 0;padding:clamp(22px,4vw,34px);border:1px solid #16233f1c;border-radius:24px;background:#fffdf9;box-shadow:0 16px 46px #16233f0d;}
+.nicia-recommendations-head {display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:20px;}
+.nicia-recommendations-head h2 {margin:0;font-size:clamp(1.4rem,2.2vw,1.8rem);}
+.nicia-recommendations-head>p {max-width:260px;margin:0;color:#52617b;font-size:.8rem;text-align:right;}
+.nicia-recommendation-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+.nicia-recommendation {display:flex;min-width:0;flex-direction:column;padding:18px;border:1px solid #16233f1c;border-radius:17px;background:#F6F1E7;}
+.nicia-recommendation-tag {align-self:flex-start;padding:5px 9px;border-radius:999px;background:#BCD3EA;color:var(--nicia-ink);font-size:.72rem;font-weight:700;}
+.nicia-recommendation h3 {margin:14px 0 6px;font-size:1.35rem;}
+.nicia-recommendation p {flex:1;margin:0 0 18px;color:#424d64;font-size:.91rem;}
+.nicia-recommendation button {display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:42px;padding:8px 12px;border:1px solid #16233f50;border-radius:11px;background:transparent;color:var(--nicia-ink);font-size:.85rem;font-weight:700;text-align:left;}
+.nicia-recommendation button:hover:not(:disabled) {background:#BCD3EA;}
+.nicia-summary {background:#BCD3EA;}
+.nicia-handoff {border-color:#16233f30;}
+@media(max-width:760px) {
+ .nicia-main {padding-top:34px;}
+ .nicia-conversation {padding:22px 16px;}
+ .nicia-conversation-head {align-items:flex-start;}
+ .nicia-conversation-avatar {width:44px;height:44px;}
+ .nicia-conversation-avatar img {width:28px;height:28px;}
+ .nicia-experience-field {padding:15px;}
+ .nicia-suggestions {justify-content:stretch;}
+ .nicia-suggestions button {flex:1 1 calc(50% - 8px);}
+ .nicia-recommendations {padding:20px 16px;}
+ .nicia-recommendations-head {align-items:flex-start;flex-direction:column;gap:8px;}
+ .nicia-recommendations-head>p {text-align:left;}
+ .nicia-recommendation-grid {grid-template-columns:1fr;}
+ .nicia-recommendation {padding:16px;}
+}
+@media(prefers-reduced-motion:reduce) {
+ .nicia-suggestions button,.nicia-composer button,.nicia-handoff button,.nicia-edit button {transition:none;}
+ .nicia-suggestions button:hover:not(:disabled),.nicia-composer button:hover:not(:disabled),.nicia-handoff button:hover:not(:disabled),.nicia-edit button:hover:not(:disabled) {transform:none;}
+}

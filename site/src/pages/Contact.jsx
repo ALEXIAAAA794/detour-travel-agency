@@ -46,23 +46,6 @@ function Newsletter() {
   );
 }
 
-function Cookies() {
-  const [hidden, setHidden] = useState(() => {
-    try { return !!localStorage.getItem("detour-cookies"); } catch { return false; }
-  });
-  if (hidden) return null;
-  const accept = () => {
-    setHidden(true);
-    try { localStorage.setItem("detour-cookies", "1"); } catch { /* stockage indisponible */ }
-  };
-  return (
-    <div className="cookies" role="dialog" aria-label="Cookies">
-      <p>Ce site utilise des cookies pour vous proposer des services adaptés.</p>
-      <button type="button" className="pill" onClick={accept}>Accepter</button>
-    </div>
-  );
-}
-
 export default function Contact() {
   usePageMeta("Devis gratuit", "DÉTOUR, agence de voyages insolites : week-ends sur mesure en train à Nantes, Lyon, Lille. Devis gratuit !");
   const [params] = useSearchParams();
@@ -210,7 +193,6 @@ export default function Contact() {
           </aside>
         </div>
       </main>
-      <Cookies />
     </>
   );
 }

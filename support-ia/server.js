@@ -161,7 +161,7 @@ app.use((erreur, req, res, next) => {
 
 const port = Number(process.env.PORT || 3001);
 
-if (require.main === module) app.listen(port, "127.0.0.1", () => {
+if (require.main === module) app.listen(port, "0.0.0.0", () => {
   console.log(`Support IA démarré sur http://127.0.0.1:${port}`);
 });
 module.exports = { app };

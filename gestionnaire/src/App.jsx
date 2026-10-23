@@ -7,11 +7,15 @@ import { getSession, logout } from "./services/auth";
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
 
   useEffect(() => {
     getSession()
       .then((data) => setUser(data?.manager || data?.user || null))
-      .catch(() => setUser(null))
+      .catch(() => {
+        setUser(null);
+        setAuthError("Le service de connexion gestionnaire ne répond pas. Vérifiez que le service conseillers est démarré sur le port 8081.");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -20,7 +24,13 @@ export default function App() {
   }
 
   if (!user) {
-    return <Login onLogin={(data) => setUser(data?.manager || data?.user || data)} />;
+    return <Login
+      initialError={authError}
+      onLogin={(data) => {
+        setAuthError("");
+        setUser(data?.manager || data?.user || data);
+      }}
+    />;
   }
 
   return (

@@ -5,6 +5,7 @@ __pycache__/
 # Environment variables and secrets
 .env.*
 !.env.example
+!.env.docker.example
 
 # Dependencies and build output
 node_modules/

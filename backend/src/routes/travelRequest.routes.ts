@@ -1,17 +1,20 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 import { Router } from "express";
 import { z } from "zod";
-import { env } from "../config/env.js";
+import type { Request } from "express";
+import type { TravelRequest } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { HttpError } from "../middlewares/errorHandler.js";
+import { requireClient, requireManager } from "../middlewares/managerAuth.js";
+import { sendRequestEmail } from "../services/requestEmail.service.js";
+import { requestService } from "../services/request.service.js";
 
 export const travelRequestRoutes = Router();
 const createSchema = z.object({
-  name: z.string().trim().min(2).max(160),
-  email: z.string().trim().email().max(254),
   destination: z.string().trim().min(2).max(160),
   departure: z.string().date().optional().or(z.literal("")),
   returnDate: z.string().date().optional().or(z.literal("")),
+  datePreference: z.string().trim().max(120).optional(),
   travelers: z.coerce.number().int().min(1).max(30),
   budget: z.string().max(80).optional(),
   travelType: z.string().max(80).optional(),
@@ -29,102 +32,155 @@ const itinerarySchema = z.object({
 });
 const managerUpdateSchema = z.object({
   status: z.enum(["PENDING_REVIEW", "PREPARATION_AVAILABLE", "PREPARATION_IN_PROGRESS", "SUBMITTED", "FEASIBILITY_REVIEW", "CHANGES_REQUESTED", "CONFIRMED_AWAITING_PAYMENT", "PAID", "REFUSED", "EXPIRED"]),
-  paymentUrl: z.string().url().max(2000).optional(),
+  paymentUrl: z.string().url().max(2000).refine((value) => value.toLowerCase().startsWith("https://")).optional(),
 });
 
-function requireToken(req: Parameters<Parameters<typeof travelRequestRoutes.get>[1]>[0]) {
-  const token = req.header("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!token || !/^[a-f0-9]{64}$/i.test(token)) throw new HttpError(401, "Lien d'accès invalide");
-  return token;
+function clientRequest(request: TravelRequest) {
+  const {
+    accessToken: _accessToken,
+    preparationTokenHash: _preparationTokenHash,
+    preparationTokenExpiresAt: _preparationTokenExpiresAt,
+    preparationTokenRevokedAt: _preparationTokenRevokedAt,
+    clientAccountId: _clientAccountId,
+    budget,
+    budgetText,
+    clientName,
+    clientEmail,
+    startDate,
+    endDate,
+    ...details
+  } = request;
+
+  return {
+    ...details,
+    name: clientName,
+    email: clientEmail,
+    departure: startDate,
+    returnDate: endDate,
+    budget: budgetText ?? budget?.toString() ?? null,
+  };
 }
-async function ownedRequest(id: string, token: string) {
-  const request = await prisma.travelRequest.findFirst({ where: { id, accessToken: token } });
+
+async function ownedRequest(id: string, req: Request) {
+  const token = req.header("x-preparation-token");
+  if (token) {
+    if (!/^[a-f0-9]{64}$/i.test(token)) throw new HttpError(401, "Lien de préparation invalide");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const request = await prisma.travelRequest.findFirst({
+      where: {
+        id,
+        preparationTokenHash: tokenHash,
+        preparationTokenExpiresAt: { gt: new Date() },
+        preparationTokenRevokedAt: null,
+      },
+    });
+    if (!request) throw new HttpError(410, "Ce lien de préparation a expiré ou a été révoqué");
+    return request;
+  }
+
+  const client = await requireClient(req);
+  const request = await prisma.travelRequest.findFirst({
+    where: { id, clientAccountId: client.id },
+  });
   if (!request) throw new HttpError(404, "Demande introuvable");
   return request;
 }
 const wrap = (fn: (req: any, res: any) => Promise<void>) => (req: any, res: any, next: any) => fn(req, res).catch(next);
 
-function isManager(req: Parameters<Parameters<typeof travelRequestRoutes.get>[1]>[0]) {
-  if (!env.MANAGER_API_KEY) throw new HttpError(503, "La gestion conseiller n'est pas configurée");
-  const provided = req.header("x-manager-key") || "";
-  const expected = env.MANAGER_API_KEY;
-  const suppliedBuffer = Buffer.from(provided);
-  const expectedBuffer = Buffer.from(expected);
-  if (suppliedBuffer.length !== expectedBuffer.length || !timingSafeEqual(suppliedBuffer, expectedBuffer)) {
-    throw new HttpError(401, "Accès conseiller refusé");
-  }
-}
-
-async function sendConfirmationEmail(request: { email: string; name: string; destination: string; id: string }) {
-  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) return false;
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: env.EMAIL_FROM,
-      to: [request.email],
-      subject: "Votre demande de pré-réservation a bien été reçue",
-      text: `Bonjour ${request.name},\n\nNous avons bien reçu votre demande de pré-réservation pour ${request.destination}. Notre équipe va l'étudier et reviendra vers vous. Cette confirmation ne constitue pas une réservation définitive.\n\nRéférence : ${request.id.slice(0, 8).toUpperCase()}\n\nL'équipe DÉTOUR Voyages`,
-    }),
-  });
-  return response.ok;
-}
-
 travelRequestRoutes.get("/manager", wrap(async (req, res) => {
-  isManager(req);
+  requireManager(req);
   const requests = await prisma.travelRequest.findMany({ orderBy: { createdAt: "desc" } });
-  res.json({ requests: requests.map(({ accessToken: _accessToken, ...request }) => request) });
+  res.json({ requests: requests.map(clientRequest) });
+}));
+
+travelRequestRoutes.get("/mine", wrap(async (req, res) => {
+  const client = await requireClient(req);
+  const requests = await prisma.travelRequest.findMany({
+    where: { clientAccountId: client.id },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json({ requests: requests.map(clientRequest) });
 }));
 
 travelRequestRoutes.post("/", wrap(async (req, res) => {
+  const client = await requireClient(req);
   const data = createSchema.parse(req.body);
   if (data.departure && data.returnDate && data.returnDate < data.departure) throw new HttpError(400, "La date de retour doit suivre le départ");
-  const accessToken = randomBytes(32).toString("hex");
   const created = await prisma.travelRequest.create({ data: {
-    ...data,
-    departure: data.departure ? new Date(`${data.departure}T00:00:00.000Z`) : null,
-    returnDate: data.returnDate ? new Date(`${data.returnDate}T00:00:00.000Z`) : null,
-    accessToken,
+    clientAccountId: client.id,
+    clientName: client.name,
+    clientEmail: client.email,
+    destination: data.destination,
+    startDate: data.departure ? new Date(`${data.departure}T00:00:00.000Z`) : null,
+    endDate: data.returnDate ? new Date(`${data.returnDate}T00:00:00.000Z`) : null,
+    datePreference: data.datePreference || null,
+    travelers: data.travelers,
+    budgetText: data.budget || null,
+    travelType: data.travelType,
+    preferences: data.preferences,
+    status: "PENDING_REVIEW",
   } });
-  // The token is returned once so the client can resume this request. Never expose it in listings.
-  let emailSent = false;
-  try {
-    emailSent = await sendConfirmationEmail(created);
-  } catch (error) {
-    console.error("Échec de l'envoi de l'email de confirmation :", error);
-  }
+  const email = await sendRequestEmail({
+    requestId: created.id,
+    recipient: client.email,
+    subject: "Votre demande de pré-réservation a bien été reçue",
+    template: "prebooking_received",
+    text: `Bonjour ${client.name},\n\nNous avons bien reçu votre demande de pré-réservation pour ${data.destination}. Notre équipe va l’étudier et vous recontactera sous 24 heures pour poursuivre la préparation de votre voyage.\n\nCet email confirme uniquement la réception de votre demande et non la disponibilité du voyage.\n\nRéférence : ${created.id.slice(0, 8).toUpperCase()}\n\nL’équipe DÉTOUR Voyages`,
+  }).catch((error: unknown) => {
+    console.error(
+      `Demande ${created.id} enregistrée, mais journalisation de l’email impossible :`,
+      error instanceof Error ? error.message : error
+    );
+    return { sent: false as const, notice: "Demande enregistrée, mais l’email de confirmation n’a pas pu être envoyé." };
+  });
   res.status(201).json({
-    request: { ...created, accessToken: undefined },
-    accessToken,
-    emailSent,
-    ...(!emailSent ? { emailNotice: "Email non envoyé : configurez RESEND_API_KEY et EMAIL_FROM." } : {}),
+    request: clientRequest(created),
+    emailSent: email.sent,
+    ...(!email.sent ? { emailNotice: email.notice } : {}),
   });
 }));
 
 travelRequestRoutes.get("/:id", wrap(async (req, res) => {
-  const request = await ownedRequest(idSchema.parse(req.params.id), requireToken(req));
-  res.json({ ...request, accessToken: undefined });
+  const request = await ownedRequest(idSchema.parse(req.params.id), req);
+  res.json(clientRequest(request));
 }));
 
 travelRequestRoutes.patch("/:id/preparation", wrap(async (req, res) => {
-  const current = await ownedRequest(idSchema.parse(req.params.id), requireToken(req));
+  const current = await ownedRequest(idSchema.parse(req.params.id), req);
   if (!["PREPARATION_AVAILABLE", "PREPARATION_IN_PROGRESS", "CHANGES_REQUESTED"].includes(current.status)) throw new HttpError(409, "La préparation n'est pas disponible");
   const { itinerary } = itinerarySchema.parse(req.body);
   const updated = await prisma.travelRequest.update({ where: { id: current.id }, data: { itinerary, status: "PREPARATION_IN_PROGRESS" } });
-  res.json({ ...updated, accessToken: undefined });
+  res.json(clientRequest(updated));
 }));
 
 travelRequestRoutes.post("/:id/submit", wrap(async (req, res) => {
-  const current = await ownedRequest(idSchema.parse(req.params.id), requireToken(req));
+  const current = await ownedRequest(idSchema.parse(req.params.id), req);
   if (!current.itinerary) throw new HttpError(409, "Enregistrez une proposition avant de la transmettre");
-  const updated = await prisma.travelRequest.update({ where: { id: current.id }, data: { status: "SUBMITTED" } });
-  res.json({ ...updated, accessToken: undefined });
+  const updated = await prisma.$transaction(async (tx) => {
+    const request = await tx.travelRequest.update({
+      where: { id: current.id },
+      data: {
+        status: "SUBMITTED",
+        ...(current.preparationTokenHash
+          ? { preparationTokenRevokedAt: new Date() }
+          : {}),
+      },
+    });
+    await tx.requestHistory.create({
+      data: {
+        requestId: current.id,
+        actor: "client",
+        action: "ITINERARY_SUBMITTED",
+      },
+    });
+    return request;
+  });
+  res.json(clientRequest(updated));
 }));
 
 travelRequestRoutes.patch("/:id/status", wrap(async (req, res) => {
-  isManager(req);
+  requireManager(req);
   const { status, paymentUrl } = managerUpdateSchema.parse(req.body);
   if (paymentUrl && status !== "CONFIRMED_AWAITING_PAYMENT") throw new HttpError(400, "Le lien de paiement est réservé à un voyage confirmé");
-  const request = await prisma.travelRequest.update({ where: { id: idSchema.parse(req.params.id) }, data: { status, ...(paymentUrl ? { paymentUrl } : {}) } });
-  res.json({ ...request, accessToken: undefined });
+  res.json(await requestService.updateStatus(idSchema.parse(req.params.id), status, paymentUrl));
 }));

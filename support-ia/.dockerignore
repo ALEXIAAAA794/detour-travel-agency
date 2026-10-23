@@ -1,0 +1,9 @@
+node_modules
+data
+private-diagnostics
+.env
+.env.*
+*.log
+__pycache__
+.pytest_cache
+.git

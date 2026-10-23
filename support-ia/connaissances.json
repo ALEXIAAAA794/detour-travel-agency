@@ -48,19 +48,14 @@
       "id": "agence-destinations",
       "question": "Quelles destinations sont présentées ?",
       "reponses": {
-        "fr": "Le site présente des idées de séjours à Nantes, Lyon, Lille, Barcelone, en Grèce et au Pérou, personnalisables. Cela ne confirme aucune prestation ni disponibilité pour vos dates.",
-        "en": "The website presents customisable trip ideas in Nantes, Lyon, Lille, Barcelona, Greece and Peru. This does not confirm any service or availability for your dates."
+        "fr": "Le formulaire de demande propose notamment les destinations suivantes : Nantes, Lyon, Lille, Barcelone, Grèce et Pérou. Leur présence sur le formulaire ne confirme aucune prestation ni disponibilité pour vos dates.",
+        "en": "The request form lists Nantes, Lyon, Lille, Barcelona, Greece and Peru as destination choices. Their presence on the form does not confirm any service or availability for your dates."
       },
       "provenance": [
         {
           "fichier": "site/src/pages/Contact.jsx",
           "extrait": "[\"Je ne sais pas encore\", \"Nantes\", \"Lyon\", \"Lille\", \"Barcelone\", \"Grèce\", \"Pérou\", \"Autre\"]",
           "sha256": "d69c0aea5a3a2fb21c76922434c47d3a615dfac484733bfa054873e3aff189c5"
-        },
-        {
-          "fichier": "site/src/pages/Destinations.jsx",
-          "extrait": "Tous nos séjours sont <strong>personnalisables</strong>",
-          "sha256": "7fe380f38bad1c7839c9472b4eeeb01562b01520390c51857cac1f2a792fa5c1"
         }
       ],
       "verification": "contenu_du_depot_uniquement"
@@ -106,8 +101,8 @@
       "id": "tarifs-indicatifs",
       "question": "Les tarifs publiés sont-ils garantis ?",
       "reponses": {
-        "fr": "Les prix affichés sont indicatifs, par personne sur une base de deux personnes. Les tarifs et disponibilités varient selon les dates et doivent être confirmés par le conseiller. La base ne permet pas de confirmer un prix actuel ni une place disponible.",
-        "en": "Displayed prices are indicative per person, based on two travellers. Rates and availability vary by date and must be confirmed by an adviser. This knowledge base cannot confirm a current price or availability."
+        "fr": "Les prix publiés sont indicatifs, par personne sur une base de deux personnes. La page précise que les tarifs sont confirmés par votre conseiller ; la base ne permet pas de confirmer un prix ferme ni une disponibilité actuelle.",
+        "en": "Published prices are indicative per person, based on two travellers. The page says rates are confirmed by your adviser; this information cannot confirm a fixed price or current availability."
       },
       "provenance": [
         {
@@ -117,8 +112,8 @@
         },
         {
           "fichier": "site/src/pages/Destinations.jsx",
-          "extrait": "Les tarifs et disponibilités varient selon les dates et sont confirmés par votre conseiller.",
-          "sha256": "c43726f574833950a4a3c367d23d3b59c5d552ede55bb27c8d9a04489df73cf6"
+          "extrait": "Les tarifs sont confirmés",
+          "sha256": "d77868044ff6debeb19694d026870105a2d6e9380500d188b48f51c6dc463013"
         }
       ],
       "verification": "contenu_du_depot_uniquement"
@@ -133,8 +128,8 @@
       "provenance": [
         {
           "fichier": "site/src/pages/Destinations.jsx",
-          "extrait": "Nantes, Lyon, Lille et Barcelone : train A/R depuis Paris. Grèce et Pérou : vol A/R depuis Paris",
-          "sha256": "750d40aa70a5b7d75bf40ae0fe4d66ecbc6b26ba956889e966dd92908a9c24e0"
+          "extrait": "Nantes, Lyon, Lille et Barcelone : train A/R depuis Paris.",
+          "sha256": "3dbfbf6473a4cad83394323314279b11d01dfbb6cb79b764dd3c12abafbb328c"
         }
       ],
       "verification": "contenu_du_depot_uniquement"

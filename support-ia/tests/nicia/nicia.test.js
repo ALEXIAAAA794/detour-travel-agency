@@ -28,12 +28,12 @@ test("Nicia : validation structurée, dates approximatives et absence de privil�
 
 });
 test("Nicia API simulée : prénom, correction, suggestions, contexte, panne, restauration, isolation et relais",async()=>{
- const nativeFetch=global.fetch;let calls=0,mode="valid",captured,finish,began;
+ const nativeFetch=global.fetch; let calls=0,mode="valid",captured,finish,began,failOnce=false;
  global.fetch=async(url,opts)=>{
   if(!String(url).startsWith("https://generativelanguage.googleapis.com/"))return nativeFetch(url,opts);
   calls++;captured=JSON.parse(opts.body);
   if(mode==="wait"){began();await new Promise(r=>{finish=r;});}
-  if(mode==="fail")return {ok:false,status:503,json:async()=>({error:{code:503}})};
+  if(mode==="fail"||(mode==="fail-once"&&failOnce)){failOnce=false;return {ok:false,status:503,json:async()=>({error:{code:503}})};}
   const text=mode==="invalid"?JSON.stringify({...valid,preferences:{role:"admin"}}):JSON.stringify(valid);
   return {ok:true,status:200,json:async()=>({candidates:[{finishReason:"STOP",content:{parts:[{text}]}}]})};
  };
@@ -56,6 +56,7 @@ test("Nicia API simulée : prénom, correction, suggestions, contexte, panne, re
   assert.equal(p.historique.filter(h=>h.content===mixed).length,1);assert.match(JSON.stringify(captured),/Camille/);assert.match(JSON.stringify(captured),/Sam/);
   assert.equal(captured.generationConfig.maxOutputTokens,4096);assert.match(captured.systemInstruction.parts[0].text,/AUCUN prix/);
   const previous=structuredClone(p.voyage);mode="invalid";const invalidBody={message:"Plus calme",tourId:crypto.randomUUID(),langue:"fr"};assert.equal((await turn(invalidBody)).status,502);assert.deepEqual((await read()).voyage,previous);
+  mode="fail-once";failOnce=true;const transientBody={message:"J’aimerais aussi découvrir la cuisine locale",tourId:crypto.randomUUID(),langue:"fr"};const attempts=calls;const transientResult=await turn(transientBody);assert.equal(transientResult.status,200);assert.equal(calls,attempts+2);p=(await transientResult.json()).preparation;assert.equal(p.nicia.tourEnAttente,undefined);assert.equal(p.historique.filter(h=>h.content===transientBody.message).length,1);
   mode="fail";const body={message:"Une promenade près de l’eau",tourId:crypto.randomUUID(),langue:"fr"};assert.equal((await turn(body)).status,503);
   p=await read();assert.equal(p.nicia.tourEnAttente.id,body.tourId);assert.deepEqual(p.voyage,previous);assert.equal(p.historique.filter(h=>h.content===body.message).length,1);
   mode="valid";const retried=await turn(p.nicia.tourEnAttente.requete);assert.equal(retried.status,200);p=(await retried.json()).preparation;assert.equal(p.nicia.tourEnAttente,undefined);assert.equal(p.historique.filter(h=>h.content===body.message).length,1);

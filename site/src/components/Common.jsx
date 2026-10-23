@@ -45,12 +45,17 @@ export function Steps({ title, items }) {
   );
 }
 
-export function Cta({ title, text, label = "Demander une pré-réservation" }) {
+export function Cta({
+  title,
+  text,
+  label = "Demander une pré-réservation",
+  to = "/pre-reservation",
+}) {
   return (
     <section className="cta">
       <h2>{title}</h2>
       <p>{text}</p>
-      <Link className="pill" to="/pre-reservation">{label}</Link>
+      <Link className="pill" to={to}>{label}</Link>
     </section>
   );
 }

@@ -18,6 +18,33 @@ model Client {
   updatedAt DateTime  @updatedAt
 }
 
+model ClientAccount {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model ManagerAccount {
+  id           Int             @id @default(autoincrement())
+  name         String
+  identifier   String          @unique
+  passwordHash String
+  passwordSalt String
+  createdAt    DateTime        @default(now()) @db.Timestamptz(6)
+  sessions     ManagerSession[]
+}
+
+model ManagerSession {
+  tokenHash String         @id
+  managerId Int
+  manager   ManagerAccount @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  expiresAt DateTime       @db.Timestamptz(6)
+
+  @@index([expiresAt])
+}
+
 model Destination {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String   @db.VarChar(120)
@@ -63,41 +90,6 @@ model Booking {
   @@index([tripId])
 }
 
-model TravelRequest {
-  id          String              @id @default(uuid())
-  accessToken String              @unique @default(uuid())
-  name        String
-  email       String
-  destination String
-  departure   DateTime?
-  returnDate  DateTime?
-  travelers   Int
-  budget      String?
-  travelType  String?
-  preferences String?
-  itinerary   Json?
-  paymentUrl  String?
-  status      TravelRequestStatus @default(PENDING_REVIEW)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-
-  @@index([email])
-  @@index([status])
-}
-
-enum TravelRequestStatus {
-  PENDING_REVIEW
-  PREPARATION_AVAILABLE
-  PREPARATION_IN_PROGRESS
-  SUBMITTED
-  FEASIBILITY_REVIEW
-  CHANGES_REQUESTED
-  CONFIRMED_AWAITING_PAYMENT
-  PAID
-  REFUSED
-  EXPIRED
-}
-
 enum BookingStatus {
   PENDING
   CONFIRMED
@@ -115,6 +107,15 @@ enum TravelRequestStatus {
   CONFIRMED
   REJECTED
   CANCELLED
+  PENDING_REVIEW
+  PREPARATION_AVAILABLE
+  PREPARATION_IN_PROGRESS
+  SUBMITTED
+  FEASIBILITY_REVIEW
+  CHANGES_REQUESTED
+  CONFIRMED_AWAITING_PAYMENT
+  REFUSED
+  EXPIRED
 }
 
 enum PaymentStatus {
@@ -131,31 +132,88 @@ enum EmailStatus {
   FAILED
 }
 
+enum AppointmentRequestStatus {
+  PENDING
+  CONTACTED
+  SCHEDULED
+  CANCELLED
+}
+
+enum TravelReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model TravelReview {
+  id          String            @id @default(uuid())
+  clientName  String
+  clientEmail String
+  destination String?
+  rating      Int
+  content     String            @db.VarChar(2000)
+  status      TravelReviewStatus @default(PENDING)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([status, createdAt])
+  @@index([clientEmail, createdAt])
+}
+
+model AppointmentRequest {
+  id            String                   @id @default(uuid())
+  clientAccountId String?
+  clientName    String
+  clientEmail   String
+  phone         String?
+  preferredDate DateTime                 @db.Date
+  preferredTime String
+  subject       String
+  message       String?
+  status        AppointmentRequestStatus @default(PENDING)
+  emails        AppointmentEmail[]
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@index([status, createdAt])
+  @@index([clientAccountId, createdAt])
+}
+
 model TravelRequest {
-  id                String              @id @default(uuid())
-  clientName        String
-  clientEmail       String
-  clientPhone       String?
-  destination       String
-  startDate         DateTime?
-  endDate           DateTime?
-  travelers         Int                 @default(1)
-  budget            Decimal?            @db.Decimal(10, 2)
-  preferences       String?
-  status            TravelRequestStatus @default(PENDING)
-  internalNotes     String?
-  proposal          TravelProposal?
-  paymentStatus     PaymentStatus       @default(NOT_REQUIRED)
-  paymentUrl        String?
-  paymentProviderId String?
-  emails            RequestEmail[]
-  history           RequestHistory[]
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  id                         String              @id @default(uuid())
+  accessToken                String?             @unique
+  preparationTokenHash       String?             @unique
+  preparationTokenExpiresAt  DateTime?
+  preparationTokenRevokedAt  DateTime?
+  clientAccountId            String?
+  clientName                 String
+  clientEmail                String
+  clientPhone                String?
+  destination                String
+  startDate                  DateTime?
+  endDate                    DateTime?
+  datePreference             String?
+  travelers                  Int                 @default(1)
+  budget                     Decimal?            @db.Decimal(10, 2)
+  budgetText                 String?
+  travelType                 String?
+  preferences                String?
+  itinerary                  Json?
+  status                     TravelRequestStatus @default(PENDING)
+  internalNotes              String?
+  proposal                   TravelProposal?
+  paymentStatus              PaymentStatus       @default(NOT_REQUIRED)
+  paymentUrl                 String?
+  paymentProviderId          String?
+  emails                     RequestEmail[]
+  history                    RequestHistory[]
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
 
   @@index([status])
   @@index([createdAt])
   @@index([clientEmail])
+  @@index([clientAccountId, createdAt])
 }
 
 model TravelProposal {
@@ -191,6 +249,21 @@ model RequestEmail {
   createdAt    DateTime      @default(now())
 
   @@index([requestId, createdAt])
+}
+
+model AppointmentEmail {
+  id            String             @id @default(uuid())
+  appointmentId String
+  appointment   AppointmentRequest @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  recipient     String
+  subject       String
+  status        EmailStatus        @default(PENDING)
+  providerId    String?
+  errorMessage  String?
+  sentAt        DateTime?
+  createdAt     DateTime           @default(now())
+
+  @@index([appointmentId, createdAt])
 }
 
 model RequestHistory {

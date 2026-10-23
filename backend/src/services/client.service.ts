@@ -2,7 +2,7 @@
 
 export const clientService = {
   async list() {
-    const [clients, requests] = await Promise.all([
+    const [clients, accounts, requests] = await Promise.all([
       prisma.client.findMany({
         include: {
           bookings: {
@@ -26,6 +26,15 @@ export const clientService = {
           { firstName: "asc" },
         ],
       }),
+      prisma.clientAccount.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
       prisma.travelRequest.findMany({
         orderBy: { createdAt: "desc" },
       }),
@@ -40,21 +49,49 @@ export const clientService = {
       createdAt: Date;
       bookings: typeof clients[number]["bookings"];
       requests: typeof requests;
-      source: "client" | "request";
+      source: "account" | "client" | "request";
     }>();
 
-    for (const client of clients) {
-      clientsByEmail.set(client.email.trim().toLowerCase(), {
-        id: client.id,
-        firstName: client.firstName,
-        lastName: client.lastName,
-        email: client.email,
-        phone: client.phone,
-        createdAt: client.createdAt,
-        bookings: client.bookings,
+    for (const account of accounts) {
+      const email = account.email.trim().toLowerCase();
+      const [firstName = "", ...lastName] = account.name.trim().split(/\s+/);
+      if (!email) continue;
+
+      clientsByEmail.set(email, {
+        id: `account-${account.id}`,
+        firstName,
+        lastName: lastName.join(" "),
+        email,
+        phone: null,
+        createdAt: account.createdAt,
+        bookings: [],
         requests: [],
-        source: "client",
+        source: "account",
       });
+    }
+
+    for (const client of clients) {
+      const email = client.email.trim().toLowerCase();
+      const existing = clientsByEmail.get(email);
+
+      if (existing) {
+        existing.firstName ||= client.firstName;
+        existing.lastName ||= client.lastName;
+        existing.phone ||= client.phone;
+        existing.bookings = client.bookings;
+      } else {
+        clientsByEmail.set(email, {
+          id: client.id,
+          firstName: client.firstName,
+          lastName: client.lastName,
+          email: client.email,
+          phone: client.phone,
+          createdAt: client.createdAt,
+          bookings: client.bookings,
+          requests: [],
+          source: "client",
+        });
+      }
     }
 
     for (const request of requests) {

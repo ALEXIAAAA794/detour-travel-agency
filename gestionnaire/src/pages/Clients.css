@@ -23,7 +23,7 @@
   font-size: 32px;
   letter-spacing: -1px;
 }
-.cl-header h2 span { color: #c69b51; }
+.cl-header h2 span { color: var(--yellow); }
 .cl-header > div > p:last-child {
   color: #777d8a;
   margin: 8px 0 0;
@@ -109,9 +109,9 @@
   cursor: pointer;
 }
 .cl-filters button.active {
-  background: #16233f;
-  color: #fffdf8;
-  border-color: #16233f;
+  background: var(--ink);
+  color: var(--chalk);
+  border-color: var(--ink);
 }
 .cl-layout {
   display: grid;
@@ -159,7 +159,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #eee5d5;
+  background: var(--sky);
   color: #16233f;
   font-size: 14px;
   font-weight: 700;
@@ -231,16 +231,16 @@
   white-space: nowrap;
 }
 .cl-status.status-confirmed, .cl-status.status-paid, .cl-status.status-accepted {
-  background: #e4f2e8;
-  color: #286244;
+  background: rgba(188, 211, 234, .6);
+  color: var(--ink);
 }
 .cl-status.status-rejected, .cl-status.status-cancelled {
-  background: #f8e8e3;
-  color: #8b4338;
+  background: rgba(196, 85, 58, .12);
+  color: var(--brick);
 }
 .cl-status.status-pending, .cl-status.status-needs_info, .cl-status.status-payment_pending {
-  background: #fff0c2;
-  color: #795600;
+  background: rgba(242, 183, 5, .2);
+  color: var(--ink);
 }
 .cl-state {
   padding: 34px 16px;
@@ -258,19 +258,19 @@
   gap: 12px;
   padding: 12px 14px;
   margin-bottom: 14px;
-  border: 1px solid #e8c7bf;
-  background: #f8e8e3;
+  border: 1px solid rgba(196, 85, 58, .3);
+  background: rgba(196, 85, 58, .12);
   border-radius: 9px;
-  color: #8b4338;
+  color: var(--brick);
   font-size: 12px;
 }
 .cl-error p { margin: 0; }
 .cl-error button {
-  border: 1px solid #d5aaa0;
+  border: 1px solid rgba(196, 85, 58, .3);
   border-radius: 7px;
   padding: 7px 10px;
   background: #fffdf8;
-  color: #8b4338;
+  color: var(--brick);
   cursor: pointer;
 }
 .cl-muted { color: #777d8a; font-size: 11px; }

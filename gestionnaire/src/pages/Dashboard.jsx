@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Requests from "./Requests.jsx";
 import Clients from "./Clients.jsx";
+import Appointments from "./Appointments.jsx";
+import Reviews from "./Reviews.jsx";
 
 const sections = [
   {
@@ -23,6 +25,16 @@ const sections = [
     id: "quotes",
     title: "Demandes de voyage",
     description: "Consultez les demandes à étudier.",
+  },
+  {
+    id: "appointments",
+    title: "Rendez-vous",
+    description: "Confirmez les créneaux demandés par les clients.",
+  },
+  {
+    id: "reviews",
+    title: "Avis voyageurs",
+    description: "Modérez les avis transmis par les clients.",
   },
   {
     id: "trips",
@@ -59,7 +71,7 @@ export default function Dashboard({ user, onLogout }) {
         <p className="sidebar-label">ESPACE DE TRAVAIL</p>
 
         <nav className="dashboard-nav" aria-label="Navigation principale">
-          {sections.map((section) => (
+          {sections.map((section, index) => (
             <button
               key={section.id}
               type="button"
@@ -68,6 +80,9 @@ export default function Dashboard({ user, onLogout }) {
               }`}
               onClick={() => setActiveSection(section.id)}
             >
+              <span className="nav-number" aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
               <span>{section.title}</span>
             </button>
           ))}
@@ -175,6 +190,8 @@ export default function Dashboard({ user, onLogout }) {
 
           {activeSection === "reservations" && <Reservations />}
           {activeSection === "quotes" && <Requests />}
+          {activeSection === "appointments" && <Appointments />}
+          {activeSection === "reviews" && <Reviews />}
           {activeSection === "clients" && <Clients />}
 
           {activeSection === "trips" && (
@@ -205,5 +222,3 @@ export default function Dashboard({ user, onLogout }) {
     </main>
   );
 }
-
-

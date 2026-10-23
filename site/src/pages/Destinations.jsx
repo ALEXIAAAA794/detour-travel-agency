@@ -58,7 +58,7 @@ function DestinationCard({ d, reverse }) {
           </div>
           <Link
             className="pill"
-            to="/pre-reservation"
+            to="/espace/prereservation"
           >
             {d.cta}
           </Link>
@@ -102,7 +102,7 @@ export default function Destinations() {
 
   return (
     <>
-      <section className="page-head">
+      <section className="page-head destinations-head">
         <div className="wrap">
 
           <h1>

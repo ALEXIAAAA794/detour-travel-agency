@@ -15,7 +15,13 @@ const statusSchema = z.object({
     "PENDING", "NEEDS_INFO", "IN_REVIEW", "PROPOSAL_SENT",
     "ACCEPTED", "PAYMENT_PENDING", "PAID", "CONFIRMED",
     "REJECTED", "CANCELLED",
+    "PENDING_REVIEW", "PREPARATION_AVAILABLE", "PREPARATION_IN_PROGRESS",
+    "SUBMITTED", "FEASIBILITY_REVIEW", "CHANGES_REQUESTED",
+    "CONFIRMED_AWAITING_PAYMENT", "REFUSED", "EXPIRED",
   ]),
+  paymentUrl: z.string().url().max(2000)
+    .refine((value) => value.toLowerCase().startsWith("https://"))
+    .optional(),
 });
 
 const noteSchema = z.object({
@@ -34,8 +40,8 @@ export const requestController = {
 
   updateStatus: wrap(async (req, res) => {
     const { id } = idSchema.parse(req.params);
-    const { status } = statusSchema.parse(req.body);
-    res.json(await requestService.updateStatus(id, status));
+    const { status, paymentUrl } = statusSchema.parse(req.body);
+    res.json(await requestService.updateStatus(id, status, paymentUrl));
   }),
 
   addNote: wrap(async (req, res) => {

@@ -41,17 +41,35 @@
 .support-reference dd { margin:6px 0 0; overflow-wrap:anywhere; font-weight:600; }
 .support-confirmation-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:32px; }
 .support-brand .support-primary { background:#F2B705; color:var(--ink); border-color:#F2B705; }
-.support-chat.support-brand { z-index:40; }
+.support-chat.support-brand { position:fixed; top:calc(4.25rem + 1rem); right:clamp(16px,4vw,48px); z-index:40; }
 .support-brand .support-chat__panel { background:var(--chalk); border:1px solid var(--sky); box-shadow:0 12px 50px #16233f26; }
 .support-brand .support-chat__header { background:var(--sky); color:var(--ink); }
 .support-brand .support-chat__header span,.support-brand .support-chat__typing { color:var(--ink); }
 .support-brand .support-chat__message--assistant,.support-brand .support-chat__message--model { background:var(--chalk); color:var(--ink); border:1px solid var(--sky); }
 .support-brand .support-chat__message--user { background:var(--sky); color:var(--ink); }
 .support-brand .support-chat__form { border-color:var(--sky); }
-.support-brand .support-chat__launcher { display:flex; align-items:center; gap:12px; background:var(--chalk); color:var(--ink); }
-.support-brand .support-chat__launcher img { display:block; object-fit:contain; width:32px; height:32px; }
+.support-brand .support-chat__launcher { position:relative; display:flex; align-items:center; gap:12px; min-height:64px; padding:8px 18px 8px 10px; border:1px solid #6B7385; border-radius:999px; background:var(--chalk); color:var(--ink); box-shadow:0 8px 24px #16233f24; text-decoration:none; transition:transform .2s,box-shadow .2s; }
+.support-brand .support-chat__launcher:hover { transform:translateY(-2px); box-shadow:0 12px 30px #16233f35; }
+.support-chat__avatar { display:grid; width:46px; height:46px; flex:0 0 auto; place-items:center; border-radius:50%; background:var(--sky); }
+.support-brand .support-chat__launcher img { display:block; object-fit:contain; width:36px; height:36px; }
+.support-chat__label { display:flex; flex-direction:column; line-height:1.25; }
+.support-chat__label strong { font-size:.95rem; }
+.support-chat__label small { color:var(--ink); font-size:.72rem; }
+.support-chat__status { position:absolute; top:4px; right:5px; width:11px; height:11px; border:2px solid var(--chalk); border-radius:50%; background:#2f7b55; animation:nicia-status-pulse 1.8s ease-in-out infinite; }
+@keyframes nicia-status-pulse { 0%,100% { opacity:1; box-shadow:0 0 0 0 #2f7b5560; } 50% { opacity:.55; box-shadow:0 0 0 5px #2f7b5500; } }
 .support-brand .support-chat__close { background:transparent; color:var(--ink); border:0; border-radius:8px; }
-@media(max-width:600px) { .support-confirmation-actions { flex-direction:column; } .support-confirmation-actions a { width:100%; } .support-brand h1 { font-size:2.1rem; } .support-chat.support-brand { right:12px; bottom:12px; max-width:calc(100vw - 24px); } .support-brand .support-chat__panel { width:min(360px,calc(100vw - 24px)); max-height:75vh; } .support-brand .support-chat__messages { max-height:32vh; } }
+@media(max-width:600px) { .support-confirmation-actions { flex-direction:column; } .support-confirmation-actions a { width:100%; } .support-brand h1 { font-size:2.1rem; } .support-chat.support-brand { top:calc(4.25rem + .5rem); right:12px; max-width:calc(100vw - 24px); } .support-brand .support-chat__launcher { min-height:54px; gap:8px; padding:6px 14px 6px 7px; } .support-chat__avatar { width:40px; height:40px; } .support-brand .support-chat__launcher img { width:31px; height:31px; } .support-chat__label small { font-size:.67rem; } .support-brand .support-chat__panel { width:min(360px,calc(100vw - 24px)); max-height:75vh; } .support-brand .support-chat__messages { max-height:32vh; } }
+@media(prefers-reduced-motion:reduce) { .support-chat__status { animation:none; } .support-brand .support-chat__launcher { transition:none; } }
+
+.support-brand .support-chat__launcher {min-height:48px;gap:8px;padding:5px 15px 5px 7px;}
+.support-chat__avatar {width:36px;height:36px;}
+.support-brand .support-chat__launcher img {width:27px;height:27px;}
+.support-chat__label strong {font-size:.9rem;}
+@media(max-width:600px) {
+ .support-brand .support-chat__launcher {min-height:44px;gap:6px;padding:4px 12px 4px 6px;}
+ .support-chat__avatar {width:32px;height:32px;}
+ .support-brand .support-chat__launcher img {width:24px;height:24px;}
+}
 
 .support-brand h4 { font-weight:600; }
 .support-reference { border-block-color:#6B7385; }

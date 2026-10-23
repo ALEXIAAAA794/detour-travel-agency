@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import SupportChat from "./SupportChat.jsx";
+import CookieConsent from "./CookieConsent.jsx";
 import NiciaShell from "./NiciaChrome.jsx";
 import { useSupport } from "../support/SupportContext.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -10,16 +11,12 @@ const NAV = [
   ["/destinations", "Nos destinations"],
   ["/avis", "Avis voyageurs"],
   ["/agence", "L'agence"],
-  ["/contact", "Contact"],
-  ["/espace", "Mon espace"],
-  ["/mentions-legales", "Mentions légales"],
 ];
 
 function Header() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const { user } = useAuth();
-  const onAccountPage = pathname.startsWith("/espace");
   useEffect(() => setOpen(false), [pathname]); // ferme le menu mobile après navigation
 
   return (
@@ -34,13 +31,18 @@ function Header() {
               {label}
             </NavLink>
           ))}
-          <NavLink to={user ? "/profile" : "/login"}>
-            {user ? "Mon profil" : "Connexion"}
-          </NavLink>
-          {onAccountPage && <Link className="mobile-nav-action" to="/pre-reservation">Nouvelle demande</Link>}
+          {user && <NavLink to="/espace" end className={({ isActive }) => (isActive ? "active" : "")}>Mon espace</NavLink>}
         </nav>
-        <Link className="pill" to={onAccountPage ? "/pre-reservation" : "/contact"}>
-          {onAccountPage ? "Nouvelle demande" : "Demander un devis"}
+        <Link
+          className="home-account"
+          to={user ? "/profile" : "/login"}
+          aria-label={user ? "Mon profil" : "Connexion"}
+          title={user ? "Mon profil" : "Connexion"}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.25" />
+            <path d="M5.5 20c.6-3.2 2.7-5 6.5-5s5.9 1.8 6.5 5" />
+          </svg>
         </Link>
         <button className="menu-toggle" type="button" aria-label="Menu" aria-expanded={open}
           aria-controls="nav" onClick={() => setOpen((o) => !o)}>☰</button>
@@ -65,7 +67,6 @@ function Footer() {
             <ul>
               {NAV.map(([to, label]) => <li key={to}><Link to={to}>{label}</Link></li>)}
               <li><Link to="/mentions-legales">Mentions légales</Link></li>
-              <li><a href="#">CGV</a></li>
             </ul>
           </div>
           <div>
@@ -102,15 +103,16 @@ export default function Layout() {
     else window.scrollTo(0, 0);
   }, [pathname, hash]);
 
-  if (["/assistant", "/assistant.html"].includes(pathname)) return <NiciaShell><a className="skip" href="#contenu">Aller au contenu</a><Outlet/></NiciaShell>;
+  if (["/assistant", "/assistant.html"].includes(pathname)) return <NiciaShell><a className="skip" href="#contenu">Aller au contenu</a><Outlet/><CookieConsent /></NiciaShell>;
 
   return (
     <>
       <a className="skip" href="#contenu">Aller au contenu</a>
-      {assistantRoute ? <header className="support-brand support-shell"><div className="wrap"><Link to="/" aria-label="DÉTOUR — accueil"><img src="/support-brand/detour-logo-mono-encre.svg" width="160" alt="DÉTOUR" /></Link><Link to="/contact">contact</Link></div></header> : <Header />}
+      <Header />
       <Outlet />
-      {assistantRoute ? <footer className="support-brand support-footer"><div className="wrap">DÉTOUR Voyages · <Link to="/contact">{language === "en" ? "contact an adviser" : "contacter un conseiller"}</Link></div></footer> : <Footer />}
+      {assistantRoute ? <footer className="support-brand support-footer"><div className="wrap">DÉTOUR Voyages · <a href="mailto:contact@detour-voyages.fr">{language === "en" ? "contact an adviser" : "contacter un conseiller"}</a></div></footer> : <Footer />}
       {!assistantRoute && <SupportChat />}
+      <CookieConsent />
     </>
   );
 }

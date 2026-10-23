@@ -47,6 +47,9 @@ export default function Profile() {
           </div>
 
           <div style={{ marginTop: 24 }}>
+            <Link className="pill" to="/espace">
+              Suivre mes demandes et voyages
+            </Link>
             <button className="pill" type="button" onClick={logout}>
               Déconnexion
             </button>

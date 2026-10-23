@@ -27,7 +27,7 @@ export default function Agency() {
 
   return (
     <>
-      <section className="page-head">
+      <section className="page-head agency-head">
         <div className="wrap">
           <p className="crumbs"><Link to="/">Accueil</Link> / L'agence</p>
           <h1>Qui sommes-nous ?</h1>
@@ -77,7 +77,7 @@ export default function Agency() {
           </section>
 
           <Steps title="Un week-end en quatre étapes" items={STEPS} />
-          <Cta title="Envie de nous rencontrer ?" text="L'agence est ouverte du mardi au samedi, de 10h à 19h, au 12 rue des Écluses à Nantes." />
+          <Cta title="Envie de nous rencontrer ?" text="Choisissez un créneau et partagez votre projet. Notre équipe vous recontactera pour confirmer le rendez-vous." label="Prendre rendez-vous" to="/rendez-vous" />
         </div>
       </main>
     </>

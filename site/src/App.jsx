@@ -15,6 +15,8 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Profile from "./pages/Profile.jsx";
 import { AuthProvider } from "./auth/AuthContext.jsx";
+import RequireClient from "./auth/RequireClient.jsx";
+import AppointmentRequest from "./pages/AppointmentRequest.jsx";
 
 
 export default function App() {
@@ -29,13 +31,14 @@ export default function App() {
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="assistant/classique" element={<LegacyAssistant />} />
-        <Route path="assistant/confirmation" element={<PreferencesConfirmation />} />
-        <Route path="assistant" element={<Assistant />} />
-        <Route path="assistant.html" element={<Assistant />} />
+        <Route path="assistant/classique" element={<RequireClient><LegacyAssistant /></RequireClient>} />
+        <Route path="assistant/confirmation" element={<RequireClient><PreferencesConfirmation /></RequireClient>} />
+        <Route path="assistant" element={<RequireClient><Assistant /></RequireClient>} />
+        <Route path="assistant.html" element={<RequireClient><Assistant /></RequireClient>} />
+        <Route path="rendez-vous" element={<RequireClient><AppointmentRequest /></RequireClient>} />
         <Route path="contact" element={<Contact />} />
-        <Route path="pre-reservation" element={<ClientJourney />} />
-        <Route path="espace/:section?" element={<ClientJourney />} />
+        <Route path="pre-reservation" element={<RequireClient><ClientJourney /></RequireClient>} />
+        <Route path="espace/:section?" element={<RequireClient><ClientJourney /></RequireClient>} />
         <Route path="*" element={<Home />} />
       </Route>
     </Routes></SupportProvider></AuthProvider>

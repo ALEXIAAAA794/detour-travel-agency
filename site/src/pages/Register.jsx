@@ -1,5 +1,5 @@
 ﻿import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { usePageMeta } from "../components/Common.jsx";
 
@@ -7,6 +7,8 @@ export default function Register() {
     usePageMeta("Inscription", "Créez votre compte DÉTOUR.");
     const { register } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const returnTo = location.state?.from;
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -20,7 +22,7 @@ export default function Register() {
         setBusy(true);
         try {
             await register(name, email, password);
-            navigate("/");
+            navigate(returnTo ? `${returnTo.pathname}${returnTo.search || ""}${returnTo.hash || ""}` : "/", { replace: true });
         } catch (err) {
             setError(err.message);
         } finally {
@@ -78,7 +80,7 @@ export default function Register() {
                 </form>
 
                 <p className="auth-switch">
-                    Déjà un compte ? <Link to="/login">Se connecter</Link>
+                    Déjà un compte ? <Link to="/login" state={location.state}>Se connecter</Link>
                 </p>
             </div>
         </main>

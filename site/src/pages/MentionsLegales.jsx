@@ -8,25 +8,24 @@ const legalSections = [
     content: (
       <>
         <p>
-          Le site <strong>detour-voyages.fr</strong> est édité par :
+          Le site <strong>detour-voyages.fr</strong> est édité sous la marque
+          DÉTOUR Voyages.
         </p>
         <div className="legal-info-card">
-          <span className="legal-label">Société</span>
+          <span className="legal-label">Éditeur</span>
           <h3>DÉTOUR Voyages</h3>
-          <p>12 rue des Écluses<br />44000 Nantes, France</p>
           <div className="legal-divider" />
           <span className="legal-label">Contact</span>
           <p>
-            <a href="tel:+33240000000">02 40 00 00 00</a><br />
             <a href="mailto:contact@detour-voyages.fr">
               contact@detour-voyages.fr
             </a>
           </p>
         </div>
         <p>
-          Directeur de la publication : [Nom du responsable]<br />
-          SIRET : [à compléter]<br />
-          Capital social : [à compléter]
+          Directeur de la publication : Sion Genders<br />
+          SIRET : 927 647 453 00012<br />
+          Capital social : 10 000 €
         </p>
       </>
     ),
@@ -36,14 +35,9 @@ const legalSections = [
     title: "Hébergement",
     content: (
       <>
-        <p>Le site est hébergé par :</p>
         <div className="legal-info-card">
           <span className="legal-label">Hébergeur</span>
-          <h3>[Nom de l’hébergeur]</h3>
-          <p>
-            [Adresse de l’hébergeur]<br />
-            [Téléphone / site web de l’hébergeur]
-          </p>
+          <h3>Microsoft Azure</h3>
         </div>
       </>
     ),

@@ -108,23 +108,29 @@ export default function Clients() {
 
     try {
       const [clientsResponse, requestsResponse] = await Promise.all([
-        fetch("/api/clients", { credentials: "include" }),
-        fetch("/api/requests", { credentials: "include" }),
+        fetch("/manager-api/clients", { credentials: "include" }),
+        fetch("/manager-api/requests", { credentials: "include" }),
       ]);
 
-      if (!clientsResponse.ok || !requestsResponse.ok) {
-        throw new Error("Impossible de récupérer les voyageurs.");
+      const [clientsData, requestsData] = await Promise.all(
+        [clientsResponse, requestsResponse].map(async (response) => {
+          const data = await response.json().catch(() => null);
+          if (!response.ok) {
+            throw new Error(data?.error || data?.message || `Erreur API (${response.status})`);
+          }
+          return data;
+        })
+      );
+
+      if (!Array.isArray(clientsData) || !Array.isArray(requestsData)) {
+        throw new Error("Format de réponse API inattendu.");
       }
-
-      const [clientsData, requestsData] = await Promise.all([
-        clientsResponse.json(),
-        requestsResponse.json(),
-      ]);
-
-      setClients(Array.isArray(clientsData) ? clientsData : []);
-      setRequests(Array.isArray(requestsData) ? requestsData : []);
-    } catch {
-      setError("Les voyageurs n’ont pas pu être chargés. Vérifiez que le serveur fonctionne.");
+      setClients(clientsData);
+      setRequests(requestsData);
+    } catch (loadError) {
+      setError(
+        `${loadError instanceof Error ? loadError.message : "Erreur inconnue"}. Vérifiez la session gestionnaire et le serveur.`
+      );
     } finally {
       setLoading(false);
     }

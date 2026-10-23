@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { login } from "../services/auth";
 
-export default function Login({ onLogin }) {
-  const [email, setEmail] = useState("");
+export default function Login({ onLogin, initialError = "" }) {
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event) {
@@ -14,10 +14,14 @@ export default function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const user = await login(email, password);
+      const user = await login(identifier, password);
       onLogin(user);
     } catch (err) {
-      setError(err.message || "Une erreur est survenue.");
+      setError(err.status === 401
+        ? "Identifiant ou mot de passe incorrect. Saisissez l’identifiant gestionnaire, pas votre adresse e-mail."
+        : err.status >= 500 || err instanceof TypeError
+          ? "Le service de connexion gestionnaire ne répond pas. Vérifiez que le service conseillers est démarré sur le port 8081."
+          : err.message || "Une erreur est survenue.");
     } finally {
       setLoading(false);
     }
@@ -33,14 +37,14 @@ export default function Login({ onLogin }) {
         </p>
 
         <form onSubmit={handleSubmit}>
-          <label htmlFor="email">Adresse e-mail</label>
+          <label htmlFor="identifier">Identifiant gestionnaire</label>
           <input
-            id="email"
-            type="email"
+            id="identifier"
+            type="text"
             autoComplete="username"
-            placeholder="gestionnaire@detour.fr"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            placeholder="Votre identifiant"
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
             required
           />
 
@@ -63,7 +67,7 @@ export default function Login({ onLogin }) {
         </form>
 
         <p className="security-note">
-          Accès réservé aux gestionnaires autorisés.
+          Accès réservé aux gestionnaires autorisés. Utilisez l’identifiant créé pour votre compte gestionnaire.
         </p>
       </section>
     </main>

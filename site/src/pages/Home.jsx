@@ -1,14 +1,6 @@
 import { Link } from "react-router-dom";
 import { DESTINATIONS } from "../data.js";
-import { Features, usePageMeta } from "../components/Common.jsx";
-
-
-const FEATURES = [
-  ["spark", "100 % sur mesure", "Chaque séjour est préparé par un conseiller selon vos envies, vos dates et votre budget."],
-  ["headset", "Une équipe à l'écoute", "Du mardi au samedi, de 10h à 19h, nous répondons à vos questions avant, pendant et après le voyage."],
-  ["leaf", "Sans voiture", "On privilégie le train pour voyager plus simplement et plus respectueusement."],
-  ["shield", "Devis gratuit sous 48 h", "Réponse sous 48 h ouvrées, sans engagement, avec un interlocuteur dédié."],
-];
+import { usePageMeta } from "../components/Common.jsx";
 
 function DestCard({ d }) {
 
@@ -52,10 +44,11 @@ export default function Home() {
     "DÉTOUR, agence de voyages insolites : week-ends sur mesure en train à Nantes, Lyon, Lille. Devis gratuit !"
   );
   const list = DESTINATIONS.slice(0, 3);
+  const inspirations = DESTINATIONS.slice(3, 6);
 
   return (
     <>
-      <section className="hero">
+      <section className="hero home-hero">
         <div className="wrap">
           <h1>
             Des week-ends sur mesure,{" "}
@@ -65,22 +58,17 @@ export default function Home() {
             Découvrez la France autrement avec DÉTOUR : des séjours en train, sans voiture, préparés par nos conseillers pour créer des expériences uniques et inoubliables.
           </p>
           <div className="hero-cta">
-            <Link className="pill" to="/pre-reservation">Demander une pré-réservation</Link>
+            <Link className="pill" to="/assistant">Parlons de votre projet</Link>
             <Link className="pill ghost" to="/destinations">Voir nos destinations</Link>
           </div>
-
-
         </div>
       </section>
 
-      <main id="contenu">
+      <main className="home-main" id="contenu">
         <div className="wrap">
-          <Features items={FEATURES} />
-
           <section id="destinations">
-            <div className="section-head">
+            <div className="section-head home-destination-head">
               <div>
-                <span className="eyebrow">Nos coups de cœur</span>
                 <h2>Des lieux qui font rêver</h2>
               </div>
               <Link to="/destinations">Voir toutes les destinations →</Link>
@@ -90,14 +78,53 @@ export default function Home() {
                 <DestCard key={d.id} d={d} />
               ))}
             </div>
-            <p className="note">
-              * Prix indicatif par personne, base 2 personnes, 1 nuit + 1 activité. Train A/R depuis Paris. Sous réserve de disponibilité au moment de la réservation.
-            </p>
           </section>
         </div>
 
-
+        <section className="home-strengths wrap" aria-labelledby="strengths-title">
+          <span className="eyebrow">L’esprit DÉTOUR</span>
+          <h2 id="strengths-title">Un voyage pensé avec vous, vérifié par une personne</h2>
+          <div className="home-strength-grid">
+            <article><h3>Du sur-mesure</h3><p>Vos envies, votre rythme et votre budget guident chaque proposition.</p></article>
+            <article><h3>Un conseiller dédié</h3><p>Une personne vérifie les prix, les horaires et les disponibilités avant confirmation.</p></article>
+            <article><h3>Le train d’abord</h3><p>Des escapades conçues pour découvrir autrement, avec moins de trajets inutiles.</p></article>
+          </div>
+        </section>
       </main>
+
+      <section className="home-inspirations">
+        <div className="wrap">
+          <div className="section-head">
+            <div><span className="eyebrow">Pour rêver un peu</span><h2>Inspirations grand voyage</h2></div>
+            <Link to="/destinations">Explorer les destinations →</Link>
+          </div>
+          <div className="dest-grid">
+            {inspirations.map((destination) => <DestCard key={destination.id} d={destination} />)}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-testimonials wrap" aria-labelledby="testimonials-title">
+        <span className="eyebrow">Avis voyageurs</span>
+        <h2 id="testimonials-title">Ils prennent le pas de côté</h2>
+        <p className="review-demo-notice">
+          Exemples fictifs pour la démonstration — ces témoignages ne sont pas des avis clients vérifiés.
+        </p>
+        <div className="home-testimonial-grid">
+          <blockquote>« Un week-end imaginé à notre rythme, avec de belles découvertes. »<cite>Camille et Alex · exemple</cite></blockquote>
+          <blockquote>« Les étapes nous ont laissé le temps de profiter de la ville. »<cite>Samira · exemple</cite></blockquote>
+          <blockquote>« Une proposition claire et des conseils pratiques pour partir sereins. »<cite>Louis et Anaïs · exemple</cite></blockquote>
+        </div>
+        <Link to="/avis">Voir les exemples d’avis →</Link>
+      </section>
+
+      <section className="cta home-booking-cta">
+        <div className="wrap">
+          <h2>Votre prochaine escapade commence par une idée.</h2>
+          <p>Connectez-vous à votre espace client pour demander un voyage, suivre votre dossier et prendre rendez-vous.</p>
+          <Link className="pill" to="/espace">Accéder à mon espace client</Link>
+        </div>
+      </section>
     </>
   );
 }

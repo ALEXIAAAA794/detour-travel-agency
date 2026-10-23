@@ -23,10 +23,10 @@ async function request(endpoint, options = {}) {
   return data;
 }
 
-export async function login(email, password) {
+export async function login(identifier, password) {
   return request("/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ identifier, password }),
   });
 }
 

@@ -3,26 +3,48 @@ import "./requests.css";
 
 const statuses = [
   "Toutes",
-  "En attente",
+  "Demande reçue",
+  "Demande en cours d’étude",
   "À préciser",
-  "Proposition en préparation",
+  "Préparation disponible",
+  "Préparation en cours",
+  "Vérification de faisabilité",
   "Proposition envoyée",
-  "Confirmée",
+  "Proposition envoyée au gestionnaire",
+  "Modification demandée",
+  "Voyage confirmé, paiement en attente",
+  "Payé",
   "Refusée",
+  "Expirée",
 ];
 
 const statusToApi = {
-  "En attente": "PENDING",
+  "Demande reçue": "PENDING_REVIEW",
+  "Demande en cours d’étude": "IN_REVIEW",
   "À préciser": "NEEDS_INFO",
-  "Proposition en préparation": "IN_REVIEW",
+  "Préparation disponible": "PREPARATION_AVAILABLE",
+  "Préparation en cours": "PREPARATION_IN_PROGRESS",
+  "Vérification de faisabilité": "FEASIBILITY_REVIEW",
   "Proposition envoyée": "PROPOSAL_SENT",
-  "Confirmée": "CONFIRMED",
-  "Refusée": "REJECTED",
+  "Proposition envoyée au gestionnaire": "SUBMITTED",
+  "Modification demandée": "CHANGES_REQUESTED",
+  "Voyage confirmé, paiement en attente": "CONFIRMED_AWAITING_PAYMENT",
+  "Payé": "PAID",
+  "Refusée": "REFUSED",
+  "Expirée": "EXPIRED",
 };
 
 const statusFromApi = Object.fromEntries(
   Object.entries(statusToApi).map(([label, value]) => [value, label])
 );
+statusFromApi.PENDING = "Demande reçue";
+statusFromApi.SUBMITTED = "Proposition envoyée";
+statusFromApi.CONFIRMED = "Voyage confirmé, paiement en attente";
+statusFromApi.PAID = "Payé";
+statusFromApi.REJECTED = "Refusée";
+statusFromApi.PENDING_REVIEW = "Demande reçue";
+statusFromApi.IN_REVIEW = "Demande en cours d’étude";
+statusFromApi.PAYMENT_PENDING = "Voyage confirmé, paiement en attente";
 
 const money = (n) =>
   new Intl.NumberFormat("fr-FR", {
@@ -56,10 +78,11 @@ function mapRequest(item) {
     destination: item.destination,
     start: item.startDate ? String(item.startDate).slice(0, 10) : "",
     end: item.endDate ? String(item.endDate).slice(0, 10) : "",
+    datePreference: item.datePreference || "",
     received: item.createdAt,
     status: statusFromApi[item.status] || item.status,
     travelers: item.travelers,
-    budget: Number(item.budget || 0),
+    budget: item.budgetText || item.budget || "Non renseigné",
     preferences: item.preferences || "",
     proposal: {
       stages: proposal.itinerary
@@ -93,6 +116,7 @@ export default function Requests() {
   const [filter, setFilter] = useState("Toutes");
   const [tab, setTab] = useState("details");
   const [note, setNote] = useState("");
+  const [paymentUrl, setPaymentUrl] = useState("");
   const [flash, setFlash] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -102,7 +126,7 @@ export default function Requests() {
     setError("");
 
     try {
-      const response = await fetch("/api/requests");
+      const response = await fetch("/manager-api/requests");
       if (!response.ok) {
         throw new Error(`Erreur API (${response.status})`);
       }
@@ -136,6 +160,10 @@ export default function Requests() {
 
   const current = rows.find((item) => item.id === id) || null;
 
+  useEffect(() => {
+    setPaymentUrl(current?.paymentUrl || "");
+  }, [current?.id, current?.paymentUrl]);
+
   const list = useMemo(
     () =>
       rows.filter(
@@ -153,7 +181,7 @@ export default function Requests() {
     [rows, q, filter]
   );
 
-  async function updateStatus(newStatus) {
+  async function updateStatus(newStatus, paymentLink = "") {
     if (!current) return;
 
     const apiStatus = statusToApi[newStatus];
@@ -161,11 +189,14 @@ export default function Requests() {
 
     try {
       const response = await fetch(
-        `/api/requests/${current.id}/status`,
+        `/manager-api/requests/${current.id}/status`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: apiStatus }),
+          body: JSON.stringify({
+            status: apiStatus,
+            ...(paymentLink ? { paymentUrl: paymentLink } : {}),
+          }),
         }
       );
 
@@ -174,7 +205,16 @@ export default function Requests() {
         throw new Error(body.message || `Erreur API (${response.status})`);
       }
 
-      setFlash(`Statut mis à jour : ${newStatus}`);
+      const result = await response.json().catch(() => ({}));
+      setFlash(
+        result.preparationEmailSent === false
+          ? `Statut mis à jour : ${newStatus}. ${result.preparationEmailNotice || "Email de préparation non envoyé."}`
+          : result.confirmationEmailSent === true
+            ? `Statut mis à jour : ${newStatus}. Email de confirmation envoyé à ${current.email}.`
+            : result.confirmationEmailSent === false
+              ? `Statut mis à jour : ${newStatus}. ${result.confirmationEmailNotice || "Email de confirmation non envoyé."}`
+              : `Statut mis à jour : ${newStatus}`
+      );
       await loadRequests();
     } catch (err) {
       setError(`Impossible d'enregistrer le statut : ${err.message}`);
@@ -193,7 +233,7 @@ export default function Requests() {
 
     try {
       const response = await fetch(
-        `/api/requests/${current.id}/notes`,
+        `/manager-api/requests/${current.id}/notes`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -227,7 +267,7 @@ export default function Requests() {
         </div>
         <div className="rq-stats">
           <span><b>{rows.length}</b>Dossiers</span>
-          <span><b>{rows.filter((r) => ["En attente", "À préciser"].includes(r.status)).length}</b>À traiter</span>
+          <span><b>{rows.filter((r) => ["Demande reçue", "Demande en cours d’étude", "À préciser"].includes(r.status)).length}</b>À traiter</span>
           <span><b>{rows.filter((r) => r.payment === "Reçu").length}</b>Payés</span>
         </div>
       </header>
@@ -291,7 +331,7 @@ export default function Requests() {
               {tab === "details" && (
                 <div className="rq-body">
                   <div className="rq-grid">
-                    {[["Email", current.email], ["Téléphone", current.phone], ["Départ", date(current.start)], ["Retour", date(current.end)], ["Voyageurs", current.travelers], ["Budget", money(current.budget)]].map(([label, value]) => (
+                    {[["Email", current.email], ["Téléphone", current.phone], ["Départ", date(current.start)], ["Retour", date(current.end)], ["Période souhaitée", current.datePreference || "Non renseignée"], ["Voyageurs", current.travelers], ["Budget", typeof current.budget === "number" ? money(current.budget) : current.budget]].map(([label, value]) => (
                       <div className="rq-info" key={label}><small>{label}</small><b>{value}</b></div>
                     ))}
                   </div>
@@ -300,7 +340,7 @@ export default function Requests() {
                     <h3>Traitement de la demande</h3>
                     <div className="rq-actions">
                       <button onClick={() => updateStatus("À préciser")}>Demander des précisions</button>
-                      <button className="primary" onClick={() => updateStatus("Confirmée")}>Confirmer</button>
+                      <button className="primary" onClick={() => updateStatus("Préparation disponible")}>Autoriser la préparation</button>
                       <button className="danger" onClick={() => updateStatus("Refusée")}>Refuser</button>
                     </div>
                     <label>Statut<select value={current.status} onChange={(e) => updateStatus(e.target.value)}>{statuses.slice(1).map((s) => <option key={s}>{s}</option>)}</select></label>
@@ -336,9 +376,11 @@ export default function Requests() {
                   <div className="rq-pay">
                     <small>SUIVI DU RÈGLEMENT</small><h3>{current.payment}</h3>
                     <p>Montant de la proposition : <b>{money(current.proposal.price)}</b></p>
-                    <label>Lien du prestataire de paiement<input readOnly value={current.paymentUrl} placeholder="Aucun lien enregistré" /></label>
+                    <label>Lien sécurisé du prestataire de paiement<input type="url" value={paymentUrl} onChange={(event) => setPaymentUrl(event.target.value)} placeholder="https://…" /></label>
+                    <button className="primary" onClick={() => updateStatus("Voyage confirmé, paiement en attente", paymentUrl)} disabled={!paymentUrl.startsWith("https://")}>Enregistrer le lien et passer en attente de paiement</button>
+                    <button onClick={() => updateStatus("Payé")}>Marquer le paiement comme reçu</button>
                   </div>
-                  <p className="rq-muted">Le lien de paiement et les confirmations nécessitent une intégration backend dédiée.</p>
+                  <p className="rq-muted">Le lien est fourni manuellement par le conseiller. Aucun paiement ni vérification automatique n’est effectué par DÉTOUR.</p>
                 </div>
               )}
 
@@ -353,7 +395,7 @@ export default function Requests() {
         </section>
       </div>
 
-      <p className="rq-footnote">Les dossiers et statuts sont chargés depuis l'API. Les notes, propositions, emails et paiements nécessitent encore leurs routes backend dédiées.</p>
+      <p className="rq-footnote">Les dossiers, statuts, emails de préparation et liens fournis par le conseiller sont enregistrés par l’API. Le paiement reste manuel ; aucun encaissement automatique n’est intégré.</p>
     </main>
   );
 }

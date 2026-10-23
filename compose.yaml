@@ -1,0 +1,156 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: detour
+      POSTGRES_USER: detour
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.docker.example to .env.docker and set the values}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U detour -d detour"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://detour:${POSTGRES_PASSWORD}@db:5432/detour
+      CORS_ORIGIN: http://localhost:5173
+      CLIENT_AUTH_URL: http://client-auth:4000/api/me
+      CLIENT_APP_URL: http://localhost:5173
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      MANAGER_API_KEY: ${MANAGER_API_KEY:?Set MANAGER_API_KEY in .env.docker}
+      DETOUR_DOCKER_DEV: "true"
+    command: ["npm", "run", "docker:dev"]
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+
+  client-auth:
+    build:
+      context: ./server
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env.docker}
+      DATABASE_URL: postgresql://detour:${POSTGRES_PASSWORD}@db:5432/detour
+      LEGACY_CLIENT_USERS_FILE: /legacy-client-data/users.json
+      CORS_ORIGIN: http://localhost:5173
+    volumes:
+      - ./server:/legacy-client-data:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${CLIENT_AUTH_PORT:-4000}:4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  conseillers:
+    build:
+      context: .
+      dockerfile: conseillers/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 8081
+      DETOUR_TRAVEL_API_URL: http://backend:3000
+      DATABASE_URL: postgresql://detour:${POSTGRES_PASSWORD}@db:5432/detour
+      LEGACY_MANAGER_DB_PATH: /legacy-manager-data/gestion.db
+      MANAGER_API_KEY: ${MANAGER_API_KEY:?Set MANAGER_API_KEY in .env.docker}
+      SUPPORT_DEMANDES_DIR: /app/support-ia/data/demandes
+    volumes:
+      - ./conseillers/data:/legacy-manager-data:ro
+      - support-data:/app/support-ia/data
+    ports:
+      - "127.0.0.1:${MANAGER_API_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/auth/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  support-ia:
+    build:
+      context: ./support-ia
+    restart: unless-stopped
+    env_file:
+      - ./support-ia/.env
+    environment:
+      PORT: 3001
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
+      SUPPORT_PREPARATIONS_DIR: /app/data/preparations
+      SUPPORT_DEMANDES_DIR: /app/data/demandes
+      SUPPORT_EMAIL_ACCESS_DIR: /app/data/acces-preparations
+      SUPPORT_EMAIL_LINKS_DIR: /app/data/liens-email
+      SUPPORT_DIAGNOSTICS_DIR: /app/data/diagnostics
+    volumes:
+      - support-data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/support/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  site:
+    build:
+      context: ./site
+    restart: unless-stopped
+    environment:
+      DETOUR_CLIENT_API_PROXY: http://client-auth:4000
+      DETOUR_BACKEND_PROXY: http://backend:3000
+      DETOUR_MANAGER_API_PROXY: http://conseillers:8081
+      DETOUR_SUPPORT_API_PROXY: http://support-ia:3001
+      VITE_API_URL: /api
+    depends_on:
+      backend:
+        condition: service_healthy
+      client-auth:
+        condition: service_healthy
+      conseillers:
+        condition: service_healthy
+      support-ia:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${SITE_PORT:-5173}:5173"
+
+  gestionnaire:
+    build:
+      context: ./gestionnaire
+    restart: unless-stopped
+    environment:
+      DETOUR_MANAGER_API_PROXY: http://conseillers:8081
+      DETOUR_BACKEND_PROXY: http://backend:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+      conseillers:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${MANAGER_UI_PORT:-5174}:5174"
+
+volumes:
+  postgres-data:
+  support-data:

@@ -1,5 +1,4 @@
 
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap");
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Instrument+Sans:wght@400;500;600&display=swap');
 :root {
   font-family: "Instrument Sans", sans-serif;
@@ -16,8 +15,8 @@
   --sky: #bcd3ea;
   --brick: #c4553a;
   --ballast: #6b7385;
-  --line: #ded8ca;
-  --white: #fffdf8;
+  --line: rgba(22, 35, 63, .14);
+  --white: #fff;
 }
 
 * {
@@ -183,34 +182,30 @@ form button:disabled {
 /* STRUCTURE PRINCIPALE */
 
 .dashboard {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
   width: 100%;
-  max-width: 1680px;
   min-height: 100vh;
-  margin: 0 auto;
 }
 
 .dashboard-sidebar {
-  position: relative;
-  top: auto;
+  position: sticky;
+  top: 0;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  width: 100%;
-  min-height: auto;
-  padding: 18px 28px;
-  background: #172642;
-  color: #fff;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+  width: 260px;
+  height: 100vh;
+  min-height: 100vh;
+  overflow-y: auto;
+  padding: 26px 18px 18px;
+  background: var(--ink);
+  color: var(--chalk);
 }
 
 .dashboard-brand {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0;
+  display: block;
   color: var(--chalk);
   font-family: "Bricolage Grotesque", sans-serif;
   font-size: 31px;
@@ -248,8 +243,8 @@ form button:disabled {
 }
 
 .sidebar-label {
-  margin: 58px 0 16px 10px;
-  color: #aab4c7;
+  margin: 12px 0 0 10px;
+  color: #bcd3ea;
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 1.5px;
@@ -257,9 +252,9 @@ form button:disabled {
 
 .dashboard-nav {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
 }
 
 .nav-item {
@@ -267,30 +262,35 @@ form button:disabled {
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 46px;
-  padding: 10px;
+  min-height: 44px;
+  padding: 10px 11px;
   border: 1px solid transparent;
   border-radius: 2px;
   background: transparent;
-  color: #e2e5eb;
+  color: var(--chalk);
   text-align: left;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   transition: background 160ms ease, color 160ms ease;
 }
 
 .nav-item:hover {
-  background: #26324b;
+  background: rgba(188, 211, 234, .12);
 }
 
 .nav-item.active {
   background: var(--yellow);
   color: var(--ink);
+  box-shadow: inset 3px 0 var(--brick);
+}
+
+.nav-item.active .nav-number {
+  color: var(--ink);
 }
 
 .nav-number {
   min-width: 23px;
-  color: #aab4c7;
+  color: #bcd3ea;
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
@@ -306,7 +306,7 @@ form button:disabled {
   gap: 9px;
   margin-top: auto;
   padding-top: 24px;
-  color: #c5cbd6;
+  color: #bcd3ea;
   font-size: 11px;
 }
 
@@ -322,7 +322,7 @@ form button:disabled {
   margin-top: 18px;
   padding: 12px 0;
   border: 0;
-  border-top: 1px solid #3a455c;
+  border-top: 1px solid rgba(246, 241, 231, .2);
   background: transparent;
   color: var(--chalk);
   text-align: left;
@@ -342,6 +342,7 @@ form button:disabled {
   min-width: 0;
   min-height: 100vh;
   padding: 36px clamp(22px, 4vw, 58px) 20px;
+  background: var(--chalk);
 }
 
 .dashboard-header {
@@ -476,7 +477,7 @@ form button:disabled {
 .welcome-copy p {
   max-width: 390px;
   margin-bottom: 22px;
-  color: #36445f;
+  color: var(--ink);
   font-size: 13px;
   line-height: 1.7;
 }
@@ -493,7 +494,7 @@ form button:disabled {
   flex-shrink: 0;
   width: clamp(110px, 15vw, 190px);
   aspect-ratio: 1;
-  border: 1px solid #16233f50;
+  border: 1px solid rgba(22, 35, 63, .35);
   border-radius: 50%;
   transform: rotate(-9deg);
 }
@@ -540,12 +541,13 @@ form button:disabled {
   color: var(--ink);
   text-align: left;
   cursor: pointer;
-  transition: border-color 160ms ease, background 160ms ease;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
 }
 
 .dashboard-card:hover {
   border-color: var(--ink);
-  background: #fbf8f0;
+  background: var(--chalk);
+  transform: translateY(-2px);
 }
 
 .card-number {
@@ -675,12 +677,13 @@ form button:disabled {
 
 @media (max-width: 900px) {
   .dashboard {
-    grid-template-columns: 205px minmax(0, 1fr);
+    grid-template-columns: 220px minmax(0, 1fr);
   }
 
   .dashboard-sidebar {
-    padding-right: 15px;
-    padding-left: 15px;
+    width: 220px;
+    padding-right: 14px;
+    padding-left: 14px;
   }
 
   .dashboard-main {
@@ -705,8 +708,12 @@ form button:disabled {
 
   .dashboard-sidebar {
     position: static;
+    width: 100%;
+    height: auto;
     min-height: auto;
+    overflow-y: visible;
     padding: 20px;
+    gap: 12px;
   }
 
   .dashboard-brand {
@@ -714,10 +721,11 @@ form button:disabled {
   }
 
   .sidebar-label {
-    margin-top: 26px;
+    margin: 16px 0 0;
   }
 
   .dashboard-nav {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -809,9 +817,9 @@ form button:disabled {
 
 /* Rubriques de gestion */
 .management-section {
-  background: #fffdfa;
-  border: 1px solid #eee6de;
-  border-radius: 18px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 8px;
   padding: 26px;
   margin-top: 24px;
 }
@@ -828,24 +836,24 @@ form button:disabled {
 .management-toolbar h3,
 .management-section > h3 {
   margin: 0 0 8px;
-  color: #332720;
+  color: var(--ink);
 }
 
 .management-toolbar p,
 .management-intro {
   margin: 0;
-  color: #82766d;
+  color: var(--ballast);
   font-size: 14px;
 }
 
 .management-search {
   min-width: 240px;
   padding: 12px 14px;
-  border: 1px solid #e6dcd2;
-  border-radius: 10px;
-  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--white);
   font: inherit;
-  outline-color: #d69a7a;
+  outline-color: var(--yellow);
 }
 
 .management-table-wrap {
@@ -860,27 +868,27 @@ form button:disabled {
 }
 
 .management-table th {
-  color: #8a796c;
+  color: var(--ballast);
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 600;
-  background: #faf5ef;
+  background: var(--chalk);
 }
 
 .management-table th,
 .management-table td {
   padding: 15px 12px;
-  border-bottom: 1px solid #f0e9e2;
+  border-bottom: 1px solid var(--line);
   white-space: nowrap;
 }
 
 .management-table td {
-  color: #5d5047;
+  color: var(--ink);
 }
 
 .management-table td strong {
-  color: #332720;
+  color: var(--ink);
 }
 
 .status-pill {
@@ -892,18 +900,18 @@ form button:disabled {
 }
 
 .status-confirmed {
-  background: #e8f2e9;
-  color: #376b45;
+  background: rgba(188, 211, 234, .55);
+  color: var(--ink);
 }
 
 .status-pending {
-  background: #fff0df;
-  color: #95602e;
+  background: rgba(242, 183, 5, .2);
+  color: var(--ink);
 }
 
 .demo-note {
   margin: 18px 0 0;
-  color: #8b7d72;
+  color: var(--ballast);
   font-size: 12px;
 }
 
@@ -916,26 +924,26 @@ form button:disabled {
 
 .trip-card {
   padding: 22px;
-  border: 1px solid #eee2d7;
-  border-radius: 14px;
-  background: #fff8f1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
 }
 
 .trip-card span {
-  color: #bd7957;
+  color: var(--brick);
   font-size: 10px;
   letter-spacing: 0.12em;
   font-weight: 700;
 }
 
 .trip-card h4 {
-  color: #332720;
+  color: var(--ink);
   margin: 12px 0 8px;
   font-size: 20px;
 }
 
 .trip-card p {
-  color: #78695e;
+  color: var(--ballast);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -963,33 +971,33 @@ form button:disabled {
 .stat-card {
   min-width: 0;
   padding: 24px;
-  background: #fffdf8;
-  border: 1px solid #e5ddcf;
+  background: var(--white);
+  border: 1px solid var(--line);
   border-radius: 3px;
 }
 
 .stat-label,
 .stat-note {
   display: block;
-  color: #66748a;
+  color: var(--ballast);
   font-size: 13px;
 }
 
 .stat-value {
   display: block;
   margin: 17px 0 9px;
-  color: #172642;
+  color: var(--ink);
   font-size: clamp(32px, 3vw, 44px);
   line-height: 1;
   font-weight: 750;
 }
 
 .stat-card-pending {
-  border-top: 3px solid #f4b900;
+  border-top: 3px solid var(--yellow);
 }
 
 .stat-card-confirmed {
-  border-top: 3px solid #8fb8d9;
+  border-top: 3px solid var(--sky);
 }
 
 .recent-reservations,
@@ -1007,7 +1015,7 @@ form button:disabled {
 
 .recent-heading h2 {
   margin: 7px 0 0;
-  color: #172642;
+  color: var(--ink);
   font-size: clamp(22px, 2vw, 30px);
   letter-spacing: -0.04em;
 }
@@ -1015,7 +1023,7 @@ form button:disabled {
 .text-button {
   border: 0;
   background: transparent;
-  color: #172642;
+  color: var(--ink);
   font: inherit;
   font-size: 13px;
   font-weight: 650;
@@ -1023,20 +1031,20 @@ form button:disabled {
 }
 
 .text-button:hover {
-  color: #b18400;
+  color: var(--brick);
 }
 
 .dashboard-message,
 .dashboard-empty {
   padding: 30px;
-  border: 1px solid #e5ddcf;
-  background: #fffdf8;
-  color: #66748a;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--ballast);
 }
 
 .dashboard-empty h3 {
   margin: 12px 0 6px;
-  color: #172642;
+  color: var(--ink);
 }
 
 .dashboard-empty p {
@@ -1045,14 +1053,14 @@ form button:disabled {
 }
 
 .empty-icon {
-  color: #d5a400;
+  color: var(--yellow);
   font-size: 26px;
 }
 
 .recent-table-wrap {
   overflow-x: auto;
-  border: 1px solid #e5ddcf;
-  background: #fffdf8;
+  border: 1px solid var(--line);
+  background: var(--white);
 }
 
 .recent-table {
@@ -1064,14 +1072,14 @@ form button:disabled {
 .recent-table th,
 .recent-table td {
   padding: 17px 20px;
-  border-bottom: 1px solid #eee7dc;
+  border-bottom: 1px solid var(--line);
   font-size: 13px;
   white-space: nowrap;
 }
 
 .recent-table th {
-  background: #f7f2e8;
-  color: #66748a;
+  background: var(--chalk);
+  color: var(--ballast);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -1079,7 +1087,7 @@ form button:disabled {
 }
 
 .recent-table td {
-  color: #172642;
+  color: var(--ink);
 }
 
 .recent-table tbody tr:last-child td {
@@ -1090,8 +1098,8 @@ form button:disabled {
   display: inline-block;
   padding: 6px 10px;
   border-radius: 20px;
-  background: #edf2f7;
-  color: #172642;
+  background: rgba(188, 211, 234, .55);
+  color: var(--ink);
   font-size: 12px;
 }
 
@@ -1112,28 +1120,6 @@ form button:disabled {
   .recent-heading {
     align-items: flex-start;
     flex-direction: column;
-  }
-}
-
-@media (min-width: 651px) {
-  .dashboard {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .dashboard-sidebar {
-    position: relative;
-    min-height: auto;
-    width: 100%;
-  }
-
-  .dashboard-main {
-    width: 100%;
-    min-height: auto;
-  }
-
-  .dashboard-nav {
-    flex-direction: row;
   }
 }
 

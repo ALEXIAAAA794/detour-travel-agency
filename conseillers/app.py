@@ -20,10 +20,50 @@ import http.cookies
 import auth
 API_URL = os.environ.get("DETOUR_API_URL", "http://127.0.0.1:8765").rstrip("/")
 API_KEY = os.environ.get("DETOUR_API_KEY", "")
-PORT = int(os.environ.get("PORT", "8080"))
+TRAVEL_API_URL = os.environ.get("DETOUR_TRAVEL_API_URL", "http://127.0.0.1:3000").rstrip("/")
+PORT = int(os.environ.get("PORT", "8081"))
 VERSION = "1.3.2"
 JETON_FORMULAIRE = secrets.token_urlsafe(32)
 _VERROU_LOCAL_DEMANDES = threading.Lock()
+
+def travel_api_key():
+    key = os.environ.get("MANAGER_API_KEY", "")
+    if key:
+        return key
+    env_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend", ".env"))
+    try:
+        with open(env_file, encoding="utf-8") as fichier:
+            for line in fichier:
+                name, separator, value = line.partition("=")
+                if separator and name.strip() == "MANAGER_API_KEY":
+                    return value.strip().strip("\"'")
+    except OSError:
+        return ""
+    return ""
+
+def manager_api(method, path, body=None):
+    key = travel_api_key()
+    if not key:
+        return {"error": "La clé de l'API gestionnaire n'est pas configurée."}, 503
+    headers = {"Accept": "application/json", "X-Manager-Key": key}
+    payload = None
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+        payload = json.dumps(body).encode("utf-8")
+    request = urllib.request.Request(
+        TRAVEL_API_URL + path, data=payload, headers=headers, method=method
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            return json.loads(response.read().decode("utf-8")), response.status
+    except urllib.error.HTTPError as error:
+        try:
+            response_body = json.loads(error.read().decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            response_body = {"error": "L'API gestionnaire a refusé la demande."}
+        return response_body, error.code
+    except (urllib.error.URLError, TimeoutError, OSError) as error:
+        return {"error": "L'API de demandes est indisponible."}, 503
 
 def dossier_demandes():
     return os.environ.get("SUPPORT_DEMANDES_DIR") or os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "support-ia", "data", "demandes"))
@@ -767,6 +807,11 @@ class Handler(BaseHTTPRequestHandler):
             return json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
         except (json.JSONDecodeError, UnicodeDecodeError):
             return {}
+    def manager_api_request(self, method, path, body=None):
+        if not self.require_manager():
+            return
+        data, status = manager_api(method, path, body)
+        return self.send_json(data, status)
     def auth_token(self):
         cookies = http.cookies.SimpleCookie()
         try:
@@ -775,15 +820,45 @@ class Handler(BaseHTTPRequestHandler):
             return None
         cookie = cookies.get("detour_session")
         return cookie.value if cookie else None
+    def manager_session(self):
+        return auth.get_session(self.auth_token())
+    def require_manager(self):
+        if self.manager_session():
+            return True
+        body = page(
+            "Accès réservé",
+            '<p>Connectez-vous avec un compte gestionnaire autorisé.</p>'
+            '<p><a href="http://localhost:5174">Ouvrir la connexion gestionnaire</a></p>',
+        )
+        self.send_html(body, 401)
+        return False
     def do_GET(self):
         url = urllib.parse.urlparse(self.path)
         q = urllib.parse.parse_qs(url.query)
+        if url.path == "/auth/health":
+            try:
+                with auth.connect_db() as connection:
+                    connection.execute("SELECT 1")
+            except Exception as error:
+                sys.stderr.write("Vérification PostgreSQL gestionnaire échouée : %s\n" % error)
+                return self.send_json({"status": "error"}, 503)
+            return self.send_json({"status": "ok", "db": "up"})
         if url.path == "/auth/me":
-            auth.init_auth_db()
-            manager = auth.get_session(self.auth_token())
+            manager = self.manager_session()
             if not manager:
                 return self.send_json({"error": "Session absente ou expirée."}, 401)
             return self.send_json({"manager": manager})
+        if url.path == "/manager-api/requests":
+            return self.manager_api_request("GET", "/api/requests")
+        if url.path == "/manager-api/clients":
+            return self.manager_api_request("GET", "/api/clients")
+        if url.path == "/manager-api/appointments":
+            return self.manager_api_request("GET", "/api/appointments/manager")
+        if url.path == "/manager-api/reviews":
+            return self.manager_api_request("GET", "/api/reviews/manager")
+        match = re.fullmatch(r"/manager-api/requests/([0-9a-fA-F-]{36})", url.path)
+        if match:
+            return self.manager_api_request("GET", "/api/requests/" + match.group(1))
         msg = q.get("msg", [""])[0]
         err = q.get("err", [""])[0]
         if url.path == "/proposition":
@@ -795,32 +870,68 @@ class Handler(BaseHTTPRequestHandler):
         if url.path.startswith("/static/"):
             return self.send_static(url.path[len("/static/"):])
         if url.path == "/":
+            if not self.require_manager():
+                return
             return self.send_html(home())
         if url.path == "/demandes":
+            if not self.require_manager():
+                return
             return self.send_html(demandes_voyage())
         if url.path == "/catalogue":
+            if not self.require_manager():
+                return
             return self.send_html(catalogue(q))
         if url.path == "/dispo":
+            if not self.require_manager():
+                return
             return self.send_html(dispo(q))
         if url.path == "/options":
+            if not self.require_manager():
+                return
             return self.send_html(options(msg, err))
         if url.path == "/reservations":
+            if not self.require_manager():
+                return
             return self.send_html(reservations(msg, err))
         return self.send_html(page("Introuvable", "<p>Page introuvable.</p>"), 404)
+    def do_PATCH(self):
+        path = urllib.parse.urlparse(self.path).path
+        match = re.fullmatch(r"/manager-api/requests/([0-9a-fA-F-]{36})/status", path)
+        if match:
+            return self.manager_api_request(
+                "PATCH",
+                "/api/requests/" + match.group(1) + "/status",
+                self.read_json(),
+            )
+        match = re.fullmatch(r"/manager-api/appointments/([0-9a-fA-F-]{36})/status", path)
+        if match:
+            return self.manager_api_request(
+                "PATCH",
+                "/api/appointments/" + match.group(1) + "/status",
+                self.read_json(),
+            )
+        match = re.fullmatch(r"/manager-api/reviews/([0-9a-fA-F-]{36})/status", path)
+        if match:
+            return self.manager_api_request(
+                "PATCH",
+                "/api/reviews/" + match.group(1) + "/status",
+                self.read_json(),
+            )
+        return self.send_json({"error": "Route introuvable"}, 404)
+
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
         if path == "/auth/login":
             data = self.read_json()
-            email = data.get("email", "")
+            identifier = data.get("identifier", "")
             password = data.get("password", "")
-            if not isinstance(email, str) or not isinstance(password, str):
+            if not isinstance(identifier, str) or not isinstance(password, str):
                 return self.send_json({"error": "Identifiants invalides."}, 400)
-            if not email.strip() or not password:
-                return self.send_json({"error": "E-mail et mot de passe obligatoires."}, 400)
-            auth.init_auth_db()
-            manager = auth.authenticate(email, password)
+            if not identifier.strip() or not password:
+                return self.send_json({"error": "Identifiant et mot de passe obligatoires."}, 400)
+            manager = auth.authenticate(identifier, password)
             if not manager:
-                return self.send_json({"error": "Adresse e-mail ou mot de passe incorrect."}, 401)
+                return self.send_json({"error": "Identifiant ou mot de passe incorrect."}, 401)
             token = auth.create_session(manager["id"])
             cookie = http.cookies.SimpleCookie()
             cookie["detour_session"] = token
@@ -842,6 +953,23 @@ class Handler(BaseHTTPRequestHandler):
                 {"message": "Déconnexion réussie."},
                 extra_headers={"Set-Cookie": cookie.output(header="").strip()},
             )
+        match = re.fullmatch(r"/manager-api/requests/([0-9a-fA-F-]{36})/notes", path)
+        if match:
+            return self.manager_api_request(
+                "POST",
+                "/api/requests/" + match.group(1) + "/notes",
+                self.read_json(),
+            )
+        if path in {
+            "/demandes/reessayer-email",
+            "/demandes/valider-proposition",
+            "/demandes/proposition",
+            "/demandes/prendre-en-charge",
+            "/options",
+            "/confirmer",
+            "/annuler",
+        } and not self.require_manager():
+            return
         length = int(self.headers.get("Content-Length", "0") or 0)
         form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
         f = lambda k: form.get(k, [""])[0]
@@ -920,4 +1048,5 @@ if __name__ == "__main__":
     if not API_KEY:
         print("ATTENTION : DETOUR_API_KEY non définie.")
     print("Back-office DETOUR v%s sur http://127.0.0.1:%d (API : %s)" % (VERSION, PORT, API_URL))
-    ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    auth.init_auth_db()
+    ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()

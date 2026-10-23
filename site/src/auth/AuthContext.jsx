@@ -1,7 +1,26 @@
 ﻿import { createContext, useContext, useState, useEffect } from "react";
 
 const AuthContext = createContext(null);
-const API = "http://localhost:4000/api";
+const API = "/client-api/api";
+
+async function request(endpoint, options) {
+    let response;
+    try {
+        response = await fetch(`${API}${endpoint}`, options);
+    } catch (error) {
+        if (error instanceof TypeError) {
+            throw new Error("Le service client est indisponible. Démarrez l’API depuis le dossier server avec « npm start ».");
+        }
+        throw error;
+    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const error = new Error(data.error || "La demande d’authentification a échoué.");
+        error.status = response.status;
+        throw error;
+    }
+    return data;
+}
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
@@ -16,33 +35,41 @@ export function AuthProvider({ children }) {
         fetch(`${API}/me`, {
             headers: { Authorization: `Bearer ${token}` },
         })
-            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then(async (r) => {
+                if (!r.ok) {
+                    const error = new Error("La session client a expiré.");
+                    error.status = r.status;
+                    throw error;
+                }
+                return r.json();
+            })
             .then((data) => setUser(data.user))
-            .catch(() => localStorage.removeItem("detour_token"))
+            .catch((error) => {
+                localStorage.removeItem("detour_token");
+                if (error.status !== 401) {
+                    console.error("Impossible de restaurer la session client.", error);
+                }
+            })
             .finally(() => setLoading(false));
     }, []);
 
     async function login(email, password) {
-        const res = await fetch(`${API}/login`, {
+        const data = await request("/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Erreur de connexion");
         localStorage.setItem("detour_token", data.token);
         setUser(data.user);
         return data.user;
     }
 
     async function register(name, email, password) {
-        const res = await fetch(`${API}/register`, {
+        const data = await request("/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, email, password }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Erreur d'inscription");
         localStorage.setItem("detour_token", data.token);
         setUser(data.user);
         return data.user;

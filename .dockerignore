@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+**/node_modules
+**/dist
+support-ia/data
+support-ia/private-diagnostics
+conseillers/data
+backend/.env
