@@ -30,8 +30,8 @@ function langue(message) { if (/\b(je|tu|vous|vos|votre|quels?|quelles?|toutes|r
 function sources(e) {
   return [...new Map(e.provenance.map(p => [p.fichier, { id: e.id, ...fichiersPublics.get(p.fichier) }])).values()];
 }
-function repondreFAQ(message) {
-  const m = normaliser(message), l = langue(m);
+function repondreFAQ(message, languePreferee) {
+  const m = normaliser(message), l = ["fr","en"].includes(languePreferee) ? languePreferee : langue(m);
   const contact = { id: "contact-confirmation", titre: "Contact", url: "/contact" };
   const locale = (fr, en, type="limite") => ({content:(l==="fr"?fr:en)+" /contact",type,baseVersion:base.version,sources:[contact],informationsManquantes:true});
   // Défense locale contre des motifs explicites ; ne constitue pas une garantie contre toutes les injections.

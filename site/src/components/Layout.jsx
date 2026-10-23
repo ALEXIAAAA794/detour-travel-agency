@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import SupportChat from "./SupportChat.jsx";
+import NiciaShell from "./NiciaChrome.jsx";
 import { useSupport } from "../support/SupportContext.jsx";
 
 const NAV = [
@@ -70,7 +71,7 @@ function Footer() {
 export default function Layout() {
   const { language } = useSupport();
   const { pathname, hash } = useLocation();
-  const assistantRoute = ["/assistant", "/assistant.html", "/assistant/confirmation"].includes(pathname);
+  const assistantRoute = ["/assistant", "/assistant.html", "/assistant/confirmation", "/assistant/classique"].includes(pathname);
 
   useEffect(() => {
     if (!assistantRoute) return;
@@ -84,6 +85,8 @@ export default function Layout() {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
     else window.scrollTo(0, 0);
   }, [pathname, hash]);
+
+  if (["/assistant", "/assistant.html"].includes(pathname)) return <NiciaShell><a className="skip" href="#contenu">Aller au contenu</a><Outlet/></NiciaShell>;
 
   return (
     <>

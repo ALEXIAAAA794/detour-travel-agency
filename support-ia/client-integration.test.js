@@ -91,3 +91,19 @@ test("Nicia : identité, accueil et auteurs FR/EN sans changer les rôles techni
     assert.match(prompt,/Ne déclenchez jamais de réservation/);assert.match(prompt,/langue du client/);
   }
 });
+
+test("Nicia client : restauration, conversation structurée, erreur et relais sans données dans l’URL",async()=>{
+ const {createSupportClient}=await importer();const calls=[];let failure=false;
+ const p={id:"private-preparation",voyage:{dates:"en mai"},historique:[],nicia:{revision:2,profil:{nomUsage:"Alex"}}};
+ const client=createSupportClient({storage:stockage({id:p.id,jeton:"test-token-confidentiel"}),fetchImpl:async(url,o)=>{
+   calls.push({url,o});if(failure)return {ok:false,json:async()=>({error:{message:"panne simulée"}})};
+   return {ok:true,json:async()=>url.endsWith("/config")?{prereservation:{disponible:false}}:url.endsWith("/conversation")?{preparation:{...p,voyage:{dates:"en juin"}},reply:{content:"Réponse simulée"}}:url.endsWith("/relais")?{chemin:"/suite-test"}:p};
+ }});
+ assert.equal((await client.niciaConfig()).prereservation.disponible,false);
+ assert.equal(calls.length,1,"Consulter le raccordement ne crée pas de préparation");
+ await client.restore();await client.converse({tourId:"fictif",message:"Je pars en juin",langue:"fr"});assert.equal(client.current.voyage.dates,"en juin");
+ failure=true;await assert.rejects(client.converse({tourId:"fictif2",message:"suite",langue:"fr"}),/panne simulée/);assert.equal(client.current.voyage.dates,"en juin");
+ failure=false;assert.equal((await client.handoff()).chemin,"/suite-test");
+ const b=JSON.parse(calls.at(-1).o.body);assert.deepEqual(b,{revisionAttendue:2});
+ assert.ok(calls.every(c=>!c.url.includes("confidentiel")&&!c.url.includes("Alex")&&!c.url.includes("juin")));
+});

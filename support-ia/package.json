@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node --env-file=.env server.js",
     "test:gemini": "node --env-file=.env test-gemini.js",
-    "test": "node --test confirmation.test.js dates.test.js support.test.js programmes.test.js etape3.test.js connaissances.test.js gemini-http.test.js client-integration.test.js openrouter.test.js quota-diagnostic.test.js conformite-issues.test.js",
+    "test": "node --test nicia.test.js confirmation.test.js dates.test.js support.test.js programmes.test.js etape3.test.js connaissances.test.js gemini-http.test.js client-integration.test.js openrouter.test.js quota-diagnostic.test.js conformite-issues.test.js",
     "diagnostic:gemini": "node --env-file=.env gemini-local-diagnostic.js --list",
     "diagnostic:openrouter": "node --env-file=.env openrouter-local-diagnostic.js --quota",
     "diagnostic:reference": "node openrouter-local-diagnostic.js --reference"

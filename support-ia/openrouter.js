@@ -14,7 +14,7 @@ async function interrogerIA(message, preparation, options = {}) {
   if (!cle || !cle.trim()) throw echec("AI_CONFIGURATION", "configuration");
   const model = modeleConfigure();
   const corps = {
-    model, stream: false, max_tokens: options.programme ? 8192 : 2000,
+    model, stream: false, max_tokens: options.programme ? 8192 : options.nicia ? 4096 : 2000,
     provider: { require_parameters: true, allow_fallbacks: false, max_price: { prompt: 0, completion: 0, request: 0 } },
     messages: [
       { role: "system", content: instructionSysteme(preparation, options) },

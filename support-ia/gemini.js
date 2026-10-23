@@ -13,7 +13,7 @@ async function interrogerIA(message, preparation, options = {}) {
   catch { throw echec("AI_CONFIGURATION", "configuration"); }
       const corpsRequete = {
     systemInstruction: { parts: [{ text: instructionSysteme(preparation, options) }] },
-    ...(options.programme ? { generationConfig: { maxOutputTokens: 16000, responseMimeType: "application/json" } } : {}),
+    ...(options.programme || options.nicia ? { generationConfig: { maxOutputTokens: options.nicia ? 4096 : 16000, responseMimeType: "application/json" } } : {}),
     contents: [
       ...(preparation?.historique || []).slice(-40).map(m => ({ role: m.role, parts: [{ text: m.content }] })),
       { role: "user", parts: [{ text: message }] }
@@ -48,7 +48,7 @@ async function interrogerIA(message, preparation, options = {}) {
   }
   try {
   let donnees;
-  if (options.programme && reponse.body?.getReader) {
+  if ((options.programme || options.nicia) && reponse.body?.getReader) {
     const lecteur = reponse.body.getReader();
     const morceaux = [];
     let taille = 0;
@@ -63,7 +63,7 @@ async function interrogerIA(message, preparation, options = {}) {
       donnees = JSON.parse(Buffer.concat(morceaux).toString("utf8"));
     } finally { lecteur.releaseLock(); }
   } else donnees = await reponse.json();
-  if (options.programme && donnees.candidates?.[0]?.finishReason && donnees.candidates[0].finishReason !== "STOP") throw echec("AI_INCOMPLETE", "extraction", { ...details, fin: donnees.candidates[0].finishReason });
+  if ((options.programme || options.nicia) && donnees.candidates?.[0]?.finishReason && donnees.candidates[0].finishReason !== "STOP") throw echec("AI_INCOMPLETE", "extraction", { ...details, fin: donnees.candidates[0].finishReason });
 
     const parties = donnees.candidates?.[0]?.content?.parts;
 

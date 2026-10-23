@@ -30,6 +30,8 @@ app.post(["/api/support/preparations/:id/programme", "/api/support/preparations/
 
 const { preparationsRouter, autoriser, sauver, occupes } = require("./preparations");
 app.use("/api/support/preparations", preparationsRouter);
+app.post("/api/support/nicia/:id/conversation", limiterIA);
+app.use("/api/support/nicia", require("./nicia").niciaRouter);
 const { interrogerIA, nomFournisseur } = require("./ai");
 const { repondreFAQ } = require("./connaissances");
 

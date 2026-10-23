@@ -47,6 +47,13 @@ export function createSupportClient({ fetchImpl = fetch, storage, location, hist
     async start() { accesEmail = null; lienInvalide = false; if(history) accesParHistorique.delete(history); return remember(await request("preparations", null, null, 8000)); },
     async save(voyage) { const p = await ensure(); return remember(await request("preparations/" + p.id, { voyage }, p, 8000, "PATCH"), p.jeton); },
     async ask(message) { const p = await ensure(); return request("messages", { message, preparationId: p.id }, p, 70000); },
+    async niciaConfig() { return request("nicia/config", null, null, 8000, "GET"); },
+    async converse(body) {
+      const p = await ensure(); const data = await request("nicia/" + p.id + "/conversation", body, p, 70000);
+      remember(data.preparation, p.jeton); return data;
+    },
+    async saveWishes(preferences) { const p=await ensure(); return remember(await request("nicia/"+p.id+"/envies", {preferences}, p, 8000, "PATCH"), p.jeton); },
+    async handoff() { const p=await ensure(); return request("nicia/"+p.id+"/relais", {revisionAttendue:p.nicia?.revision||0}, p); },
     async generate() { const p = await ensure(); return remember(await request("preparations/" + p.id + "/programme", { versionAttendue: p.programme?.version || 0 }, p, 100000), p.jeton); },
     async modify(modification, version) {
       const p = await ensure();

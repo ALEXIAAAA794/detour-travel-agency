@@ -29,7 +29,19 @@ export function SupportProvider({ children }) {
   async function save() { const errors = problemesDates(draft); if(errors.length) throw new Error(errors.join(" ")); const p = await api.save(draft); setPreparation(p); return p; }
   const [language, updateLanguage] = useState(() => { try { return sessionStorage.getItem("detour-support-language") === "en" ? "en" : "fr"; } catch { return "fr"; } });
   function setLanguage(v) { updateLanguage(v); try { sessionStorage.setItem("detour-support-language", v); } catch {} }
-  const value = { language, setLanguage, verifyPreferencesTransmission: () => api.confirmationPreferences(), preparation, draft, setDraft, messages: messages.map((m,i) => i === 0 && m === welcome ? welcomeMessage(language) : m), pending, error,
+  function adopt(p) { setPreparation(p); setDraft(p.voyage); setMessages([welcome,...p.historique]); }
+  function converse(payload, displayText) {
+    const body={...payload,tourId:payload.tourId||crypto.randomUUID(),langue:payload.langue||language};
+    return execute(async()=>{
+      const text=displayText||body.message;
+      if(text)setMessages(m=>m.at(-1)?.role==="user"&&m.at(-1)?.content===text?m:[...m,{role:"user",content:text}]);
+      const result=await api.converse(body);adopt(api.current);return result;
+    });
+  }
+  const value = { niciaConfig:()=>api.niciaConfig(), converse,
+    resumeNicia:()=>preparation?.nicia?.tourEnAttente?.requete ? converse(preparation.nicia.tourEnAttente.requete) : null,
+    saveWishes:preferences=>execute(async()=>{const p=await api.saveWishes(preferences);adopt(p);return p;}),
+    handoff:()=>execute(async()=>{const p=await api.saveWishes(draft);adopt(p);return api.handoff();}), language, setLanguage, verifyPreferencesTransmission: () => api.confirmationPreferences(), preparation, draft, setDraft, messages: messages.map((m,i) => i === 0 && m === welcome ? welcomeMessage(language) : m), pending, error,
     retry: () => retryRef.current ? execute(retryRef.current) : null,
     start: () => execute(async () => { const p = await api.start(); setPreparation(p); setDraft({}); setMessages([welcome]); return p; }),
     save: () => execute(save),
