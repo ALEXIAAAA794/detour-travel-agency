@@ -14,7 +14,7 @@ export async function deliverEmail(input: EmailInput): Promise<DeliveryResult> {
   if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
     return {
       sent: false,
-      notice: "Email non envoyé : configurez RESEND_API_KEY et EMAIL_FROM.",
+      notice: "L’envoi de cet e-mail est temporairement indisponible. Réessayez plus tard.",
       errorMessage: "Le service d’email n’est pas configuré.",
     };
   }
