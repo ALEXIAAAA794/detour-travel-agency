@@ -16,6 +16,8 @@ from datetime import datetime, timezone, date
 from decimal import Decimal, InvalidOperation
 import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import http.cookies
+import auth
 API_URL = os.environ.get("DETOUR_API_URL", "http://127.0.0.1:8765").rstrip("/")
 API_KEY = os.environ.get("DETOUR_API_KEY", "")
 PORT = int(os.environ.get("PORT", "8080"))
@@ -748,9 +750,40 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
         self.wfile.write(body)
+    def send_json(self, data, status=200, extra_headers=None):
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        if extra_headers:
+            for name, value in extra_headers.items():
+                self.send_header(name, value)
+        self.end_headers()
+        self.wfile.write(body)
+    def read_json(self):
+        length = int(self.headers.get("Content-Length", "0") or 0)
+        try:
+            return json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return {}
+    def auth_token(self):
+        cookies = http.cookies.SimpleCookie()
+        try:
+            cookies.load(self.headers.get("Cookie", ""))
+        except http.cookies.CookieError:
+            return None
+        cookie = cookies.get("detour_session")
+        return cookie.value if cookie else None
     def do_GET(self):
         url = urllib.parse.urlparse(self.path)
         q = urllib.parse.parse_qs(url.query)
+        if url.path == "/auth/me":
+            auth.init_auth_db()
+            manager = auth.get_session(self.auth_token())
+            if not manager:
+                return self.send_json({"error": "Session absente ou expirée."}, 401)
+            return self.send_json({"manager": manager})
         msg = q.get("msg", [""])[0]
         err = q.get("err", [""])[0]
         if url.path == "/proposition":
@@ -775,10 +808,43 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_html(reservations(msg, err))
         return self.send_html(page("Introuvable", "<p>Page introuvable.</p>"), 404)
     def do_POST(self):
+        path = urllib.parse.urlparse(self.path).path
+        if path == "/auth/login":
+            data = self.read_json()
+            email = data.get("email", "")
+            password = data.get("password", "")
+            if not isinstance(email, str) or not isinstance(password, str):
+                return self.send_json({"error": "Identifiants invalides."}, 400)
+            if not email.strip() or not password:
+                return self.send_json({"error": "E-mail et mot de passe obligatoires."}, 400)
+            auth.init_auth_db()
+            manager = auth.authenticate(email, password)
+            if not manager:
+                return self.send_json({"error": "Adresse e-mail ou mot de passe incorrect."}, 401)
+            token = auth.create_session(manager["id"])
+            cookie = http.cookies.SimpleCookie()
+            cookie["detour_session"] = token
+            cookie["detour_session"]["httponly"] = True
+            cookie["detour_session"]["samesite"] = "Lax"
+            cookie["detour_session"]["path"] = "/"
+            cookie["detour_session"]["max-age"] = auth.SESSION_DURATION
+            return self.send_json(
+                {"manager": manager},
+                extra_headers={"Set-Cookie": cookie.output(header="").strip()},
+            )
+        if path == "/auth/logout":
+            auth.delete_session(self.auth_token())
+            cookie = http.cookies.SimpleCookie()
+            cookie["detour_session"] = ""
+            cookie["detour_session"]["path"] = "/"
+            cookie["detour_session"]["max-age"] = 0
+            return self.send_json(
+                {"message": "Déconnexion réussie."},
+                extra_headers={"Set-Cookie": cookie.output(header="").strip()},
+            )
         length = int(self.headers.get("Content-Length", "0") or 0)
         form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
         f = lambda k: form.get(k, [""])[0]
-        path = urllib.parse.urlparse(self.path).path
         if path == "/demandes/reessayer-email":
             if not secrets.compare_digest(f("jeton"), JETON_FORMULAIRE):
                 return self.send_html(page("Email", "", err="Formulaire expiré. Actualisez la page."), 400)

@@ -1,9 +1,9 @@
-import cors from "cors";
+﻿import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
-import { prisma } from "./config/prisma.js";
+import { pool } from "./config/database.js";
 import { errorHandler, notFound } from "./middlewares/errorHandler.js";
 import { apiRouter } from "./routes/index.js";
 
@@ -16,7 +16,7 @@ app.use(rateLimit({ windowMs: 60_000, limit: 300 }));
 
 app.get("/health", async (_req, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await pool.query("SELECT 1");
     res.json({ status: "ok", db: "up" });
   } catch {
     res.status(503).json({ status: "error", db: "down" });
