@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const STORAGE_KEY = "detour-cookies";
@@ -22,6 +22,14 @@ export default function CookieConsent() {
   const [state, setState] = useState(readChoice);
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  useEffect(() => {
+    function showConsent() {
+      setState({ hidden: false, error: "" });
+    }
+    window.addEventListener("detour:show-cookie-consent", showConsent);
+    return () => window.removeEventListener("detour:show-cookie-consent", showConsent);
+  }, []);
 
   function choose(choice) {
     try {

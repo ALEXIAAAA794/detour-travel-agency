@@ -67,6 +67,15 @@ function Footer() {
             <ul>
               {NAV.map(([to, label]) => <li key={to}><Link to={to}>{label}</Link></li>)}
               <li><Link to="/mentions-legales">Mentions légales</Link></li>
+              <li>
+                <button
+                  className="cookie-settings-link"
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event("detour:show-cookie-consent"))}
+                >
+                  Gérer mes cookies
+                </button>
+              </li>
             </ul>
           </div>
           <div>

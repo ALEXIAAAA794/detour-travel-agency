@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { usePageMeta } from "../components/Common.jsx";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 function today() {
   const date = new Date();

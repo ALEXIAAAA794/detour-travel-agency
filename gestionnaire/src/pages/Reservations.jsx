@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import "./Reservations.css";
 
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 
 const statusLabels = {
   PENDING: "En attente",
@@ -36,7 +36,7 @@ export default function Reservations() {
     setError("");
 
     try {
-      const response = await fetch(`${API_URL}/api/reservations`);
+      const response = await fetch(`${API_URL}/reservations`);
       if (!response.ok) {
         throw new Error(`Impossible de charger les réservations (HTTP ${response.status}).`);
       }
@@ -84,7 +84,7 @@ export default function Reservations() {
 
     try {
       const response = await fetch(
-        `${API_URL}/api/reservations/${encodeURIComponent(id)}/status`,
+        `${API_URL}/reservations/${encodeURIComponent(id)}/status`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

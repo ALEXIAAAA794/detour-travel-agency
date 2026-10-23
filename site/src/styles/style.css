@@ -2348,6 +2348,27 @@ h3 {
   justify-content: center;
   padding: 3rem 1.25rem;
   background: transparent;
+  isolation: isolate;
+}
+
+.auth-page::before,
+.auth-page::after {
+  content: "";
+  position: fixed;
+  inset: -12px;
+  pointer-events: none;
+}
+
+.auth-page::before {
+  z-index: -2;
+  background: url("/img/home-beach.png") center 54% / cover no-repeat;
+  filter: blur(8px);
+  transform: scale(1.03);
+}
+
+.auth-page::after {
+  z-index: -1;
+  background: rgba(22, 35, 63, .38);
 }
 
 .auth-card {
@@ -3659,6 +3680,7 @@ h3 {
 .client-form > .pill { border: 0; cursor: pointer; }
 .client-notice { color: var(--ballast); margin-top: .8rem; }
 .client-small { font-size: .82rem; color: var(--ballast); margin-top: 1rem; }
+.cookie-settings-link { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .review-sign-in-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
 .review-sign-in-actions .pill { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; text-decoration: none; }
 .review-sign-in-actions .pill.ghost { border: 1px solid var(--encre); background: transparent; color: var(--encre); }
