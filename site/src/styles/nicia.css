@@ -1,0 +1,68 @@
+/* Nicia lot 1 : aucun sélecteur ne recompose les pages des autres lots. */
+.nicia-shell { --nicia-ink:#16233F; --nicia-chalk:#F6F1E7; --nicia-sky:#BCD3EA; background:var(--nicia-chalk); color:var(--nicia-ink); font:400 16px/1.55 "Instrument Sans",Arial,sans-serif; color-scheme:light; min-height:100vh; }
+.nicia-shell * { box-sizing:border-box; }
+.nicia-shell a {color:inherit;}
+.nicia-shell h1,.nicia-shell h2,.nicia-shell h3,.nicia-shell legend {font-family:"Bricolage Grotesque",Arial,sans-serif;font-weight:800;letter-spacing:-.025em;color:var(--nicia-ink);line-height:1.12;}
+.nicia-shell :focus-visible {outline:3px solid var(--nicia-ink);outline-offset:4px;}
+.nicia-shell button,.nicia-shell input,.nicia-shell textarea,.nicia-shell select {font:inherit;}
+.nicia-shell button {cursor:pointer;min-height:44px;}
+.nicia-shell button:disabled {opacity:.55;cursor:not-allowed;}
+.nicia-chrome-wrap {width:min(1392px,calc(100% - 64px));margin:auto;display:flex;align-items:center;justify-content:space-between;gap:24px;}
+.nicia-navbar {background:var(--nicia-ink);color:var(--nicia-chalk);padding:18px 0;}
+.nicia-navbar img {display:block;width:200px;min-width:96px;height:auto;}
+.nicia-navbar nav,.nicia-footer nav {display:flex;align-items:center;gap:32px;}
+.nicia-navbar nav a,.nicia-footer a {text-decoration:none;}
+.nicia-navbar nav a:hover,.nicia-footer a:hover {text-decoration:underline;text-underline-offset:6px;}
+.nicia-navbar button {border:0;background:transparent;color:var(--nicia-chalk);font-weight:600;}
+.nicia-navbar :focus-visible,.nicia-footer :focus-visible {outline-color:var(--nicia-chalk);}
+.nicia-menu {display:none;}
+.nicia-main {padding:36px 24px 34px;}
+.nicia-intro {text-align:center;margin:0 auto 40px;}
+.nicia-intro>p:first-child {font-weight:600;margin:0 0 22px;}
+.nicia-intro h1 {font-size:clamp(2.5rem,5.1vw,5rem);margin:0 0 14px;}
+.nicia-intro>p:last-child {font-size:clamp(1rem,1.6vw,1.4rem);margin:0;}
+.nicia-conversation {max-width:1028px;margin:auto;border:1.5px solid var(--nicia-ink);border-radius:24px;padding:26px 46px;background:#fbf8f180;}
+.nicia-start {text-align:center;}
+.nicia-start h2 {font-size:1.8rem;margin:0 0 4px;}
+.nicia-start>p {font-size:1.12rem;margin:0;}
+.nicia-suggestions {display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:20px 0;}
+.nicia-suggestions button {background:var(--nicia-sky);border:0;border-radius:18px;color:var(--nicia-ink);padding:12px 24px;font-weight:600;min-width:218px;}
+.nicia-suggestions button:hover:not(:disabled){box-shadow:inset 0 0 0 2px var(--nicia-ink);}
+.nicia-messages {display:flex;flex-direction:column;gap:16px;min-height:130px;max-height:420px;overflow-y:auto;padding:0 2px 12px;scrollbar-width:thin;}
+.nicia-message {max-width:85%;align-self:flex-start;overflow-wrap:anywhere;}
+.nicia-message .nicia-author {font-size:.78rem;font-weight:600;margin:0 0 4px;}
+.nicia-message>div {background:var(--nicia-sky);border-radius:16px;padding:12px 20px;white-space:pre-wrap;}
+.nicia-message.user {align-self:flex-end;}
+.nicia-message.user>div {background:var(--nicia-ink);color:var(--nicia-chalk);}
+.nicia-composer {display:flex;align-items:end;border:1px solid var(--nicia-ink);border-radius:18px;padding:5px;gap:12px;margin-top:12px;}
+.nicia-shell .nicia-composer textarea {display:block;flex:1;min-width:0;width:100%;height:48px;min-height:48px;max-height:160px;margin:0;padding:12px 14px;border:0;border-radius:12px;box-shadow:none;background:transparent;color:var(--nicia-ink);font-size:16px;line-height:24px;resize:none;overflow-x:hidden;overflow-y:hidden;}
+.nicia-composer:focus-within {outline:3px solid var(--nicia-ink);outline-offset:3px;}
+.nicia-shell .nicia-composer textarea:focus-visible {outline:none;}
+.nicia-composer textarea::placeholder {color:var(--nicia-ink);opacity:1;}
+.nicia-composer button,.nicia-handoff button,.nicia-edit button {background:var(--nicia-ink);color:var(--nicia-chalk);border:1px solid var(--nicia-ink);border-radius:14px;padding:10px 24px;font-weight:600;white-space:nowrap;}
+.nicia-composer button span {margin-left:14px;font-size:1.3rem;}
+.nicia-disclaimer {font-size:.8rem;margin:10px 0 0;}
+.nicia-shell summary {cursor:pointer;text-decoration:underline;text-underline-offset:3px;min-height:32px;}
+.nicia-shell input,.nicia-shell select {display:block;background:var(--nicia-chalk);border:1px solid #6B7385;border-radius:8px;padding:10px;color:var(--nicia-ink);max-width:100%;width:100%;}
+.nicia-shell fieldset {border:0;padding:0;min-width:0;}
+.nicia-summary,.nicia-handoff,.nicia-notice,.nicia-legacy {max-width:1028px;margin:28px auto 0;}
+.nicia-summary {background:var(--nicia-sky);border-radius:22px;padding:28px;}
+.nicia-summary h2,.nicia-handoff h2 {font-size:1.7rem;margin:0 0 20px;}
+.nicia-summary dl {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 28px;}
+.nicia-summary dl div {min-width:0;overflow-wrap:anywhere;}
+.nicia-summary dt {font-size:.85rem;}
+.nicia-summary dd {font-weight:600;margin:2px 0;}
+.nicia-edit fieldset {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px;}
+.nicia-edit label {min-width:0;}
+.nicia-error {border-left:4px solid #C4553A;padding:12px 18px;margin:14px 0;overflow-wrap:anywhere;}
+.nicia-error button {border:1px solid var(--nicia-ink);border-radius:10px;background:transparent;padding:8px 14px;color:var(--nicia-ink);}
+.nicia-handoff {border-top:1px solid #6B7385;padding-top:28px;}
+.nicia-handoff p,.nicia-legacy {font-size:.9rem;}
+.nicia-footer {background:var(--nicia-ink);color:var(--nicia-chalk);padding:26px 0;}
+.nicia-footer .nicia-chrome-wrap>p {font:800 clamp(1.6rem,2.5vw,2.2rem)/1.2 "Bricolage Grotesque",sans-serif;letter-spacing:-.025em;margin:0;}
+.nicia-footer nav {font-size:.85rem;}
+@media(max-width:760px){.nicia-chrome-wrap{width:calc(100% - 32px);flex-wrap:wrap;}.nicia-navbar img{width:150px;}.nicia-menu{display:block;}.nicia-navbar nav{display:none;width:100%;flex-wrap:wrap;gap:20px;}.nicia-navbar nav.is-open{display:flex;}.nicia-main{padding:28px 16px;}.nicia-intro{margin-bottom:28px;}.nicia-conversation{padding:22px 16px;border-radius:20px;}.nicia-start h2{font-size:1.5rem;}.nicia-start>p{font-size:1rem;}.nicia-suggestions{gap:8px;}.nicia-suggestions button{min-width:0;flex:1 1 45%;padding:10px 12px;font-size:.87rem;}.nicia-message{max-width:95%;}.nicia-message>div{padding:12px;}.nicia-composer{gap:4px;}.nicia-composer button{padding:10px 12px;}.nicia-composer button span{display:none;}.nicia-shell .nicia-composer textarea{padding:12px 10px;font-size:16px;}.nicia-summary{padding:20px;}.nicia-summary dl,.nicia-edit fieldset{grid-template-columns:1fr;}.nicia-footer nav{gap:18px;flex-wrap:wrap;}}
+
+.nicia-privacy {font-size:.8rem;margin-top:8px;}
+.nicia-privacy summary {min-height:0;padding:4px 0;}
+.nicia-privacy p {margin:6px 0 0;}

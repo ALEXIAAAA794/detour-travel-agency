@@ -91,3 +91,61 @@ test("Nicia : identité, accueil et auteurs FR/EN sans changer les rôles techni
     assert.match(prompt,/Ne déclenchez jamais de réservation/);assert.match(prompt,/langue du client/);
   }
 });
+
+test("Nicia client : restauration, conversation structurée, erreur et relais sans données dans l’URL",async()=>{
+ const {createSupportClient}=await importer();const calls=[];let failure=false;
+ const p={id:"private-preparation",voyage:{dates:"en mai"},historique:[],nicia:{revision:2,profil:{nomUsage:"Alex"}}};
+ const client=createSupportClient({storage:stockage({id:p.id,jeton:"test-token-confidentiel"}),fetchImpl:async(url,o)=>{
+   calls.push({url,o});if(failure)return {ok:false,json:async()=>({error:{message:"panne simulée"}})};
+   return {ok:true,json:async()=>url.endsWith("/config")?{prereservation:{disponible:false}}:url.endsWith("/conversation")?{preparation:{...p,voyage:{dates:"en juin"}},reply:{content:"Réponse simulée"}}:url.endsWith("/relais")?{chemin:"/suite-test"}:p};
+ }});
+ assert.equal((await client.niciaConfig()).prereservation.disponible,false);
+ assert.equal(calls.length,1,"Consulter le raccordement ne crée pas de préparation");
+ await client.restore();await client.converse({tourId:"fictif",message:"Je pars en juin",langue:"fr"});assert.equal(client.current.voyage.dates,"en juin");
+ failure=true;await assert.rejects(client.converse({tourId:"fictif2",message:"suite",langue:"fr"}),/panne simulée/);assert.equal(client.current.voyage.dates,"en juin");
+ failure=false;assert.equal((await client.handoff()).chemin,"/suite-test");
+ const b=JSON.parse(calls.at(-1).o.body);assert.deepEqual(b,{revisionAttendue:2});
+ assert.ok(calls.every(c=>!c.url.includes("confidentiel")&&!c.url.includes("Alex")&&!c.url.includes("juin")));
+});
+
+
+test("Nicia client : après panne, réconciliation enregistrée et réessai du même tour",async()=>{
+ const {createSupportClient}=await importer();let disk={id:"p",voyage:{budget:"800 euros"},historique:[]},posts=[],fail=true;
+ const body={tourId:"same-turn",langue:"fr",message:"Une envie fictive"};
+ const client=createSupportClient({storage:stockage({id:"p",jeton:"test"}),fetchImpl:async(url,o)=>{
+  if(o.method==="GET")return Response.json(disk);
+  const b=JSON.parse(o.body);posts.push(b);if(!disk.historique.length)disk={...disk,historique:[{role:"user",content:b.message}],nicia:{tourEnAttente:{id:b.tourId,requete:b}}};
+  if(fail)return Response.json({error:{code:"AI_UNAVAILABLE",message:"panne simulée"}},{status:503});
+  disk={...disk,historique:[...disk.historique,{role:"model",content:"Réponse fictive"}],nicia:{}};return Response.json({preparation:disk,reply:{content:"Réponse fictive"}});
+ }});
+ await client.restore();await assert.rejects(client.converse(body),e=>e.preparationChecked===true);
+ assert.equal(client.lastMessageRecorded,true);assert.equal(client.current.historique.length,1);
+ fail=false;await client.converse(body);assert.deepEqual(posts,[body,body]);assert.equal(client.current.historique.filter(m=>m.role==="user").length,1);assert.equal(client.current.voyage.budget,"800 euros");
+});
+test("Nicia client : texte non confirmé conservable après refus ou coupure",async()=>{
+ const {createSupportClient}=await importer();
+ for(const mode of ["refus","coupure","avantEnvoi"]){let gets=0;
+ const client=createSupportClient({storage:stockage({id:"p",jeton:"test"}),fetchImpl:async(url,o)=>{
+  if(o.method==="GET"){gets++;if(mode==="avantEnvoi"||mode==="coupure"&&gets>1)throw Error("network");return Response.json({id:"p",voyage:{},historique:[]});}
+  if(mode==="coupure")throw Error("network");return Response.json({error:{code:"INVALID_MESSAGE",message:"refus"}},{status:400});
+ }});
+ await assert.rejects(client.converse({tourId:"test",langue:"fr",message:"Texte à préserver"}));assert.equal(client.lastMessageRecorded,false);
+ }
+});
+
+test("Nicia écran : présentation courte et relais fermé sans message permanent FR/EN",()=>{
+ const source=require("node:fs").readFileSync(require("node:path").join(__dirname,"../site/src/pages/Assistant.jsx"),"utf8");
+ assert.doesNotMatch(source,/Nicia collects your wishes and prepares a recap\.|Nicia recueille vos envies et prépare un récapitulatif\.|Pre-booking is not available here yet\.|La pré-réservation n’est pas encore disponible ici\./);
+ assert.match(source,/disabled=\{s.pending\|\|!config\?\.prereservation\?\.disponible\|\|!ready\}/);
+ assert.match(source,/assistantTitle\(s.language\)/);assert.match(source,/to="\/contact"/);
+ assert.match(source,/La durée de conservation reste à définir/);
+});
+
+
+test("Nicia : collecte conversationnelle et confidentialité discrète FR/EN",()=>{
+ const source=require("node:fs").readFileSync(require("node:path").join(__dirname,"../site/src/pages/Assistant.jsx"),"utf8");
+ assert.doesNotMatch(source,/setCalendar|setNom|Préciser des dates|Add precise dates|Comment Nicia doit-elle vous appeler|What should Nicia call you/);
+ assert.match(source,/<details className="nicia-privacy"><summary>\{en\?"Privacy":"Confidentialité"\}/);
+ const prompt=require("./ai-context").instructionSysteme({voyage:{},nicia:{profil:{etat:"refuse",nomUsage:null}}},{nicia:true,langue:"fr"});
+ assert.match(prompt,/accepte explicitement son refus/);assert.match(prompt,/dates de début et de fin ou une période approximative/);assert.match(prompt,/Ne redemande jamais une information déjà présente/);
+});

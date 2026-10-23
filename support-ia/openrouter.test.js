@@ -108,3 +108,58 @@ test('OpenRouter simulé : contrat, erreurs, confidentialité, programme conserv
     assert.match(logs.join('\n'), /xingchen-agi\/xing4.0-29b-a4b:free/);
   } finally { console.info = info; global.fetch = natif; await new Promise(r => serveur.close(r)); }
 });
+
+
+test('OpenRouter : timeout après HTTP 200 mesuré jusqu’à la lecture du corps',async()=>{
+ const originalFetch=global.fetch,now=Date.now;let clock=1000;
+ Date.now=()=>clock;
+ global.fetch=async()=>{clock=1200;return {ok:true,status:200,body:{getReader:()=>({read:async()=>{clock=9300;const e=Error('texte privé non journalisé');e.name='TimeoutError';throw e;},releaseLock:()=>{},cancel:async()=>{}})}};};
+ try{await assert.rejects(interrogerIA('Données fictives',null,{nicia:true,langue:'fr'}),e=>e.code==='AI_TIMEOUT'&&e.diagnostic.etape==='enveloppe_json'&&e.diagnostic.statutHTTP===200&&e.diagnostic.dureeAppelMs===8300);}
+ finally{global.fetch=originalFetch;Date.now=now;}
+});
+test('Nicia : JSON dialogue mal formé distinct de la validation du schéma',()=>{
+ const {extraire}=require('./nicia-preferences');
+ assert.throws(()=>extraire('{',{}),e=>e.message==='INVALID_EXTRACTION'&&e.diagnostic.etape==='dialogue_json');
+ assert.throws(()=>extraire('{}',{}),e=>e.message==='INVALID_EXTRACTION'&&e.diagnostic.etape==='schema');
+});
+
+
+test('OpenRouter Nicia : enveloppe HTTP distincte du JSON de dialogue',async()=>{
+ const original=global.fetch;
+ try{
+  for(const [reply,code,etape] of [[()=>new Response('{'),"AI_RESPONSE_INVALID","enveloppe_json"],[()=>Response.json({choices:[]}),"AI_NO_CONTENT","extraction"],[()=>Response.json({choices:[{finish_reason:"stop",message:{content:{reponse:"texte"}}}]}),"AI_EMPTY","extraction"]]){
+   global.fetch=async()=>reply();await assert.rejects(interrogerIA('Fictif',{historique:[]},{nicia:true,langue:'fr'}),e=>e.code===code&&e.diagnostic.etape===etape);
+  }
+ }finally{global.fetch=original;}
+});
+
+
+test('Nicia transport : JSON/SSE UTF-8 fragmenté, commentaires, usage et lecture unique',async()=>{
+ const {lireReponse}=require('./openrouter-response');
+ const content=JSON.stringify({reponse:"Quelle période préférez-vous ?",preferences:{destination:"Lyon"},pointsForts:[]});
+ const event=d=>'data: '+JSON.stringify(d)+'\r\n\r\n';
+ const stream=': OPENROUTER PROCESSING\r\n\r\n'+event({choices:[{index:0,delta:{reasoning:'raisonnement à ignorer'}}]})+event({choices:[{index:0,delta:{content:content.slice(0,15)}}]})+event({choices:[{index:0,delta:{content:content.slice(15)},finish_reason:'stop'}]})+event({choices:[{index:0,delta:{content:''},finish_reason:'stop'}],usage:{total_tokens:1}})+'data: [DONE]\r\n\r\n';
+ const bytes=new TextEncoder().encode(stream);let consumed=0;
+ const response=new Response(new ReadableStream({pull(c){if(consumed===bytes.length)return c.close();c.enqueue(bytes.slice(consumed,++consumed));}}),{headers:{'content-type':'text/event-stream; charset=utf-8'}});
+ const reader=response.body.getReader.bind(response.body);let reads=0;response.body.getReader=()=>{reads++;return reader();};
+ const result=await lireReponse(response);assert.equal(result.choices[0].message.content,content);assert.equal(reads,1);assert.doesNotMatch(JSON.stringify(result),/raisonnement/);
+ assert.equal((await lireReponse(new Response(' \n'+JSON.stringify({choices:[{finish_reason:'stop',message:{content}}]})+' \n'))).choices[0].message.content,content);
+});
+test('Nicia transport : corps vide/espaces/JSON invalide et SSE tronqué refusés',async()=>{
+ const {lireReponse}=require('./openrouter-response');
+ for(const [body,ctype,code] of [['','application/json','EMPTY_BODY'],[' '.repeat(220),'application/json','WHITESPACE_BODY'],['{','application/json','INVALID_JSON_BODY'],[': OPENROUTER PROCESSING\n\n','text/event-stream','TRUNCATED_SSE'],['data: {\n\n','text/event-stream','INVALID_SSE_JSON'],['data: [DONE]\n\n','text/event-stream','MISSING_FINISH'],['data: {"choices":[{"delta":{"content":"{}"},"finish_reason":"stop"}]}\n\n','text/event-stream','TRUNCATED_SSE']]){
+  await assert.rejects(lireReponse(new Response(body,{headers:{'content-type':ctype}})),e=>e.etatCorps===code);
+ }
+ await assert.rejects(lireReponse(new Response('x'.repeat(100)),{maximum:50}),e=>e.etatCorps==='RESPONSE_TOO_LARGE');
+});
+test('Nicia transport : erreur fournisseur HTTP 200 et flux interrompu',async()=>{
+ const {lireReponse}=require('./openrouter-response');
+ const e={code:429,message:'rate limited'};
+ assert.deepEqual(await lireReponse(new Response('data: '+JSON.stringify({error:e})+'\n\n',{headers:{'content-type':'text/event-stream'}})),{error:e});
+ await assert.rejects(lireReponse(new Response(new ReadableStream({start(c){c.enqueue(new TextEncoder().encode('{'));c.error(new TypeError('interruption simulée'));}}))),{name:'TypeError'});
+});
+test('Nicia transport : délai couvre un lecteur qui ne réagit pas au signal',async()=>{
+ const {lireReponse}=require('./openrouter-response');let cancel=0,read=0;
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(new DOMException('Test','TimeoutError')),15);
+ try{await assert.rejects(lireReponse({body:{getReader:()=>({read:()=>{read++;return new Promise(()=>{});},cancel:async()=>{cancel++;},releaseLock:()=>{}})}},{signal:controller.signal}),{name:'TimeoutError'});assert.equal(read,1);assert.ok(cancel>=1);}finally{clearTimeout(timeout);}
+});

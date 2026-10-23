@@ -3,6 +3,6 @@ export const assistantTitle = language => language === "en" ? "Nicia, your AI as
 export const authorLabel = (role, language) => role === "user" ? language === "en" ? "You" : "Vous" : assistantName;
 export function welcomeMessage(language) {
   return { role: "assistant", content: language === "en"
-    ? "Hello! I’m Nicia, your AI assistant at DÉTOUR. I can help you plan your next trip. What are you looking for?"
-    : "Bonjour ! Je suis Nicia, votre assistant IA de DÉTOUR. Je peux vous aider à imaginer votre prochain voyage. Que recherchez-vous ?" };
+    ? "Hello, I’m Nicia, your AI assistant. What would you like me to call you?"
+    : "Bonjour, je suis Nicia, votre assistant IA. Comment souhaitez-vous que je vous appelle ?" };
 }

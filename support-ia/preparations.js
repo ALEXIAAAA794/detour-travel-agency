@@ -1,4 +1,5 @@
 const express = require("express");
+const {creerMessage}=require("./nicia-historique");
 const { fournisseurConfigure, nomFournisseur } = require("./ai");
 const { tracer, referenceDiagnostic } = require("./diagnostic");
 const fs = require("node:fs");
@@ -7,10 +8,14 @@ const crypto = require("node:crypto");
 const { genererProgramme, empreinteVoyage } = require("./programmes");
 const dossier = process.env.SUPPORT_PREPARATIONS_DIR || path.join(__dirname, "data", "preparations");
 const { problemesDates } = require("./dates");
-const champs = ["dateDepart", "dateRetour", "destination", "dates", "participants", "budget", "activites", "experience", "rythme", "contraintes"];
+const champs = ["villeDepart", "devise", "baseBudget", "dateDepart", "dateRetour", "destination", "dates", "participants", "budget", "activites", "experience", "rythme", "contraintes"];
 const preparationsRouter = express.Router();
 const occupes = new Set();
 function fichier(id) { return path.join(dossier, id + ".json"); }
+function lirePreparation(id) {
+  if(typeof id!=="string"||!/^[a-f0-9-]{36}$/i.test(id))return null;
+  try {const p=JSON.parse(fs.readFileSync(fichier(id),"utf8"));return p.id===id?p:null;} catch{return null;}
+}
 function sauver(p) {
   fs.mkdirSync(dossier, { recursive: true });
   const temporaire = fichier(p.id) + "." + crypto.randomUUID() + ".tmp";
@@ -35,7 +40,7 @@ function autoriser(req, res, next) {
   req.preparation = p;
   next();
 }
-function publique(p) { return { id: p.id, voyage: p.voyage, historique: p.historique, programme: p.programme || null, programmeObsolete: Boolean(p.programme && p.programme.empreinteVoyage !== empreinteVoyage(p.voyage)) }; }
+function publique(p) { return { id: p.id, voyage: p.voyage, historique: p.historique, ...(p.nicia ? { nicia: { profil: p.nicia.profil, pointsForts: p.nicia.pointsForts, revision: p.nicia.revision, ...(p.nicia.relais ? { relais: { reference: p.nicia.relais.reference, revision: p.nicia.relais.revision } } : {}), ...(p.nicia.enAttente ? { tourEnAttente: { id: p.nicia.enAttente.id, message: p.nicia.enAttente.message, langue: p.nicia.enAttente.langue, requete: p.nicia.enAttente.requete } } : {}) } } : {}), programme: p.programme || null, programmeObsolete: Boolean(p.programme && p.programme.empreinteVoyage !== empreinteVoyage(p.voyage)) }; }
 preparationsRouter.post("/", (req, res) => {
   const jeton = crypto.randomBytes(32).toString("hex");
   const p = { id: crypto.randomUUID(), empreinte: crypto.createHash("sha256").update(jeton).digest("hex"), voyage: {}, historique: [] };
@@ -55,17 +60,20 @@ preparationsRouter.patch("/:id", autoriser, (req, res) => {
   const p = req.preparation;
   if (occupes.has(p.id)) return res.status(409).json({ error: { message: "Préparation occupée. Réessayez." } });
   const voyage = req.body?.voyage;
-  if (!voyage || typeof voyage !== "object" || Array.isArray(voyage) || Object.entries(voyage).some(([k,v]) => !champs.includes(k) || (k === "participants" ? !Number.isSafeInteger(v) || v < 1 : typeof v !== "string" || (!v.trim() && !["dateDepart", "dateRetour"].includes(k)) || v.trim().length > 2000))) {
+  if (!voyage || typeof voyage !== "object" || Array.isArray(voyage) || Object.entries(voyage).some(([k,v]) => !champs.includes(k) || (k === "participants" ? !Number.isSafeInteger(v) || v < 1 : typeof v !== "string" || (!v.trim() && !["dateDepart", "dateRetour"].includes(k) && !p.nicia) || v.trim().length > 2000))) {
     return res.status(400).json({ error: { message: "Préférences invalides." } });
   }
+  if ((voyage.devise !== undefined && !/^[A-Z]{3}$/.test(voyage.devise)) || (voyage.baseBudget !== undefined && !["total","personne","a_preciser"].includes(voyage.baseBudget))) return res.status(400).json({error:{message:"Budget invalide / Invalid budget metadata."}});
+  for(const k of ["villeDepart","devise","baseBudget"]) if(p.voyage[k] !== undefined && voyage[k] === undefined) voyage[k] = p.voyage[k];
   const erreursDates = problemesDates(voyage);
   if (erreursDates.length) return res.status(400).json({ error: { message: erreursDates.join(" ") } });
   // Préserver le texte historique même si un ancien client ne le renvoie plus.
   if (p.voyage.dates && voyage.dates === undefined) voyage.dates = p.voyage.dates;
   const changements = Object.entries(voyage).filter(([k,v]) => p.voyage[k] !== v);
   if (changements.length) {
+    if(p.nicia) p.nicia.revision=(p.nicia.revision||0)+1;
     if (p.historique.length >= 200) return res.status(409).json({ error: { message: "Préparation complète." } });
-    p.historique.push({ role: "user", content: changements.map(([k,v]) => k + " : " + v).join("\n") }, { role: "model", content: "Préférences de voyage enregistrées." });
+    p.historique.push(creerMessage("user",changements.map(([k,v]) => k + " : " + v).join("\n")),creerMessage("model","Préférences de voyage enregistrées."));
   }
   p.voyage = Object.fromEntries(Object.entries(voyage).map(([k,v]) => [k, typeof v === "string" ? v.trim() : v]));
   sauver(p);
@@ -102,7 +110,7 @@ preparationsRouter.post(["/:id/programme", "/:id/programme/modifications"], auto
     actuelle.programme = { version: version + 1, genereLe: new Date().toISOString(), empreinteVoyage: empreinte, contenu: resultat.programme };
     if (modification) {
       if (actuelle.historique.length >= 200) return erreur(409, "HISTORY_FULL", "Préparation complète.");
-      actuelle.historique.push({ role: "user", content: "Modification explicite du programme : " + req.body.modification.trim() }, { role: "model", content: "Programme modifié, version " + actuelle.programme.version });
+      actuelle.historique.push(creerMessage("user","Modification explicite du programme : " + req.body.modification.trim()),creerMessage("model","Programme modifié, version " + actuelle.programme.version));
     }
     sauver(actuelle);
     tracer(reference, debut, "succes", { etape: "termine", fournisseur });
@@ -132,4 +140,4 @@ preparationsRouter.post("/:id/programme/transmission", autoriser, async (req, re
   try { return await require("./transmissions").transmettre(req, res); }
   finally { occupes.delete(id); }
 });
-module.exports = { preparationsRouter, autoriser, sauver, occupes };
+module.exports = { preparationsRouter, autoriser, sauver, occupes, publique, lirePreparation };
