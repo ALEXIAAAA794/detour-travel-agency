@@ -106,7 +106,6 @@ export default function SupportChat() {
         className="support-chat__launcher"
         ref={launcherRef}
         type="button"
-        aria-label={open ? language === "en" ? "Close Nicia" : "Fermer Nicia" : assistantTitle(language)}
         aria-expanded={open}
         aria-controls="support-chat-panel"
         aria-label={open ? language === "en" ? "Close Nicia" : "Fermer Nicia" : assistantTitle(language)}
