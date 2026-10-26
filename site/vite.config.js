@@ -5,6 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: "0.0.0.0",
+    watch: {
+      usePolling: true,
+      interval: 500,
+    },
     proxy: {
       "/api/support": {
         target: process.env.DETOUR_SUPPORT_API_PROXY || "http://127.0.0.1:3001",

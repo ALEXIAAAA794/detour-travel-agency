@@ -46,7 +46,6 @@ export default function AppointmentRequest() {
   return (
     <main id="contenu" className="client-page">
       <div className="wrap client-wrap">
-        <p className="crumbs"><Link to="/">Accueil</Link> / Rendez-vous</p>
         <span className="eyebrow">Rencontrons-nous</span>
         <h1>Prendre rendez-vous</h1>
         <p className="client-intro">Indiquez le créneau qui vous conviendrait. Un conseiller vous contactera pour confirmer le rendez-vous.</p>

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { usePageMeta } from "../components/Common.jsx";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 const LABELS = {
   PENDING: "Demande reçue",
   PENDING_REVIEW: "Demande reçue",
@@ -65,7 +65,6 @@ function RequestForm({ initialDraft = {} }) {
     finally { setBusy(false); }
   }
   return <main id="contenu" className="client-page"><div className="wrap client-wrap">
-    <p className="crumbs"><Link to="/">Accueil</Link> / Pré-réservation</p>
     <span className="eyebrow">Votre prochain voyage commence ici</span><h1>Parlons de votre projet</h1>
     <p className="client-intro">Partagez vos envies. Notre équipe étudiera votre demande avant de vous ouvrir la préparation de votre séjour.</p>
     <form className="client-card client-form" onSubmit={submit}>
@@ -95,6 +94,7 @@ function Account() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
   const [error, setError] = useState("");
   const [appointmentError, setAppointmentError] = useState("");
   const [notice, setNotice] = useState(location.state?.notice || "");
@@ -138,22 +138,26 @@ function Account() {
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Vos rendez-vous ne peuvent pas être chargés.");
-        return data.appointments;
+        return Array.isArray(data.appointments) ? data.appointments : [];
       })
       .then((results) => {
         if (!cancelled) {
           setAppointments(results);
           setAppointmentError("");
+          setAppointmentsLoading(false);
         }
       })
       .catch((loadError) => {
-        if (!cancelled) setAppointmentError(loadError.message);
+        if (!cancelled) {
+          setAppointmentError(loadError.message);
+          setAppointmentsLoading(false);
+        }
       });
     return () => { cancelled = true; };
   }, []);
 
   return <main id="contenu" className="client-page"><div className="wrap client-wrap">
-    <p className="crumbs"><Link to="/">Accueil</Link> / Mon espace</p><span className="eyebrow">Votre espace personnel</span><h1>Coucou {user?.name?.trim().split(/\s+/)[0] || "voyageur"} !</h1>
+    <span className="eyebrow">Votre espace personnel</span><h1>Coucou {user?.name?.trim().split(/\s+/)[0] || "voyageur"} !</h1>
     <p className="client-intro">Retrouvez les demandes liées à votre compte, même après déconnexion ou depuis un autre appareil.</p>
     {notice && <p role="status" className="client-notice">{notice}</p>}
     {error && <p role="alert" className="client-notice">{error}</p>}
@@ -178,7 +182,8 @@ function Account() {
     <section className="client-card request-card">
       <div className="request-head"><div><span className="eyebrow">Votre suivi</span><h2>Mes rendez-vous</h2></div></div>
       {appointmentError && <p role="alert" className="client-notice">{appointmentError}</p>}
-      {!appointments.length && !appointmentError && <p>Vous n’avez pas encore de rendez-vous demandé.</p>}
+      {appointmentsLoading && <p role="status">Chargement de vos rendez-vous…</p>}
+      {!appointmentsLoading && !appointments.length && !appointmentError && <p>Vous n’avez pas encore de rendez-vous demandé.</p>}
       {appointments.map((appointment) => (
         <article className="itinerary" key={appointment.id}>
           <h3>{appointment.subject}</h3>

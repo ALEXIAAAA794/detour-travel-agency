@@ -99,7 +99,6 @@ export default function Contact() {
       <main id="contenu">
         <section className="page-head">
           <div className="wrap">
-            <p className="crumbs"><Link to="/">Accueil</Link> / Devis gratuit</p>
             <h1>Demandez votre devis gratuit</h1>
             <p>Dites-nous ce qui vous ferait plaisir. Un conseiller DÉTOUR vous répond <strong>sous 48 h ouvrées</strong> avec une proposition personnalisée. Les champs marqués d'un <span style={{ color: "var(--alert)" }} aria-hidden="true">*</span> sont obligatoires.</p>
           </div>

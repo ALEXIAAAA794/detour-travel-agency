@@ -13,9 +13,6 @@ export default function Profile() {
     <main id="contenu">
       <section className="page-head">
         <div className="wrap">
-          <p className="crumbs">
-            <Link to="/">Accueil</Link> / Mon profil
-          </p>
           <h1>Mon profil</h1>
         </div>
       </section>

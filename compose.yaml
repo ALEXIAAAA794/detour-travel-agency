@@ -118,6 +118,9 @@ services:
     build:
       context: ./site
     restart: unless-stopped
+    volumes:
+      - ./site:/app
+      - /app/node_modules
     environment:
       DETOUR_CLIENT_API_PROXY: http://client-auth:4000
       DETOUR_BACKEND_PROXY: http://backend:3000

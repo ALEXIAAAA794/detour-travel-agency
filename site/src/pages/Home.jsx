@@ -44,7 +44,6 @@ export default function Home() {
     "DÉTOUR, agence de voyages insolites : week-ends sur mesure en train à Nantes, Lyon, Lille. Devis gratuit !"
   );
   const list = DESTINATIONS.slice(0, 3);
-  const inspirations = DESTINATIONS.slice(3, 6);
 
   return (
     <>
@@ -91,32 +90,6 @@ export default function Home() {
           </div>
         </section>
       </main>
-
-      <section className="home-inspirations">
-        <div className="wrap">
-          <div className="section-head">
-            <div><span className="eyebrow">Pour rêver un peu</span><h2>Inspirations grand voyage</h2></div>
-            <Link to="/destinations">Explorer les destinations →</Link>
-          </div>
-          <div className="dest-grid">
-            {inspirations.map((destination) => <DestCard key={destination.id} d={destination} />)}
-          </div>
-        </div>
-      </section>
-
-      <section className="home-testimonials wrap" aria-labelledby="testimonials-title">
-        <span className="eyebrow">Avis voyageurs</span>
-        <h2 id="testimonials-title">Ils prennent le pas de côté</h2>
-        <p className="review-demo-notice">
-          Exemples fictifs pour la démonstration — ces témoignages ne sont pas des avis clients vérifiés.
-        </p>
-        <div className="home-testimonial-grid">
-          <blockquote>« Un week-end imaginé à notre rythme, avec de belles découvertes. »<cite>Camille et Alex · exemple</cite></blockquote>
-          <blockquote>« Les étapes nous ont laissé le temps de profiter de la ville. »<cite>Samira · exemple</cite></blockquote>
-          <blockquote>« Une proposition claire et des conseils pratiques pour partir sereins. »<cite>Louis et Anaïs · exemple</cite></blockquote>
-        </div>
-        <Link to="/avis">Voir les exemples d’avis →</Link>
-      </section>
 
       <section className="cta home-booking-cta">
         <div className="wrap">

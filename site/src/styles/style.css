@@ -3305,24 +3305,6 @@ h3 {
   padding-bottom: 0.65rem;
 }
 
-.legal-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  color: var(--ciel);
-  font-size: 0.78rem;
-  margin-bottom: 0.8rem;
-}
-
-.legal-breadcrumb a {
-  color: var(--craie);
-  text-underline-offset: 4px;
-}
-
-.legal-breadcrumb a:hover {
-  text-decoration: underline;
-}
-
 .legal-hero .eyebrow {
   color: var(--ciel);
 }
@@ -3611,10 +3593,6 @@ h3 {
     padding-top: 0.7rem;
   }
 
-  .legal-breadcrumb {
-    margin-bottom: 0.65rem;
-  }
-
   .legal-hero h1 {
     font-size: clamp(1.9rem, 8vw, 2.8rem);
   }
@@ -3745,7 +3723,7 @@ h3 {
 
 .home-inspirations {
   padding: 3rem 0;
-  background: var(--jaune);
+  background: var(--craie);
 }
 
 .home-testimonials {
@@ -3866,8 +3844,9 @@ h3 {
 }
 
 .home-booking-cta .pill.ghost {
-  background: var(--jaune);
-  border-color: var(--jaune);
+  background: transparent;
+  border-color: var(--craie);
+  color: var(--craie) !important;
 }
 
 @media (max-width: 720px) {
@@ -3875,6 +3854,18 @@ h3 {
   .home-testimonial-grid,
   .published-review-grid {
     grid-template-columns: 1fr;
+  }
+
+  .home-hero .hero-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-hero .hero-cta .pill,
+  .home-booking-cta .pill,
+  .client-account-actions .pill {
+    width: 100%;
+    margin-inline: 0;
   }
 }
 

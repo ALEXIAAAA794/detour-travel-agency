@@ -142,12 +142,6 @@ export default function MentionsLegales() {
     <main className="legal-page" id="contenu">
       <header className="legal-hero">
         <div className="wrap legal-hero-inner">
-          <nav className="legal-breadcrumb" aria-label="Fil d’Ariane">
-            <a href="/">Accueil</a>
-            <span>/</span>
-            <span>Mentions légales</span>
-          </nav>
-
           <span className="eyebrow">DÉTOUR VOYAGES · INFORMATIONS</span>
 
           <h1>
